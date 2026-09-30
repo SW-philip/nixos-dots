@@ -1,0 +1,13 @@
+# Niri Theme: free-palestine
+[colors]
+background = "#000000"
+text = "#ffffff"
+cursor = "#ee0000"
+
+[colors.selection]
+border = "#00f458"
+background = "#181616"
+
+[colors.hints]
+start = "#f9381e"
+end = "#3eba3e"

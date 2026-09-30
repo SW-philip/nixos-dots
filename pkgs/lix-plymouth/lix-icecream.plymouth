@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Lix Ice Cream
+Description=Soft-serve pour boot splash in Lix colors
+ModuleName=script
+
+[script]
+ImageDir=/etc/plymouth/themes/lix-icecream
+ScriptFile=/etc/plymouth/themes/lix-icecream/lix-icecream.script

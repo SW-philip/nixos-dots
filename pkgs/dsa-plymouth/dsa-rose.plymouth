@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=DSA Rose
+Description=DSA sunburst boot splash, WPA/New Left poster style
+ModuleName=script
+
+[script]
+ImageDir=/etc/plymouth/themes/dsa-rose
+ScriptFile=/etc/plymouth/themes/dsa-rose/dsa-rose.script

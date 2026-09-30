@@ -1,0 +1,45 @@
+{
+  "rotateSeconds": 45,
+  "pools": {
+    "_default": {
+      "weight": 0,
+      "lines": [
+        "A machine. Powered on. We'll call that a win.",
+        "Everything nominal. Suspicious, frankly.",
+        "No complaints logged. Give it time."
+      ]
+    },
+    "time": [
+      { "weight": 10, "from": 0, "to": 5, "lines": [
+        "It's {hour}:00. The good decisions clocked out hours ago.",
+        "Still up. The logs are taking notes." ] },
+      { "weight": 8, "from": 5, "to": 9, "lines": [
+        "Early start, or no stop. Hard to tell from here." ] },
+      { "weight": 6, "from": 22, "to": 24, "lines": [
+        "Wrapping up. That's the word we'll use." ] }
+    ],
+    "uptime": [
+      { "weight": 20, "overHours": 24, "lines": [
+        "{uptime_h}h uptime. Rebooting is also an option.",
+        "A full day without a restart. Bold." ] },
+      { "weight": 30, "overHours": 72, "lines": [
+        "{uptime_h}h. The RAM has seen things it can't unsee.",
+        "Three days. The kernel would like a word." ] }
+    ],
+    "disk": [
+      { "weight": 35, "overPct": 85, "lines": [
+        "Disk at {disk_pct}%. Hoarding is a lifestyle now.",
+        "{disk_pct}% full. Something in ~/Downloads is load-bearing." ] },
+      { "weight": 60, "overPct": 95, "lines": [
+        "{disk_pct}% full. One log rotation from a bad morning." ] }
+    ],
+    "thermal": [
+      { "weight": 40, "overC": 80, "lines": [
+        "{temp_max_c}°C. It's fine. It's fine. It's fine." ] }
+    ],
+    "battery": [
+      { "weight": 100, "state": "critical", "lines": [ "Plug me in, coward." ] },
+      { "weight": 50, "state": "low", "lines": [ "Battery low. Running on fumes and optimism." ] }
+    ]
+  }
+}

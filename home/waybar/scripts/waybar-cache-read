@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# waybar-cache-read <cache-name> <stale-seconds> <fallback-json>
+# Prints the cached JSON written by waybar-cache-poll if it's present, ok,
+# and not older than <stale-seconds>; otherwise prints <fallback-json>. Lets
+# a waybar custom module's own `exec` be a pure, near-instant file read
+# instead of doing the real (possibly slow) work itself on every poll or
+# every time a fresh waybar process spawns.
+set -euo pipefail
+
+name="$1"; stale_after="$2"; fallback="$3"
+cache_file="${XDG_CACHE_HOME:-$HOME/.cache}/waybar/${name}.json"
+
+if [[ -f "$cache_file" ]]; then
+    now=$(date +%s)
+    fetched_at=$(jq -r '.fetched_at // 0' "$cache_file" 2>/dev/null || echo 0)
+    ok=$(jq -r '.ok // false' "$cache_file" 2>/dev/null || echo false)
+    if [[ "$ok" == "true" ]] && (( now - fetched_at <= stale_after )); then
+        jq -c 'del(.ok, .fetched_at)' "$cache_file"
+        exit 0
+    fi
+fi
+printf '%s\n' "$fallback"

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}/lix-logout"
+PIDFILE="$RUNTIME_DIR/gui.pid"
+
+if [ "${1:-}" = status ]; then
+  if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo true
+  else
+    echo false
+  fi
+  exit 0
+fi
+
+mkdir -p "$RUNTIME_DIR"
+
+if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+  kill "$(cat "$PIDFILE")"
+  rm -f "$PIDFILE"
+else
+  # setsid + closed stdio, not a bare `lix-logout &`: swaync's menubar button
+  # reads this script's stdout and stays the parent of whatever it leaves
+  # running, so an attached background child keeps swaync's stdout pipe open
+  # and swaync double-frees on the broken pipe (SwayNotificationCenter#724),
+  # taking the popup down with it. Same detach the wayvnc/moonlight/uniremote
+  # session toggles already use.
+  setsid lix-logout >/dev/null 2>&1 &
+  echo $! > "$PIDFILE"
+fi

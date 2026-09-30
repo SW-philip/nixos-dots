@@ -1,0 +1,1480 @@
+{
+  "stations": [
+    {
+      "added_at": 1771645097,
+      "category": "INT1",
+      "frequency": 100.3,
+      "group": "Alternative",
+      "id": "ynot-radio-philly",
+      "last_played": 1788623407,
+      "name": "YNOT - Ynot Radio Philly",
+      "notes": null,
+      "play_count": 325,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [],
+      "url": "https://streaming.live365.com/a54553"
+    },
+    {
+      "added_at": 1771645111,
+      "category": "FM1",
+      "frequency": 88.5,
+      "group": "Public",
+      "id": "wxpn-885-philadelphia-pa",
+      "last_played": 1788627260,
+      "name": "XPN Radio",
+      "notes": null,
+      "play_count": 57,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [],
+      "url": "https://wxpnhi.xpn.org/xpnhi"
+    },
+    {
+      "added_at": 1771645113,
+      "category": "FM1",
+      "frequency": 88.1,
+      "group": "Public",
+      "id": "wxpn-hd2-xponential",
+      "last_played": 1787767095,
+      "name": "xPonential Radio",
+      "notes": null,
+      "play_count": 46,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [],
+      "url": "https://wxpn.xpn.org/xpn2mp3hi"
+    },
+    {
+      "added_at": 1773010573,
+      "category": "INT1",
+      "frequency": 95.7,
+      "group": "90s",
+      "id": "90s90s-hits",
+      "last_played": 1788617832,
+      "name": "90s90s",
+      "notes": null,
+      "play_count": 39,
+      "rb_uuid": null,
+      "source": {
+        "origin": "http://streams.90s90s.de/pop/mp3-192/streams.90s90s.de/",
+        "type": "radiobrowser"
+      },
+      "stream": {
+        "bitrate": 0,
+        "codec": "MP3",
+        "country": "Germany",
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [
+        "90s",
+        "hits",
+        "pop"
+      ],
+      "url": "http://streams.90s90s.de/pop/mp3-192/streams.90s90s.de/"
+    },
+    {
+      "added_at": 1774102873,
+      "category": "FM1",
+      "frequency": 94.1,
+      "group": "Sports",
+      "id": "wip-sportsradio-philadelphia",
+      "last_played": 1783194988,
+      "name": "WIP Sportsradio",
+      "notes": null,
+      "play_count": 8,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://live.amperwave.net/direct/audacy-wipfmaac-imc"
+    },
+    {
+      "added_at": 1774103168,
+      "category": "FM1",
+      "frequency": 102.1,
+      "group": "Top 40",
+      "id": "wioq-q102",
+      "last_played": 1788553008,
+      "name": "Q102",
+      "notes": null,
+      "play_count": 19,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://stream.revma.ihrhls.com/zc1997/hls.m3u8"
+    },
+    {
+      "added_at": 1774104255,
+      "category": "FM1",
+      "frequency": 97.5,
+      "group": "Sports",
+      "id": "wpen-the-fanatic",
+      "last_played": 1786108885,
+      "name": "The Fanatic",
+      "notes": null,
+      "play_count": 12,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/WPENFMAAC.aac"
+    },
+    {
+      "added_at": 1774144389,
+      "category": "FM1",
+      "frequency": 93.3,
+      "group": "Rock",
+      "id": "wmmr-mmr-rocks",
+      "last_played": 1784565778,
+      "name": "WMMR",
+      "notes": null,
+      "play_count": 20,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/WMMRFMAAC.aac"
+    },
+    {
+      "added_at": 1774144444,
+      "category": "FM2",
+      "frequency": 104.5,
+      "group": "Rock",
+      "id": "wrff-alt-1045",
+      "last_played": 1787260868,
+      "name": "Postmodern Radio",
+      "notes": null,
+      "play_count": 22,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://stream.revma.ihrhls.com/zc3401/hls.m3u8"
+    },
+    {
+      "added_at": 1775088264,
+      "category": "AM1",
+      "frequency": 1060.0,
+      "group": "Rock",
+      "id": "megarock-radio-320k",
+      "last_played": 1788546243,
+      "name": "Megarock Radio",
+      "notes": null,
+      "play_count": 23,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://stream3.megarockradio.net:80/"
+    },
+    {
+      "added_at": 1775093789,
+      "category": "AM1",
+      "frequency": 1210.0,
+      "group": "Blues",
+      "id": "radioart-just-blues",
+      "last_played": 1788546255,
+      "name": "RadioArt: Just Blues",
+      "notes": null,
+      "play_count": 17,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://live.radioart.com/fJust_blues.mp3"
+    },
+    {
+      "added_at": 1775093839,
+      "category": "AM1",
+      "frequency": 1490.0,
+      "group": "Pop",
+      "id": "somafm-poptron-128k-mp3",
+      "last_played": 1788553009,
+      "name": "SomaFM PopTron",
+      "notes": null,
+      "play_count": 23,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://ice2.somafm.com/poptron-128-mp3"
+    },
+    {
+      "added_at": 1780065297,
+      "category": "AM1",
+      "frequency": 1540.0,
+      "group": "Indie",
+      "id": "somafm-indie-pop-rocks-128k-aac",
+      "last_played": 1788627182,
+      "name": "SomaFM Indie Pop Rocks!",
+      "notes": null,
+      "play_count": 48,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://ice6.somafm.com/indiepop-128-aac"
+    },
+    {
+      "added_at": 1780065312,
+      "category": "FM2",
+      "frequency": 92.5,
+      "group": "Indie",
+      "id": "indie-experience",
+      "last_played": 1788548549,
+      "name": "Indie Experience",
+      "notes": null,
+      "play_count": 39,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://stream.laut.fm/indie_experience"
+    },
+    {
+      "added_at": 1780864823,
+      "category": "FM2",
+      "frequency": 98.1,
+      "group": "Pop",
+      "id": "big-r-radio-80s-and-90s-pop-mix",
+      "last_played": 1788545371,
+      "name": "Big R Radio - 80s & 90s",
+      "notes": null,
+      "play_count": 63,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://bigrradio.cdnstream1.com/5183_128"
+    },
+    {
+      "added_at": 1781653220,
+      "category": "FM2",
+      "frequency": 105.3,
+      "group": "Dance",
+      "id": "dance-wave-retro",
+      "last_played": 1788565975,
+      "name": "Dance Wave Retro!",
+      "notes": null,
+      "play_count": 3,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://retro.dancewave.online/retrodance.mp3"
+    },
+    {
+      "added_at": 1782596248,
+      "category": "FM1",
+      "frequency": 102.9,
+      "group": "Jazz",
+      "id": "101-smooth-jazz",
+      "last_played": 1786109006,
+      "name": "101 SMOOTH JAZZ",
+      "notes": null,
+      "play_count": 7,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://jking.cdnstream1.com/b22139_128mp3"
+    },
+    {
+      "added_at": 1783007584,
+      "category": null,
+      "frequency": 88.9,
+      "group": "90s",
+      "id": "1fm_90s_alternative_radio",
+      "last_played": 1788552819,
+      "name": "FM 90s",
+      "notes": null,
+      "play_count": 24,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://strm112.1.fm/partyzone90s_mobile_mp3"
+    },
+    {
+      "added_at": 1783114869,
+      "category": null,
+      "frequency": 89.3,
+      "group": "Blues",
+      "id": "jazz_radio_blues",
+      "last_played": 1786717923,
+      "name": "Jazz Radio Blues",
+      "notes": null,
+      "play_count": 7,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://jazzblues.ice.infomaniak.ch/jazzblues-high.mp3"
+    },
+    {
+      "added_at": 1783125612,
+      "category": null,
+      "frequency": 89.7,
+      "group": "90s",
+      "id": "977_90s",
+      "last_played": 1788215556,
+      "name": ".977",
+      "notes": null,
+      "play_count": 22,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://26433.live.streamtheworld.com:3690/977_90_SC"
+    },
+    {
+      "added_at": 1783125612,
+      "category": null,
+      "frequency": 90.1,
+      "group": "News",
+      "id": "bbc_world_service",
+      "last_played": 1785520951,
+      "name": "BBC World Service",
+      "notes": null,
+      "play_count": 9,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service"
+    },
+    {
+      "added_at": 1783603292,
+      "category": null,
+      "frequency": 90.9,
+      "group": "Ambient",
+      "id": "ambient_modern",
+      "last_played": 1786624847,
+      "name": "Ambient Modern",
+      "notes": null,
+      "play_count": 16,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://radio.stereoscenic.com/mod-h"
+    },
+    {
+      "added_at": 1784509812,
+      "category": null,
+      "frequency": 91.3,
+      "group": "Lo-Fi",
+      "id": "0r_-_lo-fi__lofi_chill_study_hip_hop_relax_background_calm_instrumental_smooth_beats_coffee_work_focus_soft_chillhop",
+      "last_played": 1788473930,
+      "name": "0R",
+      "notes": null,
+      "play_count": 16,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://0nlineradio.radioho.st/0r-lo-fi?ref=radio-browser26"
+    },
+    {
+      "added_at": 1784509812,
+      "category": null,
+      "frequency": 91.7,
+      "group": "Sleep",
+      "id": "0r_-_music_for_sleep__sleep_relax_calm_meditation_nature_ambient_soft_music_piano_deep_sleep_peaceful_chill_background_slow_gentle_instrumental",
+      "last_played": 1788473921,
+      "name": "0R",
+      "notes": null,
+      "play_count": 5,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://0nlineradio.radioho.st/classical-classical-music-for-sleep?ref=radio-browser26"
+    },
+    {
+      "added_at": 1784509812,
+      "category": null,
+      "frequency": 92.1,
+      "group": "Chill",
+      "id": "calm_n_chill_radio",
+      "last_played": 1788473821,
+      "name": "Calm N Chill Radio",
+      "notes": null,
+      "play_count": 6,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://stream.zeno.fm/yvcddifycietv"
+    },
+    {
+      "added_at": 1784835719,
+      "category": null,
+      "frequency": 92.9,
+      "group": "Philadelphia",
+      "id": "radio_tsop_-_the_sound_of_philadelphia",
+      "last_played": 1784835719,
+      "name": "Radio TSOP - The Sound Of Philadelphia",
+      "notes": null,
+      "play_count": 1,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://54.36.165.156:8650/stream"
+    },
+    {
+      "added_at": 1786109257,
+      "category": null,
+      "frequency": 94.5,
+      "group": "Philadelphia",
+      "id": "wppm_-_phillycam",
+      "last_played": 1787847605,
+      "name": "WPPM - PhillyCAM",
+      "notes": null,
+      "play_count": 4,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://phillycam.radioca.st/stream"
+    },
+    {
+      "added_at": 1788553081,
+      "category": null,
+      "frequency": 94.9,
+      "group": "Alternative",
+      "id": "static__90s__2000s_alt_rock",
+      "last_played": 1788553086,
+      "name": "Static",
+      "notes": null,
+      "play_count": 2,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://r.bgp.rodeo/listen/static/radio.mp3"
+    },
+    {
+      "added_at": 1788553224,
+      "category": null,
+      "frequency": 95.3,
+      "group": "Post-Punk",
+      "id": "radio_caprice_-_post-punk",
+      "last_played": 1788553224,
+      "name": "Radio Caprice",
+      "notes": null,
+      "play_count": 2,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://79.120.39.202:9071/"
+    },
+    {
+      "added_at": 1788553224,
+      "category": null,
+      "frequency": 96.1,
+      "group": "Post-Rock",
+      "id": "radio_caprice_-_post-rock",
+      "last_played": 1788627251,
+      "name": "Radio Caprice",
+      "notes": null,
+      "play_count": 1,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://79.111.14.76:8004/postrock"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM1",
+      "frequency": 102.9,
+      "group": "Classic Rock",
+      "id": "wmgk-classic-rock-1029",
+      "last_played": 1779501505,
+      "name": "WMGK",
+      "notes": null,
+      "play_count": 4,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "classic-rock"
+      ],
+      "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/WMGKFMAAC.aac"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM1",
+      "frequency": 95.1,
+      "group": "Classic Rock",
+      "id": "wzzo-rock-951",
+      "last_played": 1778783459,
+      "name": "WZZO",
+      "notes": null,
+      "play_count": 11,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "rock"
+      ],
+      "url": "https://stream.revma.ihrhls.com/zc1977"
+    },
+    {
+      "added_at": 1770993241,
+      "category": "Rock",
+      "frequency": 900.0,
+      "group": "Punk",
+      "id": "real-punk-radio",
+      "last_played": 1786665286,
+      "name": "Real Punk Radio",
+      "notes": null,
+      "play_count": 61,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "punk",
+        "rock"
+      ],
+      "url": "http://149.56.155.73:8080/stream"
+    },
+    {
+      "added_at": 1772826718,
+      "category": "Rock",
+      "frequency": 1060.0,
+      "group": "Indie",
+      "id": "indie-x-fm",
+      "last_played": 1788554237,
+      "name": "XFM",
+      "notes": null,
+      "play_count": 76,
+      "rb_uuid": null,
+      "source": {
+        "origin": "http://kathy.torontocast.com:2690/stream",
+        "type": "radiobrowser"
+      },
+      "stream": {
+        "bitrate": 320,
+        "codec": "MP3",
+        "country": "The United States Of America",
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [
+        "alternative rock",
+        "alternative wave",
+        "edm",
+        "indie",
+        "indie pop",
+        "indie rock"
+      ],
+      "url": "http://kathy.torontocast.com:2690/stream"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM2",
+      "frequency": 101.1,
+      "group": "Easy Listening",
+      "id": "wbeb-b101",
+      "last_played": 1788554561,
+      "name": "B101",
+      "notes": null,
+      "play_count": 8,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "adult-contemporary"
+      ],
+      "url": "https://live.amperwave.net/direct/audacy-wbebfmaac-imc"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM2",
+      "frequency": 98.1,
+      "group": "Oldies",
+      "id": "wogl-big-981",
+      "last_played": 1786665108,
+      "name": "WOGL",
+      "notes": null,
+      "play_count": 2,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "classic-hits"
+      ],
+      "url": "https://live.amperwave.net/direct/audacy-woglfmaac-imc"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM2",
+      "frequency": 95.7,
+      "group": "Easy Listening",
+      "id": "wben-ben-fm",
+      "last_played": 1786741808,
+      "name": "Ben FM",
+      "notes": null,
+      "play_count": 3,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "adult-hits"
+      ],
+      "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/WBENFMAAC.aac"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM2",
+      "frequency": 93.7,
+      "group": "Easy Listening",
+      "id": "wstw-delaware-valley",
+      "last_played": 1781815547,
+      "name": "WSTW",
+      "notes": null,
+      "play_count": 3,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "hot-ac"
+      ],
+      "url": "https://ais-sa1.streamon.fm:443/7864_96k.aac"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM1",
+      "frequency": 96.5,
+      "group": "Top 40",
+      "id": "wtdy-hot-ac-965",
+      "last_played": 1786665101,
+      "name": "Hot AC",
+      "notes": null,
+      "play_count": 4,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "hot-ac"
+      ],
+      "url": "https://live.amperwave.net/direct/audacy-wtdyfmaac-imc"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM1",
+      "frequency": 94.5,
+      "group": "Top 40",
+      "id": "wpst-top-40-945",
+      "last_played": 1778180960,
+      "name": "WPST",
+      "notes": null,
+      "play_count": 2,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "top-40"
+      ],
+      "url": "https://live.amperwave.net/direct/townsquare-wpstfmaac-ibc3"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "FM2",
+      "frequency": 100.7,
+      "group": "News",
+      "id": "wlev-ac-1007",
+      "last_played": 1788555014,
+      "name": "WLEV",
+      "notes": null,
+      "play_count": 3,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "adult-contemporary"
+      ],
+      "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/wlevfm.mp3"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Urban",
+      "frequency": 98.9,
+      "group": "RnB/Hip-Hop",
+      "id": "wusl-power-99",
+      "last_played": 1779994352,
+      "name": "Power 99",
+      "notes": null,
+      "play_count": 4,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "hip-hop"
+      ],
+      "url": "https://stream.revma.ihrhls.com/zc2009"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Urban",
+      "frequency": 105.3,
+      "group": "RnB/Hip-Hop",
+      "id": "wdas-urban-1053",
+      "last_played": 1779994356,
+      "name": "Urban",
+      "notes": null,
+      "play_count": 3,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "urban-contemporary"
+      ],
+      "url": "https://stream.revma.ihrhls.com/zc1993"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Public",
+      "frequency": 90.9,
+      "group": "News",
+      "id": "whyy-npr",
+      "last_played": 1775841249,
+      "name": "NPR",
+      "notes": null,
+      "play_count": 2,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "public-radio",
+        "news-talk"
+      ],
+      "url": "http://whyy.streamguys1.com/whyy-mp3"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Public",
+      "frequency": 89.1,
+      "group": "College",
+      "id": "wxvu-villanova-radio",
+      "last_played": 1781814966,
+      "name": "Villanova Radio",
+      "notes": null,
+      "play_count": 8,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "college"
+      ],
+      "url": "http://nap.casthost.net:8002/stream"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Public",
+      "frequency": 97.5,
+      "group": "College",
+      "id": "wprb-princeton-radio",
+      "last_played": 1788554002,
+      "name": "Princeton Radio",
+      "notes": null,
+      "play_count": 7,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "college"
+      ],
+      "url": "https://wprb.streamguys1.com/live"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Classical",
+      "frequency": 90.1,
+      "group": "Classical",
+      "id": "wrti-classical",
+      "last_played": null,
+      "name": "WRTI Philly",
+      "notes": null,
+      "play_count": 0,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "classical"
+      ],
+      "url": "http://wrti-live.streamguys1.com/classical-mp3"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Classical",
+      "frequency": 90.1,
+      "group": "Jazz",
+      "id": "wrti-jazz",
+      "last_played": 1778783508,
+      "name": "WRTI",
+      "notes": null,
+      "play_count": 1,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "jazz"
+      ],
+      "url": "http://wrti-live.streamguys1.com/jazz-mp3"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "AM1",
+      "frequency": 1210.0,
+      "group": "Talk",
+      "id": "wpht-talk-1210",
+      "last_played": 1788555511,
+      "name": "WPHT",
+      "notes": null,
+      "play_count": 2,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "talk"
+      ],
+      "url": "https://live.amperwave.net/direct/audacy-wphtamaac-imc"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "AM1",
+      "frequency": 1060.0,
+      "group": "News",
+      "id": "kyw-news-radio-1060",
+      "last_played": 1775240116,
+      "name": "KYW News Radio",
+      "notes": null,
+      "play_count": 1,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "news"
+      ],
+      "url": "https://live.amperwave.net/direct/audacy-kywamaac-imc"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Talk",
+      "frequency": 101.5,
+      "group": "Talk",
+      "id": "wkxw-nj-1015",
+      "last_played": 1788553921,
+      "name": "NJ 101.5",
+      "notes": null,
+      "play_count": 2,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "news-talk"
+      ],
+      "url": "https://live.amperwave.net/direct/townsquare-wkxwfmaac-ibc3"
+    },
+    {
+      "added_at": 1776454553,
+      "category": "Pop",
+      "frequency": 105.3,
+      "group": "Pop",
+      "id": "iheart2000s-radio",
+      "last_played": 1788623537,
+      "name": "iHeart2000s",
+      "notes": null,
+      "play_count": 10,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://stream.revma.ihrhls.com/zc6850/hls.m3u8"
+    },
+    {
+      "added_at": 1781815197,
+      "category": "Pop",
+      "frequency": 101.1,
+      "group": "Pop",
+      "id": "neon-radio-80s-90s-pop-dance",
+      "last_played": 1788553936,
+      "name": "Neon Radio",
+      "notes": null,
+      "play_count": 1,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://live.flashbackcentral.co.uk/radio/8050/tunein.mp3"
+    },
+    {
+      "added_at": 1774614322,
+      "category": "Alt",
+      "frequency": 900.0,
+      "group": "Alternative",
+      "id": "jjj-triple-j-unearthed",
+      "last_played": 1780064777,
+      "name": "Triple J Unearthed",
+      "notes": null,
+      "play_count": 18,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [
+        "college",
+        "alternative"
+      ],
+      "url": "https://mediaserviceslive.akamaized.net/hls/live/2038305/triplejunearthed/masterhq.m3u8"
+    },
+    {
+      "added_at": 1774057666,
+      "category": "INT1",
+      "frequency": 102.1,
+      "group": "Hip-Hop/Rap",
+      "id": "90s90s-hip-hop",
+      "last_played": 1788093366,
+      "name": "90s90s",
+      "notes": null,
+      "play_count": 24,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [],
+      "url": "https://streams.90s90s.de/hiphop/aac-64/surfmusik/?1707015744"
+    },
+    {
+      "added_at": 1775154351,
+      "category": "FM2",
+      "frequency": "102.1 FM",
+      "id": "wioq-q102-philly",
+      "last_played": 1779501529,
+      "name": "(WIOQ) Q102 Philly",
+      "notes": null,
+      "play_count": 11,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [
+        "top-40"
+      ],
+      "url": "https://stream.revma.ihrhls.com/zc1997/hls.m3u8"
+    },
+    {
+      "added_at": 1775154483,
+      "category": "Urban",
+      "frequency": "1060 AM",
+      "id": "wrnb-rnb-and-hip-hop",
+      "last_played": 1779994366,
+      "name": "(WRNB) RnB and Hip Hop",
+      "notes": null,
+      "play_count": 5,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [
+        "urban-contemporary"
+      ],
+      "url": "https://playerservices.streamtheworld.com/api/livestream-redirect/WRNBHD2.mp3"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "AM1",
+      "frequency": "900 AM",
+      "id": "wurd-talk-900",
+      "last_played": 1775240081,
+      "name": "(WURD) Talk 900",
+      "notes": null,
+      "play_count": 1,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "talk"
+      ],
+      "url": "https://wurd.streamguys1.com/live"
+    },
+    {
+      "added_at": 1774613963,
+      "category": "Sports",
+      "frequency": "94.1 FM",
+      "id": "wwip-sports-radio-94-wip",
+      "last_played": 1779396220,
+      "name": "(WWIP) Sports Radio 94 WIP",
+      "notes": null,
+      "play_count": 6,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [
+        "sports"
+      ],
+      "url": "https://live.amperwave.net/direct/audacy-wipfmaac-imc"
+    },
+    {
+      "added_at": 1775238417,
+      "category": "Sports",
+      "frequency": "1480 AM",
+      "id": "wdas-sports-1480",
+      "last_played": 1786741824,
+      "name": "(WDAS) Sports 1480",
+      "notes": null,
+      "play_count": 5,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "sports"
+      ],
+      "url": "https://stream.revma.ihrhls.com/zc3405"
+    },
+    {
+      "added_at": 1774037437,
+      "category": "Urban",
+      "frequency": "107.9 FM",
+      "id": "90s90s-hiphop-rap",
+      "last_played": 1779995172,
+      "name": "(WPWR) 90s Hip-Hop & Rap",
+      "notes": null,
+      "play_count": 40,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {},
+      "tags": [
+        "hip-hop"
+      ],
+      "url": "http://streams.90s90s.de/hiphop/mp3-192/streams.90s90s.de/"
+    },
+    {
+      "added_at": 1776454551,
+      "category": "Pop",
+      "frequency": 99.1,
+      "group": "Alternative",
+      "id": "triple-m-2000s",
+      "last_played": 1780584027,
+      "name": "Triple M 2000s",
+      "notes": null,
+      "play_count": 8,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "https://wz2liw.scahw.com.au/live/22000s_128.stream/playlist.m3u8"
+    },
+    {
+      "added_at": 1783125612,
+      "category": null,
+      "frequency": 90.5,
+      "group": "News",
+      "id": "npr_24_hour_program_stream",
+      "last_played": 1783975961,
+      "name": "NPR 24 Hour Program Stream",
+      "notes": null,
+      "play_count": 5,
+      "rb_uuid": null,
+      "source": {
+        "origin": "user",
+        "type": "manual"
+      },
+      "stream": {
+        "bitrate": null,
+        "codec": null,
+        "country": null,
+        "last_checked": null,
+        "validated": false
+      },
+      "tags": [],
+      "url": "http://npr-ice.streamguys1.com/live.mp3"
+    }
+  ],
+  "version": 1
+}

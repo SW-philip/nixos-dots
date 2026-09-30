@@ -1,0 +1,13 @@
+# Niri Theme: earl-grey
+[colors]
+background = "#393b3e"
+text = "#ffffff"
+cursor = "#8f86a3"
+
+[colors.selection]
+border = "#d0c7d4"
+background = "#4d5358"
+
+[colors.hints]
+start = "#b3ada7"
+end = "#a59a8c"

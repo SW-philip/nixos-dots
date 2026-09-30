@@ -1,0 +1,60 @@
+// pkgs/dsa-plymouth/dsa-rose.script
+// Frame counts are substituted at build time by default.nix.
+ray_frame_count = @RAY_FRAME_COUNT@;
+medallion_frame_count = @MEDALLION_FRAME_COUNT@;
+medallion_hold_frame = medallion_frame_count - 1;
+fps_div = 2;                      // refresh ~50Hz; advance every 2 ticks (~24fps)
+
+Window.SetBackgroundTopColor(0.137, 0.192, 0.153);     // ~#233127
+Window.SetBackgroundBottomColor(0.137, 0.192, 0.153);
+
+bg_image = Image("background.png");
+bg_sprite = Sprite(bg_image);
+bg_sprite.SetZ(-10);
+
+for (i = 0; i < ray_frame_count; i++)
+    ray_frames[i] = Image("ray-" + i + ".png");
+for (i = 0; i < medallion_frame_count; i++)
+    medallion_frames[i] = Image("medallion-" + i + ".png");
+
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+
+bg_sprite.SetImage(bg_image.Scale(screen_w, screen_h));
+
+ray_size = screen_h * 0.55;
+ray_x = (screen_w - ray_size) / 2;
+ray_y = (screen_h - ray_size) / 2;
+ray_sprite = Sprite();
+ray_sprite.SetX(ray_x);
+ray_sprite.SetY(ray_y);
+ray_sprite.SetZ(0);
+
+med_size = ray_size / 1.83;
+med_x = (screen_w - med_size) / 2;
+med_y = (screen_h - med_size) / 2;
+med_sprite = Sprite();
+med_sprite.SetX(med_x);
+med_sprite.SetY(med_y);
+med_sprite.SetZ(1);
+
+mode = Plymouth.GetMode();
+counter = 0;
+
+fun refresh() {
+    if (mode == "shutdown" || mode == "reboot") {
+        ray_idx = 0;
+        med_idx = medallion_hold_frame;
+    } else {
+        tick = Math.Int(counter / fps_div);
+        ray_idx = tick % ray_frame_count;
+        med_idx = tick;
+        if (med_idx > medallion_hold_frame) med_idx = medallion_hold_frame;
+        counter++;
+    }
+    ray_sprite.SetImage(ray_frames[ray_idx].Scale(ray_size, ray_size));
+    med_sprite.SetImage(medallion_frames[med_idx].Scale(med_size, med_size));
+}
+Plymouth.SetRefreshFunction(refresh);
+
+// Leave the LUKS password prompt as Plymouth's default rendering.

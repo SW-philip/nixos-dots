@@ -1,0 +1,13 @@
+# Niri Theme: dunes
+[colors]
+background = "#1a1a1a"
+text = "#ffffff"
+cursor = "#f6b83c"
+
+[colors.selection]
+border = "#cea736"
+background = "#322f30"
+
+[colors.hints]
+start = "#ffffff"
+end = "#d5a66d"

@@ -1,0 +1,21 @@
+{
+  "_note": "Writable copy seeded from the repo default. A syntax error here silently disables the snark line. Check: bash ~/nixos/home/waybar/scripts/tests/test_niri_workspace.sh",
+  "rotateSeconds": 60,
+  "persona": {
+    "code":     ["Ah yes, \"coding\".", "The IDE misses you. It doesn't, really."],
+    "browse":   ["Research. Sure.", "Seventeen tabs and none of them the one you want."],
+    "media":    ["Working hard, are we.", "This counts as multitasking, apparently."],
+    "scratch":  ["Welcome to the graveyard.", "Whatever this was, it's load-bearing now."],
+    "office":   ["Spreadsheets. Living the dream.", "A cell was edited. History will remember."],
+    "_default": ["A workspace. Bold choice.", "You named none of these. Telling."]
+  },
+  "time": [
+    { "from": 0,  "to": 5,  "lines": ["It's 3am. This is fine.", "The good ideas left hours ago."] },
+    { "from": 5,  "to": 9,  "lines": ["Up early, or still up. Hard to say."] },
+    { "from": 9,  "to": 12, "lines": ["Morning. Allegedly productive."] },
+    { "from": 12, "to": 14, "lines": ["Lunch was a concept you considered."] },
+    { "from": 14, "to": 18, "lines": ["Peak productivity hours, they said."] },
+    { "from": 18, "to": 22, "lines": ["Still here, then."] },
+    { "from": 22, "to": 24, "lines": ["Wrapping up. That's the word for it."] }
+  ]
+}

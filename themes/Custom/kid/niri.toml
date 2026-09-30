@@ -1,0 +1,13 @@
+# Niri Theme: kid
+[colors]
+background = "#ff6d1f"
+text = "#ffffff"
+cursor = "#ff8b42"
+
+[colors.selection]
+border = "#fbff19"
+background = "#f57a00"
+
+[colors.hints]
+start = "#d67005"
+end = "#ff8705"

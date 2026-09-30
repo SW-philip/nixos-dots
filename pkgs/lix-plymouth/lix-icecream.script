@@ -1,0 +1,41 @@
+// pkgs/lix-plymouth/lix-icecream.script
+// frame_count is substituted at build time by default.nix.
+frame_count = @FRAME_COUNT@;
+hold_frame  = frame_count - 1;
+fps_div     = 2;                 // refresh ~50Hz; advance every 2 ticks (~24fps)
+
+// Lix-pink screen gradient behind the (transparent) frames.
+Window.SetBackgroundTopColor(0.165, 0.039, 0.118);    // ~#2a0a1e
+Window.SetBackgroundBottomColor(0.078, 0.020, 0.063); // ~#140510
+
+for (i = 0; i < frame_count; i++)
+    frames[i] = Image("frame-" + i + ".png");
+
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+src_w = frames[0].GetWidth();
+src_h = frames[0].GetHeight();
+logo_h = screen_h * 0.55;
+scale  = logo_h / src_h;
+logo_w = src_w * scale;
+
+sprite = Sprite();
+sprite.SetX((screen_w - logo_w) / 2);
+sprite.SetY((screen_h - logo_h) / 2);
+
+mode = Plymouth.GetMode();
+counter = 0;
+
+fun refresh() {
+    if (mode == "shutdown" || mode == "reboot")
+        idx = hold_frame;
+    else {
+        idx = Math.Int(counter / fps_div);
+        if (idx > hold_frame) idx = hold_frame;
+        counter++;
+    }
+    sprite.SetImage(frames[idx].Scale(logo_w, logo_h));
+}
+Plymouth.SetRefreshFunction(refresh);
+
+// Leave the LUKS password prompt as Plymouth's default rendering.

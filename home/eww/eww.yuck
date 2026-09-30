@@ -1,0 +1,326 @@
+(defvar reveal false)
+(defvar reveal_tv false)
+(defvar is_desktop false)
+(defvar ledger_hover false)
+(defvar ledger_hover_tv false)
+(defvar ledger_open false)
+(defvar wing_open false)
+
+(deflisten vitals  :initial "{}" `while :; do bash SCRIPTS/vitals.sh;  sleep 2;  done`)
+(deflisten storage :initial "{}" `while :; do bash SCRIPTS/storage.sh; sleep 60; done`)
+(deflisten boot    :initial "{}" `while :; do bash SCRIPTS/boot.sh;    sleep 30; done`)
+(deflisten snark   :initial `{"line":""}` `while :; do bash SCRIPTS/snark.sh; sleep 20; done`)
+
+(deflisten purity :initial "{}" `while :; do bash SCRIPTS/purity.sh; sleep 20; done`)
+(deflisten net    :initial "{}" `while :; do bash SCRIPTS/net.sh;    sleep 20; done`)
+(deflisten bt     :initial "{}" `while :; do bash SCRIPTS/bt.sh;     sleep 20; done`)
+(deflisten power  :initial "{}" `while :; do bash SCRIPTS/power.sh;  sleep 30; done`)
+(deflisten mug    :initial "{}" `while :; do bash SCRIPTS/mug.sh;    sleep 20; done`)
+(deflisten myln   :initial "{}" `while :; do bash SCRIPTS/myln.sh;   sleep 30; done`)
+(deflisten tablet :initial "false" `while :; do bash SCRIPTS/tablet.sh; sleep 1; done`)
+;; true while squeekboard is on screen; the bottom ledger fades out of its way.
+(deflisten osk :initial "false" `while :; do TOGGLE_OSK_BIN status; sleep 0.5; done`)
+(deflisten launcher_rows :initial "[]" `while :; do bash SCRIPTS/launcher-favs.sh; sleep 30; done`)
+
+;; Reads the same ~/.cache/waybar/stoic-quote.json that
+;; home/waybar/stoic.nix's poll timer writes -- this chip is just another
+;; reader of that cache, same as the retired waybar custom module was.
+(deflisten stoic_quote :initial "{}" `while :; do QUOTE_CACHE_READ; sleep 10; done`)
+
+(defwidget sec [title]
+  (label :class "hdr" :halign "start" :text title))
+
+(defwidget subsec [title]
+  (label :class "subhdr" :halign "start" :text title))
+
+(defwidget legendary []
+  (box :class "section" :orientation "vertical" :space-evenly false :spacing 4
+    (sec :title "LEGENDARY")
+    (box :class "readout-pill wide" :halign "start"
+      (label :class "row" :halign "start" :text "uptime ${boot.uptime_str ?: "?"}  ·  ${boot.kernel ?: "?"}"))
+    (box :class "readout-pill wide" :halign "start"
+      (label :class "row" :halign "start"
+             :text {(boot.rebuild_state ?: "?") == "unknown"
+                    ? "rebuild age unknown"
+                    : "rebuild ${boot.rebuild_age_h ?: 0}h ago (${boot.rebuild_state ?: "?"})"}))
+    (box :class {(boot.gen_drift ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
+      (label :class {(boot.gen_drift ?: false) ? "row readout warn" : "row"} :halign "start"
+             :text {(boot.gen_drift ?: false) ? "booted generation ≠ current" : "generation  ·  in sync"}))
+    (box :class "readout-pill wide" :halign "start"
+      (label :class {(purity.pure ?: true) ? "row" : "row readout warn"} :halign "start"
+             :text {(purity.pure ?: true)
+                    ? "wayland  ·  pure"
+                    : "wayland  ·  ${purity.clients ?: 0} xwayland"}))
+    (box :class {(myln.available ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
+      (label :class {(myln.count ?: 0) > 0 ? "row readout warn" : "row"} :halign "start"
+             :text {!(myln.available ?: false)
+                    ? "myln  ·  n/a"
+                    : "myln  ·  ${myln.count ?: 0} errors"}))
+    (box :class {jq(boot, ".sleep_drain_pct != null") ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
+      (label :class "row" :halign "start"
+             :text {jq(boot, ".sleep_drain_pct != null")
+                    ? "sleep drain  ·  ${boot.sleep_drain_pct}% / ${boot.sleep_hours}h"
+                    : "sleep drain  ·  no data"}))
+    (box :class {(mug.available ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
+      (label :class "row" :halign "start"
+             :text {(mug.available ?: false)
+                    ? "mug  ·  ${mug.liquid_state}  ·  ${mug.temp_c}°C → ${mug.target_c}°C  ·  ${mug.battery_pct}%"
+                    : "mug  ·  not connected"}))))
+
+(defwidget rare []
+  (box :class "section" :orientation "vertical" :space-evenly false :spacing 4
+    (sec :title "RARE")
+    (subsec :title "resources")
+    (box :class "row" :space-evenly true
+      (box :class "readout-pill stat-trio"
+        (label :class "readout" :halign "start" :text "cpu ${vitals.cpu_pct ?: 0}%"))
+      (box :class "readout-pill stat-trio"
+        (label :class "readout" :halign "start" :text "mem ${vitals.mem_pct ?: 0}%"))
+      (box :class "readout-pill stat-trio"
+        (label :class "readout" :halign "start" :text "load avg ${vitals.load1 ?: 0}")))
+    (box :class "row" :space-evenly true
+      (box :class "readout-pill stat-pair"
+        (label :class {(vitals.temp_cpu_c ?: 0) >= 85 ? "readout crit" : "readout"}
+               :halign "start"
+               :text "cpu temp ${vitals.temp_cpu_c ?: 0}°C"))
+      (box :class "readout-pill stat-pair"
+        (label :class "readout" :halign "start" :text "peak temp ${vitals.temp_max_c ?: 0}°C")))
+    (graph :class "spark" :thickness 2 :time-range "120s" :min 0 :max 100
+           :value {vitals.cpu_pct ?: 0} :dynamic true)
+    (subsec :title "storage")
+    (for m in {storage.mounts ?: "[]"}
+      (box :orientation "vertical" :space-evenly false
+        (box :class "readout-pill" :space-evenly true
+          (label :class "row" :halign "start" :text {m.target})
+          (label :class "row" :halign "end"   :text "${m.used_gib}/${m.size_gib} GiB"))
+        (progress :class {m.pct >= 90 ? "bar hot" : "bar"} :value {m.pct ?: 0})))
+    (box :class "readout-pill" :halign "start"
+      (label :class "row" :halign "start"
+             :text "generation ${storage.generation ?: "?"} (current) · ${storage.generation_total ?: "?"} kept"))))
+
+;; bt/net/vpn are always-present single rows now -- never appear, disappear,
+;; or change row count on a poll. A device connecting/disconnecting or the
+;; VPN toggling on/off used to add or remove whole pills here, which is what
+;; made the panel visibly grow/shrink on every 20s bt/net poll. Now a poll
+;; only ever swaps the text inside a pill that was already there. Before a
+;; listener's first poll lands (or if it never does, e.g. bt.sh missing
+;; busctl) jq(...,"has(...)") is false and the row shows "loading…" instead
+;; of flashing a wrong default or vanishing outright.
+(defwidget common []
+  (box :class "section" :orientation "vertical" :space-evenly false :spacing 4
+    (sec :title "COMMON")
+    (box :class "readout-pill wide" :halign "start" :space-evenly true
+      (label :class "row" :halign "start" :text "bt")
+      (label :class "row" :halign "end"
+             :text {!jq(bt, "has(\"count\")") ? "loading…"
+                  : (bt.count ?: 0) == 0 ? "no devices"
+                  : (bt.count ?: 0) == 1 ? (bt.devices[0].name + (jq(bt.devices[0], ".battery != null") ? "  ·  ${bt.devices[0].battery}%" : ""))
+                  : "${bt.count} devices"}))
+    (box :class "readout-pill wide" :halign "start" :space-evenly true
+      (label :class "row" :halign "start" :text "net")
+      (label :class "row" :halign "end"
+             :text {!jq(net, "has(\"kind\")") ? "loading…"
+                  : (net.kind ?: "none") == "wifi"  ? "${net.ssid} ${net.signal_pct}%"
+                  : (net.kind ?: "none") == "wired" ? "wired"
+                  : "offline"}))
+    (box :class "readout-pill wide" :halign "start" :space-evenly true
+      (label :class "row" :halign "start" :text "vpn")
+      (label :class "row" :halign "end"
+             :text {!jq(net, "has(\"vpn\")") ? "loading…"
+                  : (net.vpn ?: false) ? "${net.vpn_name ?: "on"}" : "off"}))
+    (box :class "readout-pill wide" :halign "start" :space-evenly true :visible is_desktop
+      (label :class "row" :halign "start" :text {(power.present ?: false) ? "battery" : "power"})
+      (label :class "row" :halign "end"
+             :text {(power.present ?: false) ? "${power.pct}% (${power.state})" : "AC ∞"}))))
+
+;; :height 600 is a floor (GTK size-request semantics, same as :width 410
+;; above), measured live against a fully-loaded panel (legendary + rare +
+;; all three now-static common rows) with ~8px slack. Normal content sits
+;; under it so the panel holds this height exactly; a rare LEGENDARY alert
+;; badge (gen_drift/myln/sleep-drain/mug) can still push it taller since
+;; those aren't pinned to a fixed row count -- reverify against a live
+;; panel if that ever needs fixing too.
+(defwidget panel [?dock]
+  (box :class "panel ${dock ?: ""}" :orientation "vertical" :space-evenly false :width 410 :height 600
+    (label :class "snark" :halign "start" :wrap true :text {snark.line ?: ""})
+    (legendary)
+    (rare)
+    (common)))
+
+;; Tablet-mode tap target: hover doesn't exist on a touchscreen, so with the
+;; Type Cover detached this lip, stacked on the inward side of the collapsed
+;; strip, toggles the bar/wing. `side` is the screen edge the strip hugs.
+(defwidget tap-handle [open var glyph side]
+  (button :class "tap-handle tap-${side}"
+          :visible tablet :halign "center" :valign "center"
+          :onclick "EWW update ${var}=${!open}"
+    glyph))
+
+(defwidget ledger-content [?dock]
+  (box :class "ledger-bar ${dock ?: ""}${tablet ? " tablet" : ""}" :orientation "horizontal" :space-evenly false :spacing 6
+    (button :class "chip" :onclick "EWW update ledger_open=false; LAUNCHER_BIN" :timeout "5s" "󰀻 Launcher")
+    (button :class "chip" :onclick "EWW update ledger_open=false; UNIREMOTE_TOGGLE" :timeout "5s" :visible {!is_desktop} "󰠲 Uniremote")
+    (button :class "chip" :onclick "EWW update ledger_open=false; MOONLIGHT_TOGGLE" :timeout "5s" :visible {!is_desktop} "󰊗 Moonlight")
+    (button :class "chip" :onclick "EWW update ledger_open=false; QUOTE_REFRESH" :timeout "5s"
+            :tooltip {(stoic_quote.tooltip ?: "") != "" ? stoic_quote.tooltip : "loading…"}
+      (label :text {(stoic_quote.text ?: "") != "" ? "${stoic_quote.text} Quote" : "Quote"}))
+    (button :class "chip" :onclick "EWW update ledger_open=false; LIX_LOGOUT_TOGGLE" :timeout "5s" "󰐻 Logout")))
+
+;; One window, one eventbox. Two overlapping right-anchored windows can't both
+;; receive pointer events, and a window mapped over another via `eww open` never
+;; delivers the covered eventbox its leave-notify — so `edge_hover` latched true
+;; and the revealer never closed. Here the eventbox wraps the whole [revealer,
+;; strip] row: leaving the window fires exactly one :onhoverlost. Collapsed, the
+;; row is just the 8px strip, so nothing else on the screen edge is blocked.
+;;
+;; Two static windows per output (left/right) instead of one reactive window --
+;; eww's defwindow :geometry has no defvar/simplexpr support (verified against
+;; eww 0.6.0: both :anchor and :width reject a var reference with "Unknown
+;; variable" at `eww open` time). Edge choice is "which window is open," not a
+;; bound var -- scripts/panel-edge.sh closes one and opens the other. Only one
+;; of a pair is ever open at a time.
+(defwindow status-left
+  :monitor 0
+  :geometry (geometry :anchor "left center" :height "85%")
+  :stacking "fg" :focusable false :exclusive false
+  (eventbox :onhover {tablet ? "true" : "EWW update reveal=true"}
+            :onhoverlost {tablet ? "true" : "EWW update reveal=false"}
+    (box :orientation "horizontal" :space-evenly false :halign "start" :valign "center"
+      ;; Shade: panel at the screen edge, hem (edge) and pull tab on its leading
+      ;; side, so all three ride out together instead of the hem staying put.
+      (revealer :transition "slideright" :duration "200ms" :reveal {tablet ? wing_open : reveal}
+        (panel :dock "left"))
+      (box :class {(tablet ? wing_open : reveal) ? "edge hover left" : "edge left"})
+      (tap-handle :open wing_open :var "wing_open" :side "left"
+                  :glyph {wing_open ? "◀" : "▶"}))))
+
+(defwindow status-right
+  :monitor 0
+  :geometry (geometry :anchor "right center" :height "85%")
+  :stacking "fg" :focusable false :exclusive false
+  (eventbox :onhover {tablet ? "true" : "EWW update reveal=true"}
+            :onhoverlost {tablet ? "true" : "EWW update reveal=false"}
+    (box :orientation "horizontal" :space-evenly false :halign "end" :valign "center"
+      (tap-handle :open wing_open :var "wing_open" :side "right"
+                  :glyph {wing_open ? "▶" : "◀"})
+      (box :class {(tablet ? wing_open : reveal) ? "edge hover" : "edge"})
+      (revealer :transition "slideleft" :duration "200ms" :reveal {tablet ? wing_open : reveal}
+        (panel)))))
+
+(defwindow status-tv-left
+  :monitor 1
+  :geometry (geometry :anchor "left center" :height "85%")
+  :stacking "fg" :focusable false :exclusive false
+  (eventbox :onhover "EWW update reveal_tv=true"
+            :onhoverlost "EWW update reveal_tv=false"
+    (box :orientation "horizontal" :space-evenly false :halign "start" :valign "center"
+      (revealer :transition "slideright" :duration "200ms" :reveal reveal_tv
+        (panel :dock "left"))
+      (box :class {reveal_tv ? "edge hover left" : "edge left"}))))
+
+(defwindow status-tv-right
+  :monitor 1
+  :geometry (geometry :anchor "right center" :height "85%")
+  :stacking "fg" :focusable false :exclusive false
+  (eventbox :onhover "EWW update reveal_tv=true"
+            :onhoverlost "EWW update reveal_tv=false"
+    (box :orientation "horizontal" :space-evenly false :halign "end" :valign "center"
+      (box :class {reveal_tv ? "edge hover" : "edge"})
+      (revealer :transition "slideleft" :duration "200ms" :reveal reveal_tv
+        (panel)))))
+
+;; One window, one eventbox -- same pattern as `status-left`/`status-right`
+;; above (two overlapping windows can't both receive pointer events, and a
+;; window mapped over another via `eww open` never delivers the covered
+;; eventbox its leave-notify). Hovering the eventbox drives `ledger_hover`
+;; (or `ledger_hover_tv`), which both reveals the full bar via the revealer
+;; and bumps the collapsed strip's own thickness. Supersedes the earlier
+;; two-window strip+popup split and its click-to-toggle
+;; (docs/superpowers/specs/2026-09-11-eww-waybar-cohesion-design.md),
+;; which existed only to support click-driven open/close -- see
+;; docs/superpowers/specs/2026-09-13-ledger-hover-waybar-parity-design.md.
+;;
+;; Two static windows per output (top/bottom) instead of one reactive window
+;; -- see status-left/status-right above for why (eww 0.6.0 defwindow
+;; :geometry has no defvar support).
+;;
+;; No :width "100%" -- that was sized to balance ledger-content's chips
+;; against a right-side sqlch chip that's long gone, so the bar was
+;; stretching edge-to-edge with a big empty gap on the right for nothing.
+;; Anchor "top/bottom center" alone keeps it centered at whatever width the
+;; chip row actually needs.
+(defwindow ledger-top
+  :monitor 0
+  :geometry (geometry :anchor "top center")
+  :stacking "fg" :focusable false :exclusive false
+  (eventbox :onhover {tablet ? "true" : "EWW update ledger_hover=true"}
+            :onhoverlost {tablet ? "true" : "EWW update ledger_hover=false"}
+    (box :orientation "vertical" :space-evenly false :valign "start"
+      (revealer :transition "slidedown" :duration "200ms" :reveal {tablet ? ledger_open : ledger_hover}
+        (ledger-content :dock "top"))
+      (box :class {(tablet ? ledger_open : ledger_hover) ? "ledger-strip hover top" : "ledger-strip top"}
+           :orientation "vertical" :space-evenly false :valign "start")
+      ;; Pull tab sits on the shade's hem: it rides down with the panel.
+      (tap-handle :open ledger_open :var "ledger_open" :side "top"
+                  :glyph {ledger_open ? "▲" : "▼"}))))
+
+(defwindow ledger-bottom
+  :monitor 0
+  :geometry (geometry :anchor "bottom center")
+  :stacking "fg" :focusable false :exclusive false
+  (eventbox :onhover {tablet ? "true" : "EWW update ledger_hover=true"}
+            :onhoverlost {tablet ? "true" : "EWW update ledger_hover=false"}
+    (box :class {osk ? "osk-fade osk-up" : "osk-fade"} :orientation "vertical" :space-evenly false :valign "end"
+      ;; Pull tab sits on the shade's hem: it rides up with the panel.
+      (tap-handle :open ledger_open :var "ledger_open" :side "bottom"
+                  :glyph {ledger_open ? "▼" : "▲"})
+      (box :class {(tablet ? ledger_open : ledger_hover) ? "ledger-strip hover" : "ledger-strip"}
+           :orientation "vertical" :space-evenly false :valign "end")
+      (revealer :transition "slideup" :duration "200ms" :reveal {tablet ? ledger_open : ledger_hover}
+        (ledger-content)))))
+
+(defwindow ledger-tv-top
+  :monitor 1
+  :geometry (geometry :anchor "top center")
+  :stacking "fg" :focusable false :exclusive false
+  (eventbox :onhover "EWW update ledger_hover_tv=true"
+            :onhoverlost "EWW update ledger_hover_tv=false"
+    (box :orientation "vertical" :space-evenly false :valign "start"
+      (revealer :transition "slidedown" :duration "200ms" :reveal ledger_hover_tv
+        (ledger-content :dock "top"))
+      (box :class {ledger_hover_tv ? "ledger-strip hover top" : "ledger-strip top"}
+           :orientation "vertical" :space-evenly false :valign "start"))))
+
+(defwindow ledger-tv-bottom
+  :monitor 1
+  :geometry (geometry :anchor "bottom center")
+  :stacking "fg" :focusable false :exclusive false
+  (eventbox :onhover "EWW update ledger_hover_tv=true"
+            :onhoverlost "EWW update ledger_hover_tv=false"
+    (box :orientation "vertical" :space-evenly false :valign "end"
+      (box :class {ledger_hover_tv ? "ledger-strip hover" : "ledger-strip"}
+           :orientation "vertical" :space-evenly false :valign "end")
+      (revealer :transition "slideup" :duration "200ms" :reveal ledger_hover_tv
+        (ledger-content)))))
+
+;; Tablet-mode launcher: opened by the launcher script (cover detached) instead of
+;; fuzzel's list. Tiles come from ~/.local/share/eww/launcher-favs.json in rows of
+;; four. A tile closes the window and starts the app through the compositor so eww's
+;; button timeout can't kill it; the backdrop closes it too.
+(defwindow launcher-tablet
+  :monitor 0
+  :geometry (geometry :anchor "center" :width "100%" :height "100%")
+  :stacking "overlay" :focusable false :exclusive false
+  (eventbox :onclick "EWW close launcher-tablet"
+    (box :class "launcher-backdrop" :orientation "vertical" :halign "fill" :valign "fill"
+      (box :class "launcher-grid" :orientation "vertical" :halign "center" :valign "center"
+           :space-evenly false :spacing 22
+        (for row in launcher_rows
+          (box :orientation "horizontal" :space-evenly true :spacing 22
+            (for tile in row
+              (button :class "launcher-tile a${tile.accent}" :timeout "2s"
+                      :onclick "EWW close launcher-tablet; NIRI_BIN msg action spawn -- sh -c '${tile.cmd}'"
+                (box :orientation "vertical" :space-evenly false :spacing 10
+                     :halign "center" :valign "center"
+                  (label :class "launcher-glyph" :text {tile.icon})
+                  (label :class "launcher-label" :text {tile.label}))))))))))

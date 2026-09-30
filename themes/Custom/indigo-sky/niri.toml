@@ -1,0 +1,13 @@
+# Niri Theme: purple-rain
+[colors]
+background = "#1e1e76"
+text = "#ffffff"
+cursor = "#4b4bc3"
+
+[colors.selection]
+border = "#f59ed6"
+background = "#24379e"
+
+[colors.hints]
+start = "#e8bdf9"
+end = "#707ff5"

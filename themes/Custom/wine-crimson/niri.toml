@@ -1,0 +1,13 @@
+# Niri Theme: squid
+[colors]
+background = "#3c1021"
+text = "#ffffff"
+cursor = "#ca2541"
+
+[colors.selection]
+border = "#f3a0a2"
+background = "#621840"
+
+[colors.hints]
+start = "#d64243"
+end = "#a03b4e"

@@ -1,0 +1,13 @@
+# Niri Theme: mint-chocolate-chip
+[colors]
+background = "#8c4f3b"
+text = "#ffffff"
+cursor = "#57c17e"
+
+[colors.selection]
+border = "#afe8e9"
+background = "#b04f45"
+
+[colors.hints]
+start = "#cfc8bf"
+end = "#c1b6a4"

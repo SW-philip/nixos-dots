@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="GtkMenu" id="menu">
+    <child>
+      <object class="GtkMenuItem" id="lix-logout-suspend">
+        <property name="label">Suspend</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="lix-logout-hibernate">
+        <property name="label">Hibernate</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem" id="lix-logout-menu-sep1"/>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="lix-logout-gag-1">
+        <property name="label">???</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="lix-logout-gag-2">
+        <property name="label">Do not press</property>
+      </object>
+    </child>
+  </object>
+</interface>

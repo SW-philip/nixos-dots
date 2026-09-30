@@ -1,0 +1,13 @@
+# Niri Theme: wu-tang
+[colors]
+background = "#000000"
+text = "#ffffff"
+cursor = "#c1ab1a"
+
+[colors.selection]
+border = "#9fe72c"
+background = "#181616"
+
+[colors.hints]
+start = "#d7a94b"
+end = "#d3a527"

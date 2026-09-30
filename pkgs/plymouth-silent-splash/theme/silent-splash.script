@@ -1,0 +1,15 @@
+screen_width  = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+mode = Plymouth.GetMode();
+
+if (mode == "shutdown" || mode == "reboot") {
+    img = Image("shutdown.png");
+} else {
+    img = Image("boot.png");
+}
+
+scaled = img.Scale(screen_width, screen_height);
+sprite = Sprite(scaled);
+sprite.SetX(0);
+sprite.SetY(0);

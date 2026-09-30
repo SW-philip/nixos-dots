@@ -1,0 +1,385 @@
+#!/usr/bin/env python3
+import html
+import json
+import os
+import random
+import re
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+VERSION      = "0.2.0"
+ICON_PLAYING = "󰎆"
+ICON_PAUSED  = "󰏤"
+ICON_IDLE    = "󰑬"
+ICON_PREV    = "⏮"
+ICON_NEXT    = "⏭"
+
+def _load_palette(path: Path) -> dict:
+    p: dict = {}
+    try:
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            p[k.strip()] = v.strip().strip('"')
+        for _ in range(3):
+            for k, v in p.items():
+                p[k] = re.sub(r"\$(\w+)", lambda m: p.get(m.group(1), m.group(0)), v)
+    except Exception:
+        pass
+    return p
+
+_PAL = _load_palette(Path.home() / ".config/waybar/palette.sh")
+BAR  = _PAL.get("BAR",  "#6e6a86")
+REST = _PAL.get("REST", "#908caa")
+SCORE   = _PAL.get("SCORE",   "#e0def4")
+FIFTH   = _PAL.get("FIFTH",   "#9ccfd8")
+ROOT   = _PAL.get("ROOT",   "#c4a7e7")
+PIANO   = _PAL.get("PIANO",   "#f6c177")
+
+_xdg_data = os.environ.get("XDG_DATA_HOME")
+LIBRARY_PATH = (Path(_xdg_data) if _xdg_data else Path.home() / ".local" / "share") / "sqlch" / "library.json"
+
+def _load_library() -> list[dict]:
+    try:
+        return json.loads(LIBRARY_PATH.read_text()).get("stations", [])
+    except Exception:
+        return []
+
+def runtime_dir() -> Path:
+    base = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    return Path(base) / "sqlch"
+
+CONTROL_SOCK = runtime_dir() / "control.sock"
+MPV_SOCK     = runtime_dir() / "mpv.sock"
+
+_xdg_cache = os.environ.get("XDG_CACHE_HOME")
+CACHE_DIR = (Path(_xdg_cache) if _xdg_cache else Path.home() / ".cache") / "sqlch"
+
+def daemon_send(msg: dict) -> dict | None:
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(1.5)
+            s.connect(str(CONTROL_SOCK))
+            s.sendall((json.dumps(msg) + "\n").encode())
+            data = b""
+            while not data.endswith(b"\n"):
+                chunk = s.recv(4096)
+                if not chunk:
+                    break
+                data += chunk
+        return json.loads(data.decode("utf-8", errors="replace"))
+    except Exception:
+        return None
+
+def mpv_get(prop: str):
+    if not MPV_SOCK.exists():
+        return None
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)
+            s.connect(str(MPV_SOCK))
+            s.sendall((json.dumps({"command": ["get_property", prop]}) + "\n").encode())
+            buf = b""
+            while not buf.endswith(b"\n"):
+                chunk = s.recv(4096)
+                if not chunk:
+                    break
+                buf += chunk
+        if buf.strip():
+            resp = json.loads(buf.decode())
+            if resp.get("error") == "success":
+                return resp.get("data")
+    except Exception:
+        pass
+    return None
+
+def _norm(s: str) -> str:
+    return ' '.join(s.lower().strip().split())
+
+import re as _re
+_LIVE_RE = _re.compile(
+    r'(?:[\s\-]+|\()'
+    r'(live|bootleg|demo|acoustic|session|rehearsal|rare|outtake|alternate|unreleased|b-side|soundboard)'
+    r'\b',
+    _re.IGNORECASE,
+)
+
+def _strip_live_qualifier(track: str) -> tuple[str, str | None]:
+    """Return (base_track, qualifier) for live/bootleg/demo tracks, else (track, None)."""
+    m = _LIVE_RE.search(track)
+    if not m:
+        return track, None
+    base = track[:m.start()].strip(' -([')
+    return (base or track), m.group(1).lower()
+
+def _parse_icy(title: str) -> tuple[str | None, str | None]:
+    if not title or "-" not in title:
+        return (None, None)
+    artist, track = title.split("-", 1)
+    return (artist.strip() or None, track.strip() or None)
+
+def current_track() -> tuple[str | None, str | None]:
+    meta = mpv_get("metadata")
+    if not meta:
+        return (None, None)
+    icy = meta.get("icy-title") or meta.get("title", "")
+    return _parse_icy(icy)
+
+def enrich_lookup(artist: str, track: str) -> dict | None:
+    """Look up enriched metadata, falling back to the studio version for live/bootleg/demo tracks."""
+    try:
+        cache = json.loads((CACHE_DIR / "enriched.json").read_text())
+        key = f"{_norm(artist)}::{_norm(track)}"
+        entry = cache.get(key)
+        if entry and entry.get("cover"):
+            return entry  # exact match with art — use it
+        # No art for this track; try studio version fallback
+        base_track, qualifier = _strip_live_qualifier(track)
+        if qualifier and base_track != track:
+            studio = cache.get(f"{_norm(artist)}::{_norm(base_track)}")
+            if studio and studio.get("cover"):
+                return studio
+        return entry  # return original entry even if no cover
+    except Exception:
+        return None
+
+SWAP_STATE_PATH = CACHE_DIR / "waybar_swap.json"
+
+def _swap_mode(station_id: str, has_track: bool) -> str:
+    """Alternate the bar text between station name and artist/track every 5-8s."""
+    if not has_track:
+        return "name"
+    now = time.time()
+    state = {}
+    try:
+        state = json.loads(SWAP_STATE_PATH.read_text())
+    except Exception:
+        pass
+    if state.get("station_id") != station_id:
+        state = {"station_id": station_id, "mode": "name", "swap_at": now + random.uniform(5, 8)}
+    elif now >= state.get("swap_at", 0):
+        state["mode"] = "track" if state.get("mode") == "name" else "name"
+        state["swap_at"] = now + random.uniform(5, 8)
+    try:
+        SWAP_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        SWAP_STATE_PATH.write_text(json.dumps(state))
+    except Exception:
+        pass
+    return state.get("mode", "name")
+
+def cmd_status():
+    resp = daemon_send({"cmd": "status"})
+    if not resp or not resp.get("ok"):
+        print(json.dumps({
+            "text": f"{ICON_IDLE} sqlch v{VERSION}",
+            "tooltip": f"<span foreground='{REST}'>sqlch: daemon not running</span>",
+            "class": "inactive"
+        }))
+        return
+
+    status = resp.get("status", "")
+    current = resp.get("current")
+
+    if current and isinstance(current, dict):
+        item = current.get("item", {})
+        name = item.get("name", "Unknown")
+        play_count = item.get("play_count", 0)
+        url = item.get("url", "")
+        paused = "paused" in status.lower()
+        icon = ICON_PAUSED if paused else ICON_PLAYING
+        css_class = "paused" if paused else "playing"
+
+        artist, track = current_track()
+        qualifier = _strip_live_qualifier(track)[1] if track else None
+        qualifier_tag = f"[{qualifier}] " if qualifier else ""
+        track_line = ""
+        genres_line = ""
+        if artist and track:
+            thtml = html.escape(f"{qualifier_tag}{artist} — {track}")
+            track_line = f"<span foreground='{SCORE}'>{thtml}</span>\n"
+            enrich = enrich_lookup(artist, track)
+            if enrich and enrich.get("genres"):
+                ghtml = html.escape(", ".join(enrich["genres"]))
+                genres_line = f"<span foreground='{ROOT}'>Genres: {ghtml}</span>\n"
+
+        tooltip = (
+            f"{track_line}"
+            f"{genres_line}"
+            f"<span foreground='{SCORE}'>{html.escape(name)}</span>  "
+            f"<span foreground='{REST}'>|  Plays:</span> <span foreground='{FIFTH}'>{play_count}</span>\n"
+            f"<span foreground='{REST}'>{html.escape(url)}</span>\n\n"
+            f"<span foreground='{REST}'>Scroll: next/prev  |  Click: sqlch GUI  |  Right-click: menu</span>"
+        )
+        mode = _swap_mode(item.get("id", ""), bool(artist and track))
+        bar_label = f"{qualifier_tag}{artist} — {track}" if mode == "track" else name
+        max_len = 60
+        display_label = bar_label if len(bar_label) <= max_len else bar_label[:max_len - 1] + "…"
+        print(json.dumps({
+            "text": f"{ICON_PREV} {icon} {html.escape(display_label)} {ICON_NEXT}",
+            "tooltip": tooltip,
+            "class": css_class
+        }))
+    else:
+        print(json.dumps({
+            "text": f"{ICON_IDLE} sqlch v{VERSION}",
+            "tooltip": f"<span foreground='{REST}'>sqlch: idle</span>\n<span foreground='{REST}'>Click to resume last station</span>",
+            "class": "idle"
+        }))
+
+def cmd_pause():
+    daemon_send({"cmd": "pause"})
+    cmd_status()
+
+def cmd_stop():
+    daemon_send({"cmd": "stop"})
+    cmd_status()
+
+def _current_station_id() -> str | None:
+    resp = daemon_send({"cmd": "status"})
+    if resp and resp.get("current"):
+        return resp["current"].get("item", {}).get("id")
+    return None
+
+def cmd_next():
+    stations = _load_library()
+    if not stations:
+        cmd_status()
+        return
+    current_id = _current_station_id()
+    ids = [s["id"] for s in stations]
+    idx = (ids.index(current_id) + 1) % len(ids) if current_id in ids else 0
+    daemon_send({"cmd": "play", "query": ids[idx]})
+    cmd_status()
+
+def cmd_prev():
+    stations = _load_library()
+    if not stations:
+        cmd_status()
+        return
+    current_id = _current_station_id()
+    ids = [s["id"] for s in stations]
+    idx = (ids.index(current_id) - 1) % len(ids) if current_id in ids else 0
+    daemon_send({"cmd": "play", "query": ids[idx]})
+    cmd_status()
+
+def cmd_tui():
+    subprocess.Popen(["sqlch", "tui"])
+    cmd_status()
+
+def resolve_cover_path(cover_url: str | None) -> str | None:
+    """Resolve a cover-art URL to a local cached file path, downloading it
+    if not already cached. Returns None on missing URL or any failure --
+    never raises."""
+    if not cover_url:
+        return None
+    try:
+        import urllib.request, hashlib
+        ext = cover_url.rsplit(".", 1)[-1].split("?")[0] or "jpg"
+        fname = hashlib.md5(cover_url.encode()).hexdigest() + "." + ext
+        local = CACHE_DIR / "covers" / fname
+        local.parent.mkdir(parents=True, exist_ok=True)
+        if not local.exists():
+            urllib.request.urlretrieve(cover_url, local)
+        return str(local)
+    except Exception:
+        return None
+
+def cmd_art():
+    artist, track = current_track()
+    if not artist or not track:
+        subprocess.run(["notify-send", "sqlch", "No track metadata available"], check=False)
+        return
+
+    enrich = enrich_lookup(artist, track)
+    cover_url = enrich.get("cover") if enrich else None
+    local = resolve_cover_path(cover_url)
+
+    if local:
+        genres = ", ".join(enrich.get("genres", [])) or "—"
+        album = enrich.get("album") or "—"
+        subprocess.run([
+            "notify-send",
+            "-i", local,
+            f"{artist} — {track}",
+            f"{album}\nGenres: {genres}",
+        ], check=False)
+    elif cover_url:
+        # had a URL but resolve_cover_path() failed to download/cache it
+        subprocess.run(["notify-send", "sqlch", f"{artist} — {track}\n(cover unavailable)"], check=False)
+    else:
+        genres_str = ""
+        if enrich and enrich.get("genres"):
+            genres_str = "\nGenres: " + ", ".join(enrich["genres"])
+        subprocess.run(["notify-send", "sqlch", f"{artist} — {track}{genres_str}"], check=False)
+
+def cmd_clear_cache():
+    artist, track = current_track()
+    if not artist or not track:
+        subprocess.run(["notify-send", "sqlch", "No track metadata available"], check=False)
+        cmd_status()
+        return
+    try:
+        cache_path = CACHE_DIR / "enriched.json"
+        cache = json.loads(cache_path.read_text())
+        key = f"{_norm(artist)}::{_norm(track)}"
+        if key in cache:
+            del cache[key]
+            cache_path.write_text(json.dumps(cache))
+            subprocess.run(["notify-send", "-u", "low", "sqlch", f"Cache cleared: {artist} — {track}"], check=False)
+        else:
+            subprocess.run(["notify-send", "-u", "low", "sqlch", f"Not cached: {artist} — {track}"], check=False)
+    except Exception:
+        subprocess.run(["notify-send", "sqlch", "Cache clear failed"], check=False)
+    cmd_status()
+
+def cmd_pick():
+    try:
+        stations = _load_library()
+        if not stations:
+            cmd_status()
+            return
+
+        by_cat: dict[str, list[dict]] = {}
+        for st in stations:
+            cat = st.get("category") or "Other"
+            by_cat.setdefault(cat, []).append(st)
+
+        lines: list[str] = []
+        id_map: dict[str, str] = {}
+        for cat in sorted(by_cat.keys()):
+            lines.append(f"── {cat} ──")
+            for st in by_cat[cat]:
+                display = f"  {st['name']}"
+                lines.append(display)
+                id_map[display] = st["id"]
+
+        chosen = subprocess.run(
+            ["fuzzel", "--dmenu"],
+            input="\n".join(lines),
+            capture_output=True, text=True, timeout=10
+        )
+        if chosen.returncode == 0 and chosen.stdout.strip():
+            station_id = id_map.get(chosen.stdout.strip())
+            if station_id:
+                daemon_send({"cmd": "play", "query": station_id})
+    except Exception:
+        pass
+    cmd_status()
+
+if __name__ == "__main__":
+    arg = sys.argv[1] if len(sys.argv) > 1 else "--status"
+    if arg == "--status": cmd_status()
+    elif arg == "--pause": cmd_pause()
+    elif arg == "--stop":  cmd_stop()
+    elif arg == "--next":  cmd_next()
+    elif arg == "--prev":  cmd_prev()
+    elif arg == "--tui":   cmd_tui()
+    elif arg == "--art":   cmd_art()
+    elif arg == "--pick":  cmd_pick()
+    elif arg == "--clear-cache": cmd_clear_cache()
+    else: cmd_status()

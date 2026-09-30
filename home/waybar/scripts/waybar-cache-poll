@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# waybar-cache-poll <cache-name> <command...>
+# Runs a waybar custom-module command that emits one JSON object on stdout,
+# and atomically caches it (plus an ok/fetched_at envelope) at
+# $XDG_CACHE_HOME/waybar/<cache-name>.json so waybar-cache-read can serve it
+# instantly without re-running the (possibly slow) command.
+set -euo pipefail
+
+name="$1"; shift
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/waybar"
+mkdir -p "$cache_dir"
+cache_file="$cache_dir/${name}.json"
+tmp_file="${cache_file}.tmp"
+
+if out=$("$@" 2>/dev/null) && jq -e . >/dev/null 2>&1 <<<"$out"; then
+    jq -c --argjson fetched_at "$(date +%s)" '. + {ok: true, fetched_at: $fetched_at}' <<<"$out" > "$tmp_file"
+else
+    jq -nc --argjson fetched_at "$(date +%s)" '{ok: false, fetched_at: $fetched_at}' > "$tmp_file"
+fi
+mv "$tmp_file" "$cache_file"

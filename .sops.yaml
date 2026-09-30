@@ -1,0 +1,19 @@
+keys:
+  - &desktop age1REPLACE-WITH-YOUR-AGE-PUBKEY
+  - &surface age1REPLACE-WITH-YOUR-AGE-PUBKEY
+creation_rules:
+  - path_regex: secrets/passwords\.yaml$
+    key_groups:
+      - age: [*desktop, *surface]
+
+  - path_regex: secrets/desktop\.yaml$
+    key_groups:
+      - age: [*desktop]
+
+  - path_regex: secrets/surface\.yaml$
+    key_groups:
+      - age: [*surface]
+
+  - path_regex: secrets/shared\.yaml$
+    key_groups:
+      - age: [*desktop, *surface]

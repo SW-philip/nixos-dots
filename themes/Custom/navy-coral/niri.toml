@@ -1,0 +1,13 @@
+# Niri Theme: octopus
+[colors]
+background = "#1f3a61"
+text = "#ffffff"
+cursor = "#4c6d90"
+
+[colors.selection]
+border = "#de8835"
+background = "#285d86"
+
+[colors.hints]
+start = "#f7b983"
+end = "#79b5d8"

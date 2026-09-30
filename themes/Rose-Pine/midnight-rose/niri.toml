@@ -1,0 +1,13 @@
+# Niri Theme: rose-pine
+[colors]
+background = "#191724"
+text = "#ffffff"
+cursor = "#eb6f92"
+
+[colors.selection]
+border = "#99b9db"
+background = "#272742"
+
+[colors.hints]
+start = "#f3dedb"
+end = "#ebbcba"

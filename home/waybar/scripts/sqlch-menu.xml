@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <object class="GtkMenu" id="menu">
+    <child>
+      <object class="GtkMenuItem" id="sqlch-art">
+        <property name="label">Cover-art notify</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="sqlch-stop">
+        <property name="label">Stop station</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem" id="sqlch-menu-sep1"/>
+    </child>
+    <child>
+      <object class="GtkMenuItem" id="sqlch-clear-cache">
+        <property name="label">Clear cache</property>
+      </object>
+    </child>
+  </object>
+</interface>

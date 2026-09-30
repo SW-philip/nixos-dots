@@ -1,0 +1,13 @@
+# Niri Theme: rose-pine-moon
+[colors]
+background = "#232136"
+text = "#ffffff"
+cursor = "#eb6f92"
+
+[colors.selection]
+border = "#99b9db"
+background = "#303254"
+
+[colors.hints]
+start = "#efc3bb"
+end = "#ea9a97"

@@ -1,0 +1,6 @@
+export HALL="#1e1e1e"
+export STAGE="#2b2b2b"
+export SCORE="#f0f0f0"
+export REST="#8a8a8a"
+export FORTE="#c9a25f"
+export PIANO="#9ec98f"

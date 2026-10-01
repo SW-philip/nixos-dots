@@ -6,7 +6,6 @@ My NixOS config for two machines: a desktop and a Surface Pro 7+. It's the succe
 
 This is tuned to my hardware and my habits. Read it, borrow from it, but know that I will break things in it regularly and fix them immediately, or a day or two later. This was all started as a learning experience, and will continue as such. But I think I'm ready to share more of it.
 
-| | |
 |---|---|
 | ![control center](assets/screenshots/control-center.png) |
 
@@ -38,7 +37,7 @@ Both use [Lix](https://lix.systems), secure boot through lanzaboote, LUKS, btrfs
 
 ![tablet mode](assets/recordings/tablet-mode.webp)
 
-One of the things that I spent way too much time on was a physical-state toggled tablet mode. Detaching the keyboard toggles a larger ledger bar as well as "pulltabs" on the wing and ledger menues. Squeekboard toggles on, but only by tapping 3 fingers on the screen, or by tapping into a text field. A 4-fingered tap opens a dialog box in pegasus verifying the desire to close it.
+One of the things that I spent way too much time on was a physical-state toggled tablet mode. Detaching the keyboard toggles a larger ledger bar as well as "pulltabs" on the wing and ledger menus. Squeekboard toggles on, but only by tapping 3 fingers on the screen, or by tapping into a text field. A 4-fingered tap opens a dialog box in pegasus verifying the desire to close it.
 
 A snark-engine peppers insults, passive aggression, burns, and digs into waybar modules, dialog boxes, invalid password attempts, and more. Sometimes they're funny. Sometimes they're direct. but they're always practical. It's awesome.
 

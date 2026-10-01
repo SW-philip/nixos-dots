@@ -6,9 +6,11 @@
 { p }:
 let
   keyline = "alpha(${p.SCORE}, 0.15)";
+  edge    = "alpha(${p.SCORE}, 0.32)";
+  bevel   = "inset 0 1px 0 alpha(${p.SCORE}, 0.12)";
   thread  = "alpha(${p.SCORE}, 0.55)";
-  drop    = "0 2px 3px rgba(${p.STAFF}, ${p.STAFF_A_DROP})";
-  lift    = "0 4px 6px rgba(${p.STAFF}, ${p.STAFF_A_DROP})";
+  drop    = "${bevel}, 0 2px 3px rgba(${p.STAFF}, ${p.STAFF_A_DROP})";
+  lift    = "${bevel}, 0 2px 3px rgba(${p.STAFF}, ${p.STAFF_A_DROP}), 0 0 0 1px alpha(${p.SCORE}, 0.18)";
 in
 ''
   @define-color window_bg_color ${p.WING};
@@ -40,27 +42,26 @@ in
       background-image: none;
       background-color: ${p.STAGE};
       color: ${p.SCORE};
-      border: 1px solid ${keyline};
+      border: 1px solid ${edge};
       border-radius: 7px;
       min-height: 28px;
       min-width: 28px;
       margin: 4px 3px;
       padding: 2px 8px;
       box-shadow: ${drop};
-      transition: margin 120ms ease-out, box-shadow 120ms ease-out;
+      transition: background-color 120ms ease-out, border-color 120ms ease-out,
+                  box-shadow 120ms ease-out;
   }
 
   button:hover {
       background-color: ${p.WING};
       border-color: ${thread};
-      margin: 3px 3px 5px;
       box-shadow: ${lift};
   }
 
   button:active {
       background-color: alpha(${p.ROOT}, 0.15);
       border-color: ${p.ROOT};
-      margin: 4px 3px;
       box-shadow: inset 0 1px 3px rgba(${p.STAFF}, ${p.STAFF_A_HOVER});
   }
 
@@ -171,6 +172,8 @@ in
 
   .ur-body {
       border-top: 1px solid ${p.ROOT};
+      border-left: 1px solid ${keyline};
+      border-right: 1px solid ${keyline};
   }
 
   toast {

@@ -26,6 +26,7 @@ export STUB_LOG="$TMP/log"
 export LAUNCHER_EWW="$TMP/bin/eww"
 export PATH="$TMP/bin:$PATH"
 export XDG_RUNTIME_DIR="$TMP"
+export LAUNCHER_FAVS="$TMP/none.json"
 
 run() { : > "$STUB_LOG"; bash "$LAUNCHER"; cat "$STUB_LOG"; }
 

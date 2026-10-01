@@ -125,7 +125,18 @@
       exec "''${LAUNCHER_EWW:-${pkgs.eww}/bin/eww}" open --toggle launcher-tablet
     fi
     pkill -x fuzzel && exit 0
-    exec fuzzel --placeholder "$(shuf -n1 ${../../assets/launcher-lines.txt})"
+    ph="$(shuf -n1 ${../../assets/launcher-lines.txt})"
+    # Same curated list as the tablet grid, shown as a fuzzel list. "All apps" is
+    # dropped (it would re-enter this script). Missing/empty file => full drun, so the
+    # launcher never comes up dead.
+    favs="''${LAUNCHER_FAVS:-$HOME/.local/share/eww/launcher-favs.json}"
+    list=$(${pkgs.jq}/bin/jq -c '[.[] | select(.cmd != "fuzzel")]' "$favs" 2>/dev/null)
+    [ -n "$list" ] && [ "$list" != "[]" ] || exec fuzzel --placeholder "$ph"
+    idx=$(echo "$list" | ${pkgs.jq}/bin/jq -r '.[] | "\(.icon)  \(.label)"' \
+      | fuzzel --placeholder "$ph" --dmenu --index) || exit 0
+    [ -n "$idx" ] || exit 0
+    cmd=$(echo "$list" | ${pkgs.jq}/bin/jq -r ".[$idx].cmd")
+    exec /run/current-system/sw/bin/niri msg action spawn -- sh -c "$cmd"
   '';
 
   shootAnnotate = pkgs.writeShellScriptBin "shoot-annotate" ''

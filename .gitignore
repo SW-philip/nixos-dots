@@ -54,3 +54,6 @@ desktop_key.pub
 .de-slop/
 
 .worktrees/
+
+# KOReader sidecar metadata
+*.sdr/

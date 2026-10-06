@@ -4,7 +4,7 @@ let
   isDesktop = config.myConfig.isDesktop;
 
   bar = if config.waybar.barName != "" then config.waybar.barName
-        else if isDesktop then "leftBar" else "surfaceTopBar";
+        else if isDesktop then "rightBar" else "surfaceTopBar";
 
   python = pkgs.python3.withPackages (ps: with ps; [ requests ]);
 

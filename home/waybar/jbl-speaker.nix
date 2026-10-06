@@ -10,7 +10,7 @@ let
 
   # Runs as the poll service's ExecStartPost: take the MAC the poll just
   # learned and push its full result into ~/.cache/bt-device-info/<mac>.json,
-  # the only cache quantum-bluetooth.sh's connected branch reads. Without this
+  # the only cache bluetooth_status.py's connected branch reads. Without this
   # the 120s poll refreshes a file nothing renders from. bt-device-probe.sh
   # calls `bt-classify` (a home.packages wrapper) and `jq` by bare name.
   mergeHook = pkgs.writeShellApplication {
@@ -46,7 +46,11 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  # Not on desktop: its USB adapter shares one radio between A2DP and the BLE
+  # scan + GATT session, so every poll glitches the speaker's audio (and used to
+  # bounce the link into a reconnect loop). Surface polls without trouble.
+  # bt-device-probe.sh tolerates the missing `jbl-speaker-poll` binary.
+  config = lib.mkIf (cfg.enable && !isDesktop) {
     home.packages = [ pollScript ];
 
     systemd.user.services.jbl-speaker-poll = {
@@ -68,9 +72,9 @@ in
       Unit.Description = "JBL speaker battery poll timer";
       Timer = {
         OnStartupSec = "15s";
-        # Slower cadence on the 8GB Surface -- a BLE scan+connect every 2min is
+        # Slow cadence on the 8GB Surface -- a BLE scan+connect every 2min is
         # more than that host wants competing with Firefox/builds for memory.
-        OnUnitActiveSec = if isDesktop then "120s" else "300s";
+        OnUnitActiveSec = "300s";
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];

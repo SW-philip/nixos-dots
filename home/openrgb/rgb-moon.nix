@@ -25,7 +25,7 @@
           ;;
         pulse)
           for d in "''${DEVICES[@]}"; do
-            openrgb --device "$d" --mode "Color Pulse" --color "$(hex "$FIFTH")"
+            openrgb --device "$d" --mode "Color Pulse" --color "$(hex "$FIFTH"),$(hex "$SEVENTH")"
           done
           ;;
         wave)

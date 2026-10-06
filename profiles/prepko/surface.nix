@@ -8,6 +8,10 @@
     ../../home/niri-bridge
     ../../home/reader-warmth
     ../../home/battery-low-notify.nix
+    ../../home/claude-tidy.nix
+    ../../home/tree-sync.nix
+    ../../home/fleet-status.nix
+    ../../home/quivr.nix
     ../../home/network-notify.nix
   ];
 
@@ -44,11 +48,13 @@
   # never spawns a real ssh, never reads known_hosts) and silently falls
   # back to local. --build-host uses a real ssh subprocess as the invoking
   # user instead, which just works with the existing ~/.ssh/id_ed25519.
+  # The Tailscale IP, not the MagicDNS name: surface's resolv.conf can list
+  # the DHCP resolvers ahead of 100.100.100.100, which NXDOMAIN *.ts.net.
   ########################################
   programs.zsh.shellAliases = {
-    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo -H surface --build-host prepko@desktop.example.ts.net";
-    nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo -H surface --build-host prepko@desktop.example.ts.net";
-    nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo -H surface --build-host prepko@desktop.example.ts.net";
+    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
+    nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
+    nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
 
     # `ember-mug set/get` without -m scans and can grab a stale, unpaired
     # BlueZ device object (from a prior BLE address rotation) instead of the
@@ -56,6 +62,15 @@
     # Pinning -m skips the scan-match and goes straight to the known device.
     ember-mug = "ember-mug -m 00:00:00:00:00:01";
   };
+
+  ########################################
+  # Claude settings.json: ~/nixos here is an NFS mount from desktop, and a stale
+  # handle turns the usual symlink into nothing (no settings, no Bash perms).
+  # Keep a real local copy, refreshed from desktop's shared one on every nrs.
+  ########################################
+  home.activation.claudeSettingsCopy = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    CLAUDE_SYNC_COPY_SETTINGS=1 run ${pkgs.bash}/bin/bash ${../../scripts/claude-sync.sh} || true
+  '';
 
   ########################################
   # Surface-only packages
@@ -67,6 +82,8 @@
     kdePackages.kdenlive krita uniremote
     spotify
     python-ember-mug
+    vmpk qsynth fluidsynth soundfont-fluid
+    helio-workstation hydrogen
 
     # element-desktop's Electron backend picks a secret-storage backend by
     # checking XDG_CURRENT_DESKTOP, not by probing D-Bus — niri isn't in its

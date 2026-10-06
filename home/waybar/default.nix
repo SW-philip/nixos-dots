@@ -2,7 +2,6 @@
 
 let
   isDesktop = config.myConfig.isDesktop;
-  launcherBin = "${(import ../niri/scripts.nix { inherit pkgs lib; }).launcher}/bin/launcher";
 
   # Top-bar thickness per host.
   desktopBarThickness = 48;
@@ -38,6 +37,7 @@ in
     ./clock.nix
     ./bluetooth.nix
     ./netstatus.nix
+    ./fleet.nix
     ./volume.nix
     ./weather.nix
     ./sqlch.nix
@@ -55,36 +55,34 @@ in
     systemd.enable = true;
     settings = {
       # ── Desktop Bars ──────────────────────────────────────────────────
+      # Desktop splits the surface's single bar across the two monitors:
+      # media/connectivity on the left screen, the rest on the right.
       leftBar = lib.mkIf isDesktop {
         name = "top-left";
         layer = "top";
         position = "top";
         output = "DP-1";
         height = desktopBarThickness;
-        # Weather follows the workspace indicator on the fixed left edge —
-        # its rest/forecast toggle resizes it, but there's nothing to its
-        # left to get shoved. Clock stays alone in modules-center: with
-        # no neighbor there, its own mode-swings just re-center it, no
-        # cluster to drag sideways.
-        modules-left   = [ "custom/niri-workspace" "custom/weather" ];
-        modules-center = [ "custom/clock" ];
-        modules-right  = [ "custom/bluetooth" "custom/network" "custom/notification" ];
+        modules-left   = [ ];
+        modules-center = [ ];
+        # sqlch leads modules-right (its outermost/left edge): the track title
+        # resizes it constantly, and as the left-most right module only its own
+        # left edge moves, so the rest stay pinned to the screen edge.
+        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/kdeconnect" "custom/volume" ];
       };
 
+      # Desktop has no battery module (charge is an eww widget).
       rightBar = lib.mkIf isDesktop {
         name = "right";
         layer = "top";
         position = "top";
         output = "DP-2";
         height = desktopBarThickness;
-        modules-left   = [ "custom/niri-workspace" ];
-        modules-center = [ ];
-        # sqlch leads modules-right (its outermost/left edge) rather than
-        # sitting in modules-center: the track title resizes it constantly,
-        # and as the left-most right module only its own left edge moves —
-        # volume/notification stay pinned to the screen edge. Centered, every
-        # width change re-centered it and dragged the whole module sideways.
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/notification" "custom/volume" ];
+        # Weather follows the workspace indicator on the fixed left edge; the
+        # clock stays alone in modules-center so its width swings just re-centre it.
+        modules-left   = [ "custom/niri-workspace" "custom/weather" ];
+        modules-center = [ "custom/clock" ];
+        modules-right  = [ "custom/notification" ];
       };
 
       # ── TV Bar (HDMI-A-1 — 65" Samsung 4K, scale 3.0 handled by niri) ──
@@ -96,28 +94,17 @@ in
         height = tvBarThickness;
         # See leftBar above — weather follows the workspace indicator, clock
         # stays alone in modules-center.
-        modules-left   = [ "custom/niri-workspace" "custom/weather" "custom/launch-app" "custom/toggle-sidebar" "custom/launch-ghostty" ];
+        modules-left   = [ "custom/niri-workspace" "custom/weather" "custom/launch-ghostty" ];
         modules-center = [ "custom/clock" ];
         # sqlch leads modules-right so its title-driven width changes only
         # push its own left edge, not volume/notification (see rightBar).
         modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/notification" "custom/volume" ];
-        "custom/clock"       = config.programs.waybar.settings.leftBar."custom/clock" or {};
-        "custom/weather"     = config.programs.waybar.settings.leftBar."custom/weather" or {};
-        "custom/volume"      = config.programs.waybar.settings.rightBar."custom/volume" or {};
-        "custom/sqlch"       = config.programs.waybar.settings.rightBar."custom/sqlch" or {};
-        # Mouse-clickable launchers: niri keybinds don't survive the wayvnc
-        # modifier-desync over VNC, but the pointer path does. the launcher reaches
-        # every other app from here.
-        "custom/launch-app" = {
-          format = "󰀻";
-          on-click = "${launcherBin}";
-          tooltip-format = "App launcher";
-        };
-        "custom/toggle-sidebar" = {
-          format = "󰍜";
-          on-click = "${config.myConfig.sidebarToggleScript}";
-          tooltip-format = "Toggle control center";
-        };
+        "custom/clock"       = config.programs.waybar.settings.rightBar."custom/clock" or {};
+        "custom/weather"     = config.programs.waybar.settings.rightBar."custom/weather" or {};
+        "custom/volume"      = config.programs.waybar.settings.leftBar."custom/volume" or {};
+        "custom/sqlch"       = config.programs.waybar.settings.leftBar."custom/sqlch" or {};
+        # Mouse-clickable terminal: niri keybinds don't survive the wayvnc
+        # modifier-desync over VNC, but the pointer path does.
         "custom/launch-ghostty" = {
           format = "";
           on-click = "ghostty";
@@ -139,7 +126,7 @@ in
         modules-center = [ "custom/clock" ];
         # sqlch leads modules-right so its title-driven width changes only
         # push its own left edge, not the rest of the cluster (see rightBar).
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/notification" "custom/kdeconnect" "custom/volume" ];
+        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/notification" "custom/kdeconnect" "custom/volume" ];
       };
 
     };
@@ -154,61 +141,23 @@ in
     ]
   );
 
+  # DP-2 alone (streaming, or Mod+Ctrl+S): one bar carrying both screens' modules.
   xdg.configFile."waybar/config-single-dp2" = lib.mkIf isDesktop {
     text = builtins.toJSON [
-      # ── Top Bar ───────────────────────────────────────────────────────
-      {
-        name = "single-desktop-top";
+      ({
+        name = "single-desktop";
         layer = "top";
         position = "top";
         output = "DP-2";
-        height = 53;
-        modules-left   = [ "custom/niri-workspace" ];
-        modules-center = [];
-        # sqlch leads modules-right so its title-driven width changes only
-        # push its own left edge, not volume/notification (see rightBar).
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/notification" "custom/volume" ];
-
-        "custom/niri-workspace" = config.programs.waybar.settings.rightBar."custom/niri-workspace" or {};
-        "custom/notification" = config.programs.waybar.settings.rightBar."custom/notification" or {};
-        "custom/bluetooth" = config.programs.waybar.settings.rightBar."custom/bluetooth" or {};
-        "custom/network" = config.programs.waybar.settings.rightBar."custom/network" or {};
-        "custom/volume" = config.programs.waybar.settings.rightBar."custom/volume" or {};
-        "custom/sqlch"  = config.programs.waybar.settings.rightBar."custom/sqlch" or {};
+        height = desktopBarThickness;
+        modules-left   = [ "custom/niri-workspace" "custom/weather" ];
+        modules-center = [ "custom/clock" ];
+        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/notification" "custom/kdeconnect" "custom/volume" ];
       }
-
-      # ── Bottom Bar ────────────────────────────────────────────────────
-      {
-        name = "single-desktop-bottom";
-        layer = "top";
-        position = "bottom";
-        output = "DP-2";
-        height = 53;
-        # No workspace module lives on this bar (it's on the top half of
-        # this fallback layout) to anchor weather against, so this stays
-        # centered as a pair — same as before the leftBar/tvTopBar/
-        # surfaceTopBar rework above.
-        modules-left   = [];
-        modules-center = [ "custom/clock" "custom/weather" ];
-        modules-right  = [ "custom/lix-logout" ];
-
-        "custom/clock"         = config.programs.waybar.settings.leftBar."custom/clock" or {};
-        "custom/weather"       = config.programs.waybar.settings.leftBar."custom/weather" or {};
-        "custom/lix-logout" = {
-          format = "${config.waybar.lixLogout.label}\n<span size='x-small' alpha='60%'>POWER</span>";
-          justify = "center";
-          tooltip-format = config.waybar.lixLogout.tooltip;
-          on-click = "lix-logout-toggle";
-          menu = "on-click-right";
-          menu-file = "${./scripts}/lix-logout-menu.xml";
-          menu-actions = {
-            lix-logout-suspend   = "systemctl suspend";
-            lix-logout-hibernate = "systemctl hibernate";
-            lix-logout-gag-1     = "notify-send 'lix-logout' 'Nice try. 🍦'";
-            lix-logout-gag-2     = "notify-send 'lix-logout' 'Self-destruct sequence initiated... just kidding.'";
-          };
-        };
-      }
+      // lib.genAttrs [ "custom/niri-workspace" "custom/weather" "custom/clock" "custom/notification" ]
+           (m: config.programs.waybar.settings.rightBar.${m} or {})
+      // lib.genAttrs [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/kdeconnect" "custom/volume" ]
+           (m: config.programs.waybar.settings.leftBar.${m} or {}))
     ];
   };
 
@@ -268,6 +217,7 @@ in
     clock.enable = true;
     bluetooth.enable = true;
     netstatus.enable = true;
+    fleet.enable = true;
     volume.enable = true;
     weather.enable = true;
     sqlch.enable = true;

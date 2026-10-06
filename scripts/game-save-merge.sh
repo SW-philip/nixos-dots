@@ -48,7 +48,7 @@ for entry in "${accounts[@]}"; do
   # stat inside them, but the sudo rsync below can read them fine.
   sudo test -d "$src" || continue
   echo ">> $user: $src -> $SHARE/"
-  sudo rsync -a -u \
+  sudo rsync -rt -u --no-perms --no-owner --no-group \
     --exclude='*.bak' --exclude='*.bak-*' --exclude='*.claude-bak-*' \
     --exclude='*.srm.bak*' --exclude='*.from-*' --exclude='*.orig' \
     "$src" "$SHARE/"
@@ -60,7 +60,7 @@ if [[ "$merged" -eq 0 ]]; then
 fi
 
 # Normalize ownership + modes so cross-account overwrite always works.
-sudo chown -R 1002:984 "$SHARE"
+sudo chown -R 1002:984 "$SHARE" 2>/dev/null || true
 sudo find "$SHARE" -type d -exec chmod 0777 {} + 2>/dev/null || true
 sudo find "$SHARE" -type f -exec chmod 0666 {} + 2>/dev/null || true
 

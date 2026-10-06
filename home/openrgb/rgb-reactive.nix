@@ -45,11 +45,12 @@ let
 
     # ── idle: set firmware effect once, then bail ─────────────────────────────
     if (( ACTIVE == 0 )); then
-      [[ "$(cat "$STATE" 2>/dev/null)" == "hardware" ]] && exit 0
+      # keyed on the colour so a theme switch re-applies the effect
+      [[ "$(cat "$STATE" 2>/dev/null)" == "hardware:$FIFTH$SEVENTH" ]] && exit 0
       for d in 0 1 2 3; do
-        ${openrgb} --device $d --mode "Color Pulse" --color "$(hex "$FIFTH")"
+        ${openrgb} --device $d --mode "Color Pulse" --color "$(hex "$FIFTH"),$(hex "$SEVENTH")"
       done
-      echo "hardware" > "$STATE"
+      echo "hardware:$FIFTH$SEVENTH" > "$STATE"
       exit 0
     fi
 

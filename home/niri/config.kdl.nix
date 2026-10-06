@@ -41,12 +41,12 @@ input {
 output "DP-1" {
     mode "1920x1080@60.000"
     position x=0 y=0
-    scale 1.0
+    scale 1.25
 }
 output "DP-2" {
     mode "1920x1080@60.000"
-    position x=1920 y=0
-    scale 1.0
+    position x=1536 y=0
+    scale 1.25
 }
 // Surface: HiDPI internal display
 output "eDP-1" {
@@ -220,14 +220,6 @@ window-rule {
         xray true
     }
 }
-// AppImage wrapper reports app-id "AppRun.wrapped" (generic, not unique to
-// this app), so matched by title instead — confirmed live via
-// `niri msg windows` on 2026-08-10.
-window-rule {
-    match title="^WiiUDownloader$"
-    open-maximized true
-}
-
 // Steam Big Picture (Steam launched with -uimode=7) reports app-id "steam" —
 // identical to the desktop library window — so match its title to fullscreen
 // only Big Picture, not the library. Without this, niri opens it as a 0.5
@@ -238,15 +230,25 @@ window-rule {
     open-fullscreen true
 }
 
-// Emulators: maximized, not exclusive-fullscreen. xemu/azahar/eden used to
-// launch with their own -full-screen/-f flags (hosts/desktop/config.nix);
-// on this box, exclusive fullscreen coincided with the Bluetooth adapter
-// dropping its connected device, while a maximized (still composited)
-// window never did. Those three flags were dropped and RetroArch's
-// video_fullscreen pinned to false (home/emulation/default.nix) so every
-// emulator opens windowed, then gets maximized here instead. App-ids
-// confirmed live via `niri msg windows` on 2026-08-09 — re-check the same
-// way after any emulator update, since at least one (eden) didn't match
+// Native Steam games report their title as app-id and otherwise open as a
+// small window in a new column beside Pegasus, off-screen and unfocused: you
+// hear the game while Pegasus stays on top. Stardew confirmed live 2026-10-03.
+window-rule {
+    match app-id="^Stardew Valley$"
+    open-fullscreen true
+    open-focused true
+}
+
+// Emulators: niri-fullscreen (compositor-level, no waybar strip or gaps, so
+// no top/bottom bars), still not the emulators' own exclusive fullscreen.
+// xemu/azahar/eden used to launch with their own -full-screen/-f flags
+// (hosts/desktop/config.nix); on this box that coincided with the Bluetooth
+// adapter dropping its connected device, so those flags stay dropped and
+// RetroArch's video_fullscreen is pinned to false (home/emulation/default.nix):
+// every emulator opens windowed, then niri fullscreens it here. If the
+// Bluetooth drop returns, swap open-fullscreen back to open-maximized.
+// App-ids confirmed live via `niri msg windows` on 2026-08-09 — re-check the
+// same way after any emulator update, since at least one (eden) didn't match
 // its own .desktop file's declared StartupWMClass.
 window-rule {
     match app-id="com.libretro.RetroArch"   // nes/snes/genesis/gba/psx/n64/saturn/dreamcast
@@ -255,17 +257,17 @@ window-rule {
     match app-id="app.xemu.xemu"            // xbox
     match app-id="org.azahar_emu.Azahar"    // 3ds
     match app-id="dev.eden_emu.eden"        // switch
-    open-maximized true
+    open-fullscreen true
 }
 // ppsspp (psp) and rpcs3 (ps3) below are UNVERIFIED best-guesses (from
 // each package's Exec name / declared StartupWMClass) — neither would
 // launch a window in the sandbox used to confirm the others above. Check
 // with `niri msg windows` next time either is open and fix the app-id if
-// it silently isn't maximizing.
+// it silently isn't going fullscreen.
 window-rule {
     match app-id="ppsspp"
     match app-id="rpcs3"
-    open-maximized true
+    open-fullscreen true
 }
 // pcsx2-qt (ps2) reports an empty app-id under niri (XWayland gap — see
 // "Things Claude Gets Wrong Here" in CLAUDE.md), so no window-rule can
@@ -437,22 +439,22 @@ binds {
     Mod+Ctrl+S { spawn "kanshictl" "switch" "desktop-single-dp2"; }
 
     // Panel edges (wing/ledger eww bars — see home/eww/scripts/panel-edge.sh)
-    Mod+Ctrl+Left  { spawn "eww-panel-edge" "wing" "left"; }
-    Mod+Ctrl+Right { spawn "eww-panel-edge" "wing" "right"; }
-    Mod+Ctrl+Up    { spawn "eww-panel-edge" "ledger" "top"; }
-    Mod+Ctrl+Down  { spawn "eww-panel-edge" "ledger" "bottom"; }
+    Mod+Ctrl+Left  { spawn "eww-panel-step" "wing" "left"; }
+    Mod+Ctrl+Right { spawn "eww-panel-step" "wing" "right"; }
+    Mod+Ctrl+Up    { spawn "eww-panel-step" "ledger" "up"; }
+    Mod+Ctrl+Down  { spawn "eww-panel-step" "ledger" "down"; }
 
     // Scroll through columns
     Mod+WheelScrollRight cooldown-ms=150 { focus-column-right; }
     Mod+WheelScrollLeft  cooldown-ms=150 { focus-column-left; }
 
     // Media / system
-    XF86AudioRaiseVolume  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ && pkill -RTMIN+1 waybar"; }
-    XF86AudioLowerVolume  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && pkill -RTMIN+1 waybar"; }
-    XF86AudioMute         allow-when-locked=true { spawn "bash" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && pkill -RTMIN+1 waybar"; }
-    F6  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ && pkill -RTMIN+1 waybar"; }
-    F5  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- && pkill -RTMIN+1 waybar"; }
-    F4  allow-when-locked=true { spawn "bash" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle && pkill -RTMIN+1 waybar"; }
+    XF86AudioRaiseVolume  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"; }
+    XF86AudioLowerVolume  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
+    XF86AudioMute         allow-when-locked=true { spawn "bash" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    F6  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"; }
+    F5  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
+    F4  allow-when-locked=true { spawn "bash" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
     XF86AudioPlay  { spawn "playerctl" "play-pause"; }
     XF86AudioNext  { spawn "playerctl" "next"; }
     XF86AudioPrev  { spawn "playerctl" "previous"; }

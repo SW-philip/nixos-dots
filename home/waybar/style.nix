@@ -114,7 +114,7 @@ window#waybar {
 
 /* -----------------------------------------------------------------
    Clock — always lit, it's the anchor.
-   quantum_clock.sh's modes swing from ~85px (moon, default) to ~500px
+   quantum_clock.py's modes swing from ~85px (moon, default) to ~500px
    (caliper's worst case). A min-width freeze sized to that max looked
    right on paper but was visibly wrong live — a mostly-empty ~500px
    box at rest. Fixed via placement instead (default.nix): clock+weather
@@ -208,6 +208,15 @@ window#waybar {
 #custom-network.vpn:hover          { color: ${p.ROOT}; }
 #custom-network.offline            { opacity: 0.45; }
 #custom-network.offline:hover      { opacity: 0.7; color: ${p.BAR}; }
+
+/* -----------------------------------------------------------------
+   Fleet — dim when everything is in step, warn/bad colour otherwise
+   ----------------------------------------------------------------- */
+#custom-fleet                      { color: ${p.REST}; }
+#custom-fleet.warn                 { color: ${p.FERMATA}; }
+#custom-fleet.bad                  { color: ${p.FORTE}; }
+#custom-fleet.stale                { color: ${p.REST}; opacity: 0.6; }
+#custom-fleet.nosnap               { color: ${p.REST}; opacity: 0.45; }
 
 /* -----------------------------------------------------------------
    Bluetooth — dim at rest, state color on hover

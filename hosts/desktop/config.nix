@@ -2,6 +2,7 @@
 let
   # Full emulated-system list (surface filters this to its iGPU subset).
   retroSystems = import ../retro-systems.nix { inherit pkgs; };
+  mkPegasusMetadata = import ../pegasus-metadata.nix { inherit pkgs; };
 in
 {
   ############################################################
@@ -22,12 +23,14 @@ in
     ./iptv.nix
     inputs.sops-nix.nixosModules.sops
     ../../roles/sops-shared.nix
+    ../../roles/ssh-known-hosts.nix
     ../../modules/protonvpn.nix
     ../../modules/jellyfin.nix
     ../../modules/sqlch.nix
     ../../modules/greetd.nix
     ../../modules/tailscale.nix
     ../../modules/sunshine.nix
+    ../../modules/retro-tiles.nix
     ../../modules/niri-bridge.nix
     ./myln.nix
     ./impermanence.nix
@@ -36,7 +39,7 @@ in
   ############################################################
   # Host identity
   ############################################################
-  networking.hostName = "desktop";
+  networking.hostName = "SWphil";
   greetd.greeting = "Welcome back, Phil.";
 
   # Auto-login straight into niri so sunshine.service (graphical-session.target,
@@ -149,15 +152,7 @@ in
       "A+ /srv/game-saves - - - - d:group::rwx,d:other::rwx,d:mask::rwx,group::rwx,other::rwx,mask::rwx"
     ]
     ++ (map (s: "d /srv/roms/${s.dir} 0755 prepko users -") retroSystems)
-    ++ (map (s: "L+ /srv/roms/${s.dir}/metadata.pegasus.txt - - - - ${
-      pkgs.writeText "pegasus-metadata-${s.dir}" ''
-        collection: ${s.collection}
-        shortname: ${s.shortname}
-        ${if s ? regex then "regex: ${s.regex}" else "extensions: ${s.extensions}"}
-        launch: ${s.launch}
-        directories: .
-      ''
-    }") retroSystems);
+    ++ (map (s: "L+ /srv/roms/${s.dir}/metadata.pegasus.txt - - - - ${mkPegasusMetadata { inherit s; }}") retroSystems);
 
   ############################################################
   # NFS export of /srv/roms for surface, which no longer stores its own
@@ -181,6 +176,9 @@ in
   services.rpcbind.enable = lib.mkForce false;
   # nfs-server Wants rpc-statd, which Requires rpcbind.socket; statd is v3-only.
   systemd.services.rpc-statd.enable = false;
+  # /srv is nofail so local-fs.target doesn't wait for it, and its spinning-disk
+  # mount takes ~3s: without this nfs-server came up ~1.4s before /srv existed.
+  systemd.services.nfs-server.after = [ "srv.mount" ];
   services.nfs.server = {
     enable = true;
     exports = ''
@@ -188,4 +186,8 @@ in
       /srv/game-saves 100.64.0.2(rw,all_squash,anonuid=1002,anongid=984,no_subtree_check)
     '';
   };
+
+  # Builds the pi host (aarch64): its image and --build-host deploys run
+  # aarch64 derivations through qemu-user.
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 }

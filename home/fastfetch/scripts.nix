@@ -14,7 +14,7 @@ let
     lix = pkgs.writeShellScript "ff-lix" "nix --version 2>&1 | head -1 | awk '{print $NF}'";
 
     rebuild = pkgs.writeShellScript "ff-rebuild" ''
-      elapsed=$(( $(date +%s) - $(stat -c %Y /run/current-system) ))
+      elapsed=$(( $(date +%s) - $(stat -c %Y /nix/var/nix/profiles/system) ))
       days=$(( elapsed / 86400 ))
       (( days >= 14 )) && echo "''${days}d (stale)" || ((( days >= 7 )) && echo "''${days}d (aging)" || echo "''${days}d (fresh)")
     '';

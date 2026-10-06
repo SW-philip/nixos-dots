@@ -15,15 +15,9 @@ ICON_OFF="󰦞"
 
 SNARK_FILE="$HOME/.config/waybar/snark.json"
 
-snark_for() {
-    local bucket="$1" fallback="${2:-}"
-    if [[ -f "$SNARK_FILE" ]] && command -v jq >/dev/null; then
-        local s
-        s=$(jq -r ".protonvpn.${bucket}[]?" "$SNARK_FILE" 2>/dev/null | shuf -n1 || true)
-        [[ -n "$s" && "$s" != "null" ]] && echo "$s" && return
-    fi
-    echo "$fallback"
-}
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/waybar-lib.sh"
+snark_for() { waybar_snark protonvpn "$1" "${2:-}"; }
 
 if systemctl is-active --quiet wg-quick-protonvpn.service 2>/dev/null; then
     TOOLTIP=$(printf "<span foreground='${SEVENTH}'>ProtonVPN Connected</span>\n<span foreground='${BAR}'>────────────────────</span>\n<span foreground='${ROOT}'>%s</span>" "$(snark_for on 'Traffic disguised.')")

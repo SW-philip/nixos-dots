@@ -1,14 +1,16 @@
 [
-  { "icon": "󰈹", "label": "Firefox",   "cmd": "firefox" },
-  { "icon": "󰆍", "label": "Terminal",  "cmd": "ghostty" },
-  { "icon": "󰉋", "label": "Files",     "cmd": "nemo" },
-  { "icon": "󰇮", "label": "Mail",      "cmd": "thunderbird" },
-  { "icon": "󰍡", "label": "Element",   "cmd": "element-desktop" },
-  { "icon": "󰓇", "label": "Spotify",   "cmd": "spotify" },
-  { "icon": "󰏫", "label": "Notes",     "cmd": "xournalpp" },
-  { "icon": "󰃣", "label": "Krita",     "cmd": "krita" },
-  { "icon": "󰂽", "label": "Books",     "cmd": "koreader" },
-  { "icon": "󰊗", "label": "Moonlight", "cmd": "moonlight" },
-  { "icon": "󰊴", "label": "Games",     "cmd": "pegasus-fe" },
-  { "icon": "󰀻", "label": "All apps",  "cmd": "fuzzel" }
+  {"icon": "󰈹", "label": "Firefox", "cmd": "firefox"},
+  {"icon": "󰆍", "label": "Terminal", "cmd": "ghostty"},
+  {"icon": "󰉋", "label": "Files", "cmd": "nemo"},
+  {"icon": "󰇮", "label": "Mail", "cmd": "thunderbird"},
+  {"icon": "󰍡", "label": "Element", "cmd": "element-desktop"},
+  {"icon": "󰓇", "label": "Spotify", "cmd": "spotify"},
+  {"icon": "󰏫", "label": "Notes", "cmd": "xournalpp"},
+  {"icon": "󰃣", "label": "Krita", "cmd": "krita"},
+  {"icon": "󰂽", "label": "Books", "cmd": "koreader"},
+  {"icon": "󰊗", "label": "Moonlight", "cmd": "moonlight"},
+  {"icon": "󰊴", "label": "Games", "cmd": "pegasus-fe"},
+  {"icon": "󰎈", "label": "Hydrogen", "cmd": "hydrogen"},
+  {"icon": "󰽰", "label": "Helio", "cmd": "helio"},
+  {"icon": "󰀻", "label": "All apps", "cmd": "fuzzel"}
 ]

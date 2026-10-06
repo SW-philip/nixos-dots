@@ -13,7 +13,7 @@ draw() {
 
     raw=$(wpctl get-volume "$SINK" 2>/dev/null)
     vol=$(awk '{printf "%d", $2*100}' <<< "$raw")
-    muted=$(grep -q BAR <<< "$raw" && echo "  [BAR]" || echo "")
+    muted=$(grep -q MUTED <<< "$raw" && echo "  [MUTED]" || echo "")
 
     filled=$(( vol / 5 ))
     bar=""
@@ -50,5 +50,4 @@ while true; do
         esac
     fi
 
-    pkill -RTMIN+1 waybar 2>/dev/null
 done

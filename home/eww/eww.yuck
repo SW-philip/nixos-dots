@@ -17,9 +17,9 @@
 (deflisten power  :initial "{}" `while :; do bash SCRIPTS/power.sh;  sleep 30; done`)
 (deflisten mug    :initial "{}" `while :; do bash SCRIPTS/mug.sh;    sleep 20; done`)
 (deflisten myln   :initial "{}" `while :; do bash SCRIPTS/myln.sh;   sleep 30; done`)
-(deflisten tablet :initial "false" `while :; do bash SCRIPTS/tablet.sh; sleep 1; done`)
+(deflisten tablet :initial "false" `TABLET_FEED`)
 ;; true while squeekboard is on screen; the bottom ledger fades out of its way.
-(deflisten osk :initial "false" `while :; do TOGGLE_OSK_BIN status; sleep 0.5; done`)
+(deflisten osk :initial "false" `OSK_FEED`)
 (deflisten launcher_rows :initial "[]" `while :; do bash SCRIPTS/launcher-favs.sh; sleep 30; done`)
 
 ;; Reads the same ~/.cache/waybar/stoic-quote.json that

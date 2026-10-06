@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# quantum-bluetooth.sh and netstatus.sh feed one shared cache, read by the
+# netstatus.sh feeds a cache that is read by the
 # compact top-bar module through `jq '.text = (.text_compact // .text)'`.
 # If any branch's jq object omits `text_compact`, that state silently falls back
 # to the rich `text` field on the top bar and shoves the module cluster around.
@@ -9,7 +9,7 @@ set -uo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fail=0
 
-for f in quantum-bluetooth.sh netstatus.sh; do
+for f in netstatus.sh; do
   path="$DIR/$f"
   count=0
   while IFS= read -r filter; do

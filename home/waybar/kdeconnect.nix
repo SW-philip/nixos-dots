@@ -2,7 +2,7 @@
 let
   isDesktop = config.myConfig.isDesktop;
   bar = if config.waybar.barName != "" then config.waybar.barName
-        else if isDesktop then "rightBar" else "surfaceTopBar";
+        else if isDesktop then "leftBar" else "surfaceTopBar";
 
   statusScript = pkgs.writeShellScriptBin "waybar-kdeconnect-status" ''
     export PATH=${lib.makeBinPath [

@@ -4,7 +4,7 @@ set -euo pipefail
 STATE_DIR="${EWW_PANEL_EDGE_STATE_DIR:-$HOME/.local/state}"
 
 usage() {
-  echo "usage: eww-panel-edge <wing|wing-tv|ledger|ledger-tv> <edge>" >&2
+  echo "usage: eww-panel-edge <wing|wing-tv|ledger|ledger-tv> <edge> [screen]" >&2
   exit 1
 }
 
@@ -17,9 +17,10 @@ window_name() {
   esac
 }
 
-[ $# -eq 2 ] || usage
+[ $# -eq 2 ] || [ $# -eq 3 ] || usage
 slot="$1"
 edge="$2"
+screen="${3:-}"
 
 case "$slot" in
   wing|wing-tv)     valid="left right" ;;
@@ -35,6 +36,11 @@ esac
 state_file="$STATE_DIR/eww-panel-edge-$slot"
 mkdir -p "$STATE_DIR"
 printf '%s' "$edge" > "$state_file"
+# The screen file is only written when a screen is given; no file means the
+# window's own :monitor (home/eww/default.nix substitutes the connector).
+if [ -n "$screen" ]; then
+  printf '%s' "$screen" > "$STATE_DIR/eww-panel-screen-$slot"
+fi
 
 # Close every other legal edge for this slot unconditionally rather than
 # trusting the old state-file value -- self-healing if the real daemon and
@@ -46,4 +52,11 @@ for e in $valid; do
   [ "$e" = "$edge" ] || eww close "$(window_name "$slot" "$e")" >/dev/null 2>&1 || true
 done
 
-eww open "$(window_name "$slot" "$edge")"
+win="$(window_name "$slot" "$edge")"
+if [ -n "$screen" ]; then
+  # Re-opening an already-open window on another screen needs a close first.
+  eww close "$win" >/dev/null 2>&1 || true
+  eww open "$win" --screen "$screen"
+else
+  eww open "$win"
+fi

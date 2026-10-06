@@ -56,12 +56,16 @@ in
   # window-rule (home/niri/config.kdl.nix, app-id "com.libretro.RetroArch")
   # then maximizes it. Exclusive fullscreen on this box coincides with the
   # Bluetooth adapter dropping its connected device.
+  # savefile_directory points every account at the shared NFS-backed save
+  # store (docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md);
+  # savestates stay local.
   xdg.configFile."retroarch/retroarch.cfg" = {
     force = true;
     text = ''
       joypad_autoconfig_dir = "${pkgs.retroarch-joypad-autoconfig}/share/libretro/autoconfig"
       config_save_on_exit = "false"
       video_fullscreen = "false"
+      savefile_directory = "/srv/game-saves"
     '';
   };
 

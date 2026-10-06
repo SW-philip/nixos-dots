@@ -767,5 +767,42 @@
             "Gravity-responsive UI.",
             "Go ahead. Rotate. It's ready."
         ]
+    },
+    "fleet": {
+        "ok": [
+            "everyone's home, nobody's asleep.",
+            "all four hosts agree. suspicious.",
+            "in step. enjoy it.",
+            "no drift. the flake is pleased.",
+            "fleet nominal. touch nothing."
+        ],
+        "behind": [
+            "somebody missed the memo.",
+            "drift detected. blame the last commit.",
+            "a host is living in the past.",
+            "nrs is a verb, you know.",
+            "behind, but not hopeless."
+        ],
+        "down": [
+            "retro: asleep, again.",
+            "a host has left the building.",
+            "the pi is thinking about its choices.",
+            "silence from the fleet. check the cable.",
+            "one fewer than you started with."
+        ],
+        "stale": [
+            "the snapshot is old news.",
+            "last seen a while ago. who knows now.",
+            "the fleet-status timer is napping.",
+            "this data has aged poorly.",
+            "running on yesterday's information."
+        ],
+        "diverged": [
+            "two hosts, two realities.",
+            "history has forked. bring a mop.",
+            "ahead and behind at once. impressive.",
+            "merge by hand, as tradition demands.",
+            "the branches disagree. so do i."
+        ]
     }
 }

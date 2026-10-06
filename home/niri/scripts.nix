@@ -187,6 +187,35 @@
     echo "set-default-sink: default sink -> $target (id $id)" >&2
   '';
 
+  # niri-bridge pairs edges by id, and an edge is live only if its output exists
+  # on BOTH hosts — so the desktop's "default" edge must follow whichever output
+  # kanshi's current profile leaves leftmost. config.toml is daemon-owned (not
+  # home-manager-managed), so stop → edit → validate → start rather than
+  # racing the daemon's own rewrites. Idempotent; leaves the service stopped if
+  # it wasn't running (the next start reads the updated file).
+  setBridgeEdge = pkgs.writeShellScript "niri-bridge-edge" ''
+    export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.gnused pkgs.gnugrep pkgs.niri-bridge ]}:$PATH"
+    cfg="$HOME/.config/niri-bridge/config.toml"
+    sysctl=/run/current-system/sw/bin/systemctl
+    [ -f "$cfg" ] || exit 0
+    grep -qE "^[[:space:]]*output[[:space:]]*=[[:space:]]*\"$1\"" "$cfg" && exit 0
+
+    was_active=0
+    $sysctl --user is-active --quiet niri-bridge.service && was_active=1
+    [ "$was_active" = 1 ] && $sysctl --user stop niri-bridge.service
+
+    cp "$cfg" "$cfg.prev"
+    sed -i -E "s|^([[:space:]]*output[[:space:]]*=[[:space:]]*).*|\1\"$1\"|" "$cfg"
+    if ! niri-bridge check-config --config "$cfg" >/dev/null 2>&1; then
+      echo "niri-bridge-edge: '$1' rejected by check-config — restoring previous config" >&2
+      mv "$cfg.prev" "$cfg"
+    else
+      echo "niri-bridge-edge: edge output -> $1" >&2
+    fi
+    [ "$was_active" = 1 ] && $sysctl --user start niri-bridge.service
+    exit 0
+  '';
+
   # Writes waybar mode state and restarts waybar. Idempotent: skips restart if mode unchanged.
   setWaybarMode = pkgs.writeShellScript "waybar-set-mode" ''
     MODE_FILE="$HOME/.local/state/waybar-mode"

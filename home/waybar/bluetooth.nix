@@ -2,9 +2,11 @@
 let
   isDesktop = config.myConfig.isDesktop;
 
+  # gdbus = event source, busctl = one GetManagedObjects per change (see
+  # scripts/bluetooth_status.py).
   bluetoothScript = pkgs.writeShellScriptBin "quantum-bluetooth" ''
-    export PATH=${lib.makeBinPath [ pkgs.bluez pkgs.glib pkgs.jq ]}:$PATH
-    exec ${config.home.homeDirectory}/.config/waybar/scripts/quantum-bluetooth.sh
+    export PATH=${lib.makeBinPath [ pkgs.glib pkgs.systemd ]}:$PATH
+    exec ${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/waybar/scripts/bluetooth_status.py "$@"
   '';
 
   btmenuScript = pkgs.writeShellScriptBin "quantum-btmenu" ''
@@ -28,24 +30,13 @@ let
     exec ${config.home.homeDirectory}/.config/waybar/scripts/bt-classify.sh "$@"
   '';
 
-  # Spawns 1-2 bluetoothctl subprocesses (each with its own D-Bus init) when
-  # connected — enough to be visible as a "pop in" on every cold-start (see
-  # home/waybar/scripts/waybar-cache-poll). Poll it in the background instead;
-  # the module's own exec becomes a cache read. The module keeps interval=1
-  # for a snappy-feeling bar, but the underlying data only actually changes
-  # on the poll timer's own cadence.
-  cachePollScript = pkgs.writeShellScriptBin "waybar-cache-poll" (builtins.readFile ./scripts/waybar-cache-poll);
-  cacheReadScript = pkgs.writeShellScriptBin "waybar-cache-read" (builtins.readFile ./scripts/waybar-cache-read);
-  cacheName = "bluetooth";
-  fallbackJson = builtins.toJSON { text = "…"; tooltip = "loading…"; class = "unknown"; };
-
-  # jq swaps the rich `text` for the bare glyph `text_compact` so the top-bar
-  # cluster doesn't jump when a device (with a name + battery %) connects.
-  # `// .text` keeps a pre-first-poll fallback JSON valid.
+  # One streaming process per bar, driven by BlueZ D-Bus signals; it emits the
+  # bare glyph as `text` so the top-bar cluster doesn't jump when a device
+  # (with a name + battery %) connects.
   topMod = {
-    "exec" = "${cacheReadScript}/bin/waybar-cache-read ${cacheName} 15 '${fallbackJson}'"
-           + " | ${pkgs.jq}/bin/jq -c '.text = (.text_compact // .text)'";
-    "interval" = 1;
+    "exec" = "${bluetoothScript}/bin/quantum-bluetooth stream";
+    "exec-on-event" = false;
+    "restart-interval" = 3;
     "return-type" = "json";
     "on-click" = "${btmenuScript}/bin/quantum-btmenu";
     "on-click-right" = "${bttoggleScript}/bin/quantum-bt-toggle";
@@ -55,30 +46,7 @@ in {
   options.waybar.bluetooth.enable = lib.mkEnableOption "bluetooth module";
 
   config = lib.mkIf config.waybar.bluetooth.enable {
-    home.packages = [ bluetoothScript btmenuScript bttoggleScript btClassifyScript cachePollScript cacheReadScript ];
-
-    systemd.user.services."waybar-${cacheName}-poll" = {
-      Unit = {
-        Description = "Poll bluetooth status into cache for waybar";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-        ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
-      };
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${cachePollScript}/bin/waybar-cache-poll ${cacheName} ${bluetoothScript}/bin/quantum-bluetooth";
-      };
-    };
-
-    systemd.user.timers."waybar-${cacheName}-poll" = {
-      Unit.Description = "Bluetooth status poll timer";
-      Timer = {
-        OnStartupSec = "5s";
-        OnUnitActiveSec = "5s";
-        Persistent = true;
-      };
-      Install.WantedBy = [ "timers.target" ];
-    };
+    home.packages = [ bluetoothScript btmenuScript bttoggleScript btClassifyScript ];
 
     programs.waybar.settings = lib.mkMerge [
       (lib.mkIf isDesktop {

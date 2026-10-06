@@ -56,6 +56,13 @@
     options = [ "subvol=@home" ];
   };
 
+  fileSystems."/nix" = {
+    device = "/dev/mapper/luks-d8543351-206f-4b3e-884f-9d0ea8c2eebd";
+    fsType = "btrfs";
+    options = [ "subvol=@nix" "compress=zstd" "noatime" ];
+    neededForBoot = true;
+  };
+
   fileSystems."/persist" = {
     device = "/dev/mapper/luks-d8543351-206f-4b3e-884f-9d0ea8c2eebd";
     fsType = "btrfs";

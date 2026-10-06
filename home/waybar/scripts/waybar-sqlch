@@ -4,6 +4,7 @@ import json
 import os
 import random
 import re
+import signal
 import socket
 import subprocess
 import sys
@@ -25,7 +26,7 @@ def _load_palette(path: Path) -> dict:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             k, v = line.split("=", 1)
-            p[k.strip()] = v.strip().strip('"')
+            p[k.removeprefix("export").strip()] = v.strip().strip('"')
         for _ in range(3):
             for k, v in p.items():
                 p[k] = re.sub(r"\$(\w+)", lambda m: p.get(m.group(1), m.group(0)), v)
@@ -130,10 +131,21 @@ def current_track() -> tuple[str | None, str | None]:
     icy = meta.get("icy-title") or meta.get("title", "")
     return _parse_icy(icy)
 
+_enriched_cache: tuple[float, dict] | None = None
+
+def _load_enriched() -> dict:
+    # --stream calls enrich_lookup every tick; re-parse only when the file changes.
+    global _enriched_cache
+    path = CACHE_DIR / "enriched.json"
+    mtime = path.stat().st_mtime
+    if _enriched_cache is None or _enriched_cache[0] != mtime:
+        _enriched_cache = (mtime, json.loads(path.read_text()))
+    return _enriched_cache[1]
+
 def enrich_lookup(artist: str, track: str) -> dict | None:
     """Look up enriched metadata, falling back to the studio version for live/bootleg/demo tracks."""
     try:
-        cache = json.loads((CACHE_DIR / "enriched.json").read_text())
+        cache = _load_enriched()
         key = f"{_norm(artist)}::{_norm(track)}"
         entry = cache.get(key)
         if entry and entry.get("cover"):
@@ -150,37 +162,43 @@ def enrich_lookup(artist: str, track: str) -> dict | None:
 
 SWAP_STATE_PATH = CACHE_DIR / "waybar_swap.json"
 
+_swap_state: dict | None = None
+
 def _swap_mode(station_id: str, has_track: bool) -> str:
     """Alternate the bar text between station name and artist/track every 5-8s."""
+    global _swap_state
     if not has_track:
         return "name"
     now = time.time()
-    state = {}
-    try:
-        state = json.loads(SWAP_STATE_PATH.read_text())
-    except Exception:
-        pass
+    if _swap_state is None:
+        try:
+            _swap_state = json.loads(SWAP_STATE_PATH.read_text())
+        except Exception:
+            _swap_state = {}
+    state = _swap_state
+    before = dict(state)
     if state.get("station_id") != station_id:
-        state = {"station_id": station_id, "mode": "name", "swap_at": now + random.uniform(5, 8)}
+        state.clear()
+        state.update({"station_id": station_id, "mode": "name", "swap_at": now + random.uniform(5, 8)})
     elif now >= state.get("swap_at", 0):
         state["mode"] = "track" if state.get("mode") == "name" else "name"
         state["swap_at"] = now + random.uniform(5, 8)
-    try:
-        SWAP_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        SWAP_STATE_PATH.write_text(json.dumps(state))
-    except Exception:
-        pass
+    if state != before:
+        try:
+            SWAP_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            SWAP_STATE_PATH.write_text(json.dumps(state))
+        except Exception:
+            pass
     return state.get("mode", "name")
 
-def cmd_status():
+def status_payload() -> dict:
     resp = daemon_send({"cmd": "status"})
     if not resp or not resp.get("ok"):
-        print(json.dumps({
+        return {
             "text": f"{ICON_IDLE} sqlch v{VERSION}",
             "tooltip": f"<span foreground='{REST}'>sqlch: daemon not running</span>",
             "class": "inactive"
-        }))
-        return
+        }
 
     status = resp.get("status", "")
     current = resp.get("current")
@@ -219,17 +237,42 @@ def cmd_status():
         bar_label = f"{qualifier_tag}{artist} — {track}" if mode == "track" else name
         max_len = 60
         display_label = bar_label if len(bar_label) <= max_len else bar_label[:max_len - 1] + "…"
-        print(json.dumps({
+        return {
             "text": f"{ICON_PREV} {icon} {html.escape(display_label)} {ICON_NEXT}",
             "tooltip": tooltip,
             "class": css_class
-        }))
-    else:
-        print(json.dumps({
-            "text": f"{ICON_IDLE} sqlch v{VERSION}",
-            "tooltip": f"<span foreground='{REST}'>sqlch: idle</span>\n<span foreground='{REST}'>Click to resume last station</span>",
-            "class": "idle"
-        }))
+        }
+    return {
+        "text": f"{ICON_IDLE} sqlch v{VERSION}",
+        "tooltip": f"<span foreground='{REST}'>sqlch: idle</span>\n<span foreground='{REST}'>Click to resume last station</span>",
+        "class": "idle"
+    }
+
+def cmd_status():
+    print(json.dumps(status_payload()))
+
+PALETTE_PATH = Path.home() / ".config/waybar/palette.sh"
+
+def cmd_stream():
+    """One long-lived process for waybar's exec (no interval). Output only when
+    the payload changes. A palette change exits so restart-interval respawns us
+    with the new colours (they are read once at import)."""
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    def palette_mtime() -> float:
+        try:
+            return PALETTE_PATH.stat().st_mtime
+        except OSError:
+            return 0.0
+    mtime0, last = palette_mtime(), None
+    try:
+        while palette_mtime() == mtime0:
+            payload = status_payload()
+            if payload != last:
+                print(json.dumps(payload), flush=True)
+                last = payload
+            time.sleep(0.5)
+    except BrokenPipeError:
+        pass
 
 def cmd_pause():
     daemon_send({"cmd": "pause"})
@@ -373,7 +416,8 @@ def cmd_pick():
 
 if __name__ == "__main__":
     arg = sys.argv[1] if len(sys.argv) > 1 else "--status"
-    if arg == "--status": cmd_status()
+    if arg == "--stream": cmd_stream()
+    elif arg == "--status": cmd_status()
     elif arg == "--pause": cmd_pause()
     elif arg == "--stop":  cmd_stop()
     elif arg == "--next":  cmd_next()

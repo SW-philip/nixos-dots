@@ -22,8 +22,9 @@ let
       '{text: "\uef0d", tooltip: ("\"" + $text + "\"\n— " + $author), class: "quote"}'
   '';
 
-  cachePollScript = pkgs.writeShellScriptBin "waybar-cache-poll" (builtins.readFile ./scripts/waybar-cache-poll);
-  cacheReadScript = pkgs.writeShellScriptBin "waybar-cache-read" (builtins.readFile ./scripts/waybar-cache-read);
+  cacheTools = import ./cache-tools.nix { inherit pkgs; };
+  cachePollScript = cacheTools.cachePoll;
+  cacheReadScript = cacheTools.cacheRead;
 in
 {
   options.waybar.stoicQuote.enable = lib.mkEnableOption "Stoic quote module";

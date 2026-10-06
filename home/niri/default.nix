@@ -423,6 +423,7 @@ let
       fastfetchLogo   = mkFastfetchLogo   { inherit t pkgs lib; };
       nixMark         = mkNixMark        { inherit t pkgs lib; };
       fastfetchConfig = pkgs.writeText "fastfetch-config-${slug}.jsonc" (mkFastfetchConfig { inherit t config pkgs; });
+      fastfetchConfigSsh = pkgs.writeText "fastfetch-config-ssh-${slug}.jsonc" (mkFastfetchConfig { inherit t config pkgs; ssh = true; });
       zedTheme        = pkgs.writeText "zed-theme-${slug}.json"         (builtins.toJSON (mkZedTheme { inherit t; }));
       startpageCss   = pkgs.writeText "startpage-palette-${slug}.css" (import ../startpage/palette.css.nix t.palette);
       isLight         = t.isLight;
@@ -461,35 +462,12 @@ let
       "input=${p.SCORE}"
     ];
 
+  # Derived from themeConfigs so a new per-theme key can't be forgotten here
+  # (drmis KeyErrors at runtime on a missing one). toJSON turns each
+  # derivation into its store path; pandora is baked into config, not read by drmis.
   themeMapJson = pkgs.writeText "drmis-theme-map.json" (builtins.toJSON {
     _meta  = {};
-    themes = lib.mapAttrs (_: cfgs: {
-      swayncCss         = "${cfgs.swayncCss}";
-      ewwScss           = "${cfgs.ewwScss}";
-      niriKdl           = "${cfgs.niriKdl}";
-      waybarCss         = "${cfgs.waybarCss}";
-      waybarSh          = "${cfgs.waybarSh}";
-      nemoCss           = "${cfgs.nemoCss}";
-      squeekboardCss    = "${cfgs.squeekboardCss}";
-      fuzzelColors      = "${cfgs.fuzzelColors}";
-      lixLogoutCss      = "${cfgs.lixLogoutCss}";
-      uniremoteCss      = "${cfgs.uniremoteCss}";
-      ghostty           = "${cfgs.ghostty}";
-      ghosttyCss        = "${cfgs.ghosttyCss}";
-      tmuxTheme         = "${cfgs.tmuxTheme}";
-      hyprlockConf      = "${cfgs.hyprlockConf}";
-      fastfetchLogo     = "${cfgs.fastfetchLogo}";
-      nixMark           = "${cfgs.nixMark}";
-      fastfetchConfig   = "${cfgs.fastfetchConfig}";
-      firefoxCss        = "${cfgs.firefoxCss}";
-      userContentCss    = "${cfgs.userContentCss}";
-      tuigreetTheme     = cfgs.tuigreetTheme;
-      wallpaperLiveDir  = cfgs.wallpaperLiveDir;
-      wallpaperFallback = cfgs.wallpaperFallback;
-      zedTheme          = "${cfgs.zedTheme}";
-      startpageCss      = "${cfgs.startpageCss}";
-      isLight           = cfgs.isLight;
-    }) themeConfigs;
+    themes = lib.mapAttrs (_: cfgs: removeAttrs cfgs [ "pandora" ]) themeConfigs;
   });
 
   drmisPython = pkgs.python3.withPackages (ps: [ ps.rich ps.readchar ]);
@@ -596,36 +574,50 @@ in
       { profile = {
           name = "desktop-dual";
           outputs = [
-            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.0; }
-            { criteria = "DP-2"; status = "enable"; mode = "1920x1080@60.000"; position = "1920,0"; scale = 1.0; }
+            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
+            { criteria = "DP-2"; status = "enable"; mode = "1920x1080@60.000"; position = "1536,0"; scale = 1.25; }
           ];
-          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" ];
+          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-1" ];
         };
       }
       { profile = {
           name = "desktop-solo";
           outputs = [
-            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.0; }
+            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
             { criteria = "DP-2"; status = "disable"; }
           ];
-          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" ];
+          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-1" ];
         };
       }
       { profile = {
           name = "desktop-single";
           outputs = [
-            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.0; }
+            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
           ];
-          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" ];
+          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-1" ];
         };
       }
       { profile = {
           name = "desktop-single-dp2";
           outputs = [
             { criteria = "DP-1"; status = "disable"; }
-            { criteria = "DP-2"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.0; }
+            { criteria = "DP-2"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
           ];
-          exec = [ "${s.setWaybarMode} single-dp2" "${s.setDefaultSink} ${spdifSink}" ];
+          exec = [ "${s.setWaybarMode} single-dp2" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-2" ];
+        };
+      }
+      { profile = {
+          name = "desktop-stream";
+          # Sunshine's prep-cmd switches here while Moonlight streams DP-2 to the
+          # TV (modules/sunshine.nix). The 1080p capture is blown up to a 65" panel
+          # viewed from a couch, so it gets a bigger scale than the desk profiles.
+          outputs = [
+            { criteria = "DP-1"; status = "disable"; }
+            { criteria = "DP-2"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.75; }
+          ];
+          # No setDefaultSink: Sunshine owns the default sink for the stream, and
+          # forcing the undriven S/PDIF port here stalls the graph clock.
+          exec = [ "${s.setWaybarMode} single-dp2" "${s.setBridgeEdge} DP-2" ];
         };
       }
       { profile = {
@@ -636,7 +628,7 @@ in
           outputs = [
             { criteria = tvCriteria; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.5; }
           ];
-          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${hdmiSink}" ];
+          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${hdmiSink}" "${s.setBridgeEdge} HDMI-A-1" ];
         };
       }
       { profile = {

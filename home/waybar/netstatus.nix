@@ -25,17 +25,18 @@ let
   # the single biggest contributor to the module's "pop in as it loads"
   # cold-start (see home/waybar/scripts/waybar-cache-poll). Poll it in the
   # background instead; the module's own exec becomes a cache read.
-  cachePollScript = pkgs.writeShellScriptBin "waybar-cache-poll" (builtins.readFile ./scripts/waybar-cache-poll);
-  cacheReadScript = pkgs.writeShellScriptBin "waybar-cache-read" (builtins.readFile ./scripts/waybar-cache-read);
+  cacheTools = import ./cache-tools.nix { inherit pkgs; };
+  cachePollScript = cacheTools.cachePoll;
+  cacheReadScript = cacheTools.cacheRead;
   cacheName = "network";
   fallbackJson = builtins.toJSON { text = "󰖪"; tooltip = "loading…"; class = "unknown"; };
 
   # See bluetooth.nix: shared cache, jq swaps in the bare glyph for the top bar.
   topMod = {
-    exec = "${cacheReadScript}/bin/waybar-cache-read ${cacheName} 90 '${fallbackJson}'"
-         + " | ${pkgs.jq}/bin/jq -c '.text = (.text_compact // .text)'";
+    exec = "${cacheReadScript}/bin/waybar-cache-read --stream --compact ${cacheName} 90 '${fallbackJson}'";
     return-type = "json";
-    interval = 5;
+    exec-on-event = false;
+    restart-interval = 3;
     tooltip = true;
     on-click = "${wifimenuScript}/bin/quantum-wifimenu";
     on-click-right = "bash ${config.home.homeDirectory}/.config/waybar/scripts/vpn-toggle.sh";

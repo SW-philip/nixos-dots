@@ -24,11 +24,15 @@
   # bound). Also, config_save_on_exit = "false" is load-bearing —
   # RetroArch's default ("true") rewrites this whole file on quit, turning
   # the home-manager symlink into a plain file and silently reverting the fix.
+  # savefile_directory points every account at the shared NFS-backed save
+  # store (docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md);
+  # savestates stay local.
   xdg.configFile."retroarch/retroarch.cfg" = {
     force = true;
     text = ''
       joypad_autoconfig_dir = "${pkgs.retroarch-joypad-autoconfig}/share/libretro/autoconfig"
       config_save_on_exit = "false"
+      savefile_directory = "/srv/game-saves"
     '';
   };
 

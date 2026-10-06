@@ -28,7 +28,7 @@ let
             done ; } || true
 
       # Event source is `gdbus monitor` on org.bluez, NOT a long-lived bare
-      # `bluetoothctl` REPL (as modules/bluetooth-idle-off.nix still uses). With
+      # `bluetoothctl` REPL. With
       # BLE discovery running in the session -- blueman-applet keeps the adapter
       # on `Discovering: yes` -- bluetoothctl's monitor mode caches every
       # advertising device it overhears and never evicts them; observed

@@ -125,6 +125,19 @@ def resolve_wallpaper(slug, live_dir, fallback):
     p = Path(live_dir) / f"wallpaper-{slug}.png"
     return str(p) if p.exists() else fallback
 
+def cache_wallpaper(src, state_dir):
+    """Copy the wallpaper out of the NFS-backed flake tree: swaybg, hyprlock and
+    greeter-wallpaper-seed read it at boot, before (or without) desktop."""
+    dest = state_dir / "wallpaper-cache.png"
+    tmp = dest.with_suffix(".tmp")
+    try:
+        shutil.copyfile(src, tmp)
+        os.replace(tmp, dest)
+    except OSError:
+        tmp.unlink(missing_ok=True)
+        return str(dest) if dest.exists() else src
+    return str(dest)
+
 def resolve_theme_alias(slug):
     return {"dark": "main", "light": "dawn"}.get(slug, slug)
 
@@ -152,10 +165,11 @@ def do_let(slug, theme_map):
     deploy_symlink(cfgs["fastfetchLogo"],   home / ".local/share/fastfetch/logo.png")
     deploy_symlink(cfgs["nixMark"],   home / ".local/state" / "nix-mark-img")
     deploy_file(cfgs["fastfetchConfig"],   home / ".config/fastfetch/config.jsonc")
+    deploy_file(cfgs["fastfetchConfigSsh"], home / ".config/fastfetch/config-ssh.jsonc")
     state_dir = home / ".local/state"
     state_dir.mkdir(parents=True, exist_ok=True)
     live = Path(cfgs["wallpaperLiveDir"])
-    wallpaper = resolve_wallpaper(slug, live, cfgs["wallpaperFallback"])
+    wallpaper = cache_wallpaper(resolve_wallpaper(slug, live, cfgs["wallpaperFallback"]), state_dir)
     (state_dir / "wallpaper").write_text(wallpaper)
     deploy_symlink(wallpaper, state_dir / "wallpaper-img")
     for profile_dir in firefox_profiles():

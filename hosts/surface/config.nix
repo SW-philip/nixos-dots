@@ -10,6 +10,7 @@ let
   lightDirs = [ "nes" "snes" "genesis" "gba" "psx" "n64" "saturn" "psp" "dreamcast" ];
   retroSystems = builtins.filter (s: builtins.elem s.dir lightDirs)
     (import ../retro-systems.nix { inherit pkgs; });
+  mkPegasusMetadata = import ../pegasus-metadata.nix { inherit pkgs; };
 in
 {
   ############################################################
@@ -25,6 +26,7 @@ in
     inputs.nixos-hardware.nixosModules.microsoft-surface-pro-intel
     inputs.sops-nix.nixosModules.sops
     ../../roles/sops-shared.nix
+    ../../roles/ssh-known-hosts.nix
     ../../modules/greetd.nix
     ../../modules/retro-session.nix
     ../../modules/tailscale.nix
@@ -94,9 +96,33 @@ in
     ];
   };
 
+  # Shared RetroArch save store: desktop's /srv/game-saves, mounted read-WRITE
+  # (unlike roms) so every account's saves land in one copy. Same
+  # soft/nofail/automount options as the roms mount; away from home the dir is
+  # simply absent and RetroArch writes locally (not auto-merged back).
+  # See docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md.
+  fileSystems."/srv/game-saves" = {
+    device  = "100.64.0.1:/srv/game-saves";
+    fsType  = "nfs";
+    options = [
+      "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
+      "x-systemd.automount" "x-systemd.mount-timeout=10s"
+    ];
+  };
+
   # NFSv4 only: no rpcbind/statd needed (NixOS enables rpcbind for any NFS use).
   # Revert: drop this line and the nfsvers option above.
   services.rpcbind.enable = lib.mkForce false;
+
+  # Black Diamond advertises both A2DP Source and Sink. With WirePlumber's local
+  # A2DP *sink* endpoints registered, the headset opens its own source stream
+  # into them and bluez answers our playback connect with EBUSY, leaving the
+  # card stuck on `audio-gateway` (a mic, no output sink). Role names are local:
+  # keep a2dp_source (play out to headphones), drop a2dp_sink (receive from
+  # phones). A per-device rule doesn't work; the endpoints are monitor-wide.
+  services.pipewire.wireplumber.extraConfig."99-bt-roles" = {
+    "monitor.bluez.properties"."bluez5.roles" = [ "a2dp_source" "hsp_hs" "hfp_hf" ];
+  };
 
   ############################################################
   # Retro — /srv/roms itself stays a small LOCAL tree, not the NFS mount
@@ -119,14 +145,49 @@ in
     [ "d /srv/roms 0755 root root -" ]
     ++ (map (s: "d /srv/roms/${s.dir} 0755 root root -") retroSystems)
     ++ (map (s: "L+ /srv/roms/${s.dir}/metadata.pegasus.txt - - - - ${
-      pkgs.writeText "pegasus-metadata-surface-${s.dir}" ''
-        collection: ${s.collection}
-        shortname: ${s.shortname}
-        extensions: ${s.extensions}
-        launch: ${s.launch}
-        directories: /srv/roms-nfs/${s.dir}
-      ''
+      mkPegasusMetadata { inherit s; name = "pegasus-metadata-surface-${s.dir}"; directories = "/srv/roms-nfs/${s.dir}"; }
     }") retroSystems);
+
+  # Scraped metadata (Skyscraper's skyscraper*.metadata.pegasus.txt plus any
+  # hand-written sidecars from add-rom.sh) lives on desktop under /srv/roms/<dir>
+  # with absolute `file:`/`assets.*` paths rooted at /srv/roms. Pegasus only
+  # loads sidecars from the local collection dir here, and the ROMs and media
+  # are at /srv/roms-nfs, so mirror each sidecar locally with the prefix
+  # rewritten. Desktop stays the single source: rerunning skyscraper-deploy.sh
+  # there is picked up within the hour (or 3 min after boot) with no rebuild.
+  # A dead NFS mount leaves the previous mirror in place.
+  systemd.services.pegasus-sidecar-sync =
+    let
+      dirs = lib.concatStringsSep " " (map (s: s.dir) retroSystems);
+      script = pkgs.writeShellScript "pegasus-sidecar-sync" ''
+        shopt -s nullglob
+        for d in ${dirs}; do
+          src=/srv/roms-nfs/$d dst=/srv/roms/$d
+          ls "$src" >/dev/null 2>&1 || continue
+          keep=()
+          for f in "$src"/*.metadata.pegasus.txt; do
+            b=$(basename "$f"); keep+=("$b")
+            ${pkgs.gnused}/bin/sed 's#/srv/roms/#/srv/roms-nfs/#g' "$f" > "$dst/$b.tmp" \
+              && mv "$dst/$b.tmp" "$dst/$b"
+          done
+          for f in "$dst"/*.metadata.pegasus.txt; do
+            b=$(basename "$f")
+            [[ " ${"$"}{keep[*]} " == *" $b "* ]] || rm -f "$f"
+          done
+        done
+      '';
+    in {
+      description = "Mirror desktop's Pegasus sidecars with NFS paths";
+      after = [ "network-online.target" "tailscaled.service" ];
+      wants = [ "network-online.target" ];
+      # No wantedBy: a boot-time run always hit "Network is unreachable" (tailscale
+      # isn't routing yet), so the timer's OnBootSec is the first real sync.
+      serviceConfig = { Type = "oneshot"; ExecStart = script; };
+    };
+  systemd.timers.pegasus-sidecar-sync = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnBootSec = "3min"; OnUnitActiveSec = "1h"; };
+  };
 
   ############################################################
   # sixpair — one-time USB pairing tool for PS3 (Sixaxis/DualShock 3)
@@ -151,12 +212,24 @@ in
   #   };
 
   ############################################################
-  # Safe-DNS (Cloudflare for Families) — system-wide; it's their device now.
+  # Safe-DNS (Cloudflare for Families) for kid only. System DNS stays
+  # whatever DHCP hands out, so prepko gets unfiltered Google. Their port-53
+  # traffic is DNATed by uid; 1.1.1.3 also forces Google SafeSearch via CNAME.
   # ProtonVPN overrides DNS while connected; the real lock is the Firefox
   # allowlist in home/kid.
   ############################################################
-  networking.networkmanager.insertNameservers = [ "1.1.1.3" "1.0.0.3" ];
-  networking.nameservers = [ "1.1.1.3" "1.0.0.3" ];
+  networking.firewall.extraCommands = ''
+    iptables -w -t nat -N clem-safedns 2>/dev/null || iptables -w -t nat -F clem-safedns
+    iptables -w -t nat -A clem-safedns -p udp --dport 53 -j DNAT --to-destination 1.1.1.3:53
+    iptables -w -t nat -A clem-safedns -p tcp --dport 53 -j DNAT --to-destination 1.1.1.3:53
+    iptables -w -t nat -D OUTPUT -m owner --uid-owner kid -j clem-safedns 2>/dev/null || true
+    iptables -w -t nat -A OUTPUT -m owner --uid-owner kid -j clem-safedns
+  '';
+  networking.firewall.extraStopCommands = ''
+    iptables -w -t nat -D OUTPUT -m owner --uid-owner kid -j clem-safedns 2>/dev/null || true
+    iptables -w -t nat -F clem-safedns 2>/dev/null || true
+    iptables -w -t nat -X clem-safedns 2>/dev/null || true
+  '';
 
   nix.settings.max-jobs = "auto"; # grade:host-specific
   # distributedBuilds/buildMachines was tried here and abandoned: Lix's

@@ -57,3 +57,7 @@ desktop_key.pub
 
 # KOReader sidecar metadata
 *.sdr/
+
+# Completed specs/plans/SDD ledgers moved out of context (history keeps the docs)
+/claude-archive/
+/.claude-shared/

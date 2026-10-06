@@ -36,12 +36,12 @@ echo '[]' > "$TMP/empty.json"
 echo 'not json' > "$TMP/bad.json"
 [ "$(run "$TMP/bad.json")" = "[]" ] && pass "invalid json => []" || fail "invalid json => []"
 
-# The shipped seed must be valid and match the spec's 12 tiles.
+# The shipped seed must be valid and have 14 tiles (4 rows; the last row is half empty).
 SEED="$DIR/../../launcher-favs.json"
 out="$(run "$SEED")"
-[ "$(jq -c '[.[]|length]' <<<"$out")" = "[4,4,4]" ] && pass "seed is 4x3" || fail "seed is 4x3"
+[ "$(jq -c '[.[]|length]' <<<"$out")" = "[4,4,4,2]" ] && pass "seed is 4+4+4+2" || fail "seed is 4+4+4+2"
 [ "$(jq '[.[][]|select(.cmd|contains("'"'"'"))]|length' <<<"$out")" = "0" ] && pass "seed cmds have no single quote" || fail "seed cmds have no single quote"
-[ "$(jq -r '.[2][3].cmd' <<<"$out")" = "fuzzel" ] && pass "last tile is All apps -> fuzzel" || fail "last tile is All apps -> fuzzel"
+[ "$(jq -r '.[3][1].cmd' <<<"$out")" = "fuzzel" ] && pass "last tile is All apps -> fuzzel" || fail "last tile is All apps -> fuzzel"
 
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }
 echo "all passed"

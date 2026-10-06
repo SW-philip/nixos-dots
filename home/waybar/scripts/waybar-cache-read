@@ -1,22 +1,63 @@
-#!/usr/bin/env bash
-# waybar-cache-read <cache-name> <stale-seconds> <fallback-json>
-# Prints the cached JSON written by waybar-cache-poll if it's present, ok,
-# and not older than <stale-seconds>; otherwise prints <fallback-json>. Lets
-# a waybar custom module's own `exec` be a pure, near-instant file read
-# instead of doing the real (possibly slow) work itself on every poll or
-# every time a fresh waybar process spawns.
-set -euo pipefail
+#!/usr/bin/env python3
+"""waybar-cache-read [--stream] [--compact] <cache-name> <stale-seconds> <fallback-json>
 
-name="$1"; stale_after="$2"; fallback="$3"
-cache_file="${XDG_CACHE_HOME:-$HOME/.cache}/waybar/${name}.json"
+Serves the JSON cached by waybar-cache-poll if it is present, ok and not older
+than <stale-seconds>, else prints <fallback-json>, so a custom module's exec is
+a cheap file read instead of the real (possibly slow) work.
 
-if [[ -f "$cache_file" ]]; then
-    now=$(date +%s)
-    fetched_at=$(jq -r '.fetched_at // 0' "$cache_file" 2>/dev/null || echo 0)
-    ok=$(jq -r '.ok // false' "$cache_file" 2>/dev/null || echo false)
-    if [[ "$ok" == "true" ]] && (( now - fetched_at <= stale_after )); then
-        jq -c 'del(.ok, .fetched_at)' "$cache_file"
-        exit 0
-    fi
-fi
-printf '%s\n' "$fallback"
+--stream  keep running, once a second, printing only when the output changes
+          (pair with exec-on-event=false + restart-interval; no spawn per tick)
+--compact swap `text` for `text_compact` when present (the top-bar cluster shows
+          the bare glyph so it doesn't jump when a device connects)
+"""
+import json
+import os
+import signal
+import sys
+import time
+from pathlib import Path
+
+
+def render(path: Path, stale_after: float, fallback: str, compact: bool) -> str:
+    try:
+        d = json.loads(path.read_text())
+        if d.get("ok") is True and time.time() - d.get("fetched_at", 0) <= stale_after:
+            d.pop("ok")
+            d.pop("fetched_at", None)
+            if compact and d.get("text_compact") is not None:
+                d["text"] = d["text_compact"]
+            return json.dumps(d, separators=(",", ":"), ensure_ascii=False)
+    except (OSError, ValueError, AttributeError):
+        pass
+    return fallback
+
+
+def main(argv: list) -> int:
+    flags = {a for a in argv[1:] if a.startswith("--")}
+    args = [a for a in argv[1:] if not a.startswith("--")]
+    if len(args) != 3:
+        print(__doc__, file=sys.stderr)
+        return 2
+    name, stale_after, fallback = args[0], float(args[1]), args[2].strip()
+    cache_home = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
+    path = Path(cache_home) / "waybar" / f"{name}.json"
+    compact = "--compact" in flags
+
+    if "--stream" not in flags:
+        print(render(path, stale_after, fallback, compact))
+        return 0
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+    last = None
+    try:
+        while True:
+            out = render(path, stale_after, fallback, compact)
+            if out != last:
+                print(out, flush=True)
+                last = out
+            time.sleep(1.0)
+    except BrokenPipeError:
+        return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

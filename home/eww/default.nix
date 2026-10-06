@@ -5,7 +5,14 @@ let
   scriptDir = "${config.home.homeDirectory}/.config/eww/scripts";
   connector = if isDesktop then "DP-2" else "eDP-1";
   scripts   = [ "context" "vitals" "storage" "boot" "snark"
-                "purity" "net" "bt" "power" "mug" "myln" "tablet" "launcher-favs" ];
+                "purity" "net" "bt" "power" "mug" "myln" "launcher-favs" ];
+
+  # tablet/osk feeds: inotify on the Type Cover state file and squeekboard's
+  # D-Bus signals, instead of a bash loop forking every 1 s / 0.5 s.
+  feedPython = pkgs.python3.withPackages (ps: [ ps.dbus-fast ps.inotify-simple ]);
+  surfaceFeed = pkgs.writeShellScript "eww-surface-feed" ''
+    exec ${feedPython}/bin/python3 ${./scripts/surface_feed.py} "$@"
+  '';
 
   # Nix-baked defaults for the eww panel edge config -- only take effect the
   # first time a host boots this config, via the copy-iff-absent activation
@@ -32,6 +39,13 @@ let
     exec ${pkgs.bash}/bin/bash ${./scripts/panel-edge.sh} "$@"
   '';
 
+  panelStepBin = pkgs.writeShellScriptBin "eww-panel-step" ''
+    export PATH="${lib.makeBinPath [ pkgs.eww pkgs.coreutils pkgs.jq pkgs.niri ]}:$PATH"
+    export EWW_PANEL_DEFAULT_SCREEN="${connector}"
+    export EWW_PANEL_EDGE_BIN="${panelEdgeBin}/bin/eww-panel-edge"
+    exec ${pkgs.bash}/bin/bash ${./scripts/panel-step.sh} "$@"
+  '';
+
   # The stoic-quote cache is populated by home/waybar/stoic.nix's poll
   # timer (writes ~/.cache/waybar/stoic-quote.json); the ledger chip below
   # is just another reader of that same cache, same as waybar's custom
@@ -40,9 +54,8 @@ let
   # quotes around it, and two literal `''` back-to-back is Nix's own
   # ''-string escape trigger -- inlining it breaks the outer yuck
   # substitute script's Nix parse.
-  waybarScripts = ../waybar/scripts;
   quoteCacheRead = pkgs.writeShellScript "eww-quote-cache-read" ''
-    exec ${waybarScripts}/waybar-cache-read stoic-quote 4000 '{"text":"","tooltip":"","class":"unknown"}'
+    exec ${(import ../waybar/cache-tools.nix { inherit pkgs; }).cacheRead}/bin/waybar-cache-read stoic-quote 4000 '{"text":"","tooltip":"","class":"unknown"}'
   '';
 
   nirScripts = import ../niri/scripts.nix { inherit pkgs lib; };
@@ -52,6 +65,10 @@ let
   # EWW, plus a handful of eww-daemon-specific command tokens below) —
   # --replace-fail is a global replace that fails the build if a token is
   # absent, so a rename can't ship unresolved.
+  #
+  # TABLET_FEED/OSK_FEED are idle `sleep infinity` on desktop (no Type Cover and
+  # no squeekboard, so both stay at their initial false) and the event-driven
+  # surface feed elsewhere.
   #
   # UNIREMOTE_TOGGLE/MOONLIGHT_TOGGLE substitute to an inert
   # `true` on desktop: the buttons that use them are `:visible {!is_desktop}`
@@ -64,18 +81,19 @@ let
       --replace-fail ':monitor 1' ':monitor "HDMI-A-1"' \
       --replace-fail '(defvar is_desktop false)' '(defvar is_desktop ${lib.boolToString isDesktop})' \
       --replace-fail 'EWW' '${pkgs.eww}/bin/eww' \
+      --replace-fail 'TABLET_FEED' '${if isDesktop then "sleep infinity" else "${surfaceFeed} tablet"}' \
+      --replace-fail 'OSK_FEED' '${if isDesktop then "sleep infinity" else "${surfaceFeed} osk"}' \
       --replace-fail 'UNIREMOTE_TOGGLE' '${if isDesktop then "true" else sessionActionsForEww.uniremoteToggle}' \
       --replace-fail 'MOONLIGHT_TOGGLE' '${if isDesktop then "true" else sessionActionsForEww.moonlightToggle}' \
       --replace-fail 'LIX_LOGOUT_TOGGLE' '${pkgs.lix-logout}/bin/lix-logout-toggle' \
       --replace-fail 'NIRI_BIN' '${pkgs.niri}/bin/niri' \
-      --replace-fail 'TOGGLE_OSK_BIN' '${nirScripts.toggleOsk}/bin/toggle-osk' \
       --replace-fail 'LAUNCHER_BIN' '${nirScripts.launcher}/bin/launcher' \
       --replace-fail 'QUOTE_CACHE_READ' '${quoteCacheRead}' \
       --replace-fail 'QUOTE_REFRESH' '${pkgs.systemd}/bin/systemctl --user start waybar-stoic-quote-poll.service'
   '';
 in
 {
-  home.packages = [ pkgs.eww panelEdgeBin ];
+  home.packages = [ pkgs.eww panelEdgeBin panelStepBin ];
 
   xdg.configFile = lib.mkMerge [
     { "eww/eww.yuck".source = yuck; }

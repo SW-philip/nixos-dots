@@ -1,6 +1,6 @@
 # nixos-dots
 
-My NixOS config for two machines: a desktop and a Surface Pro 7+. It's the successor to [dotfiles](https://github.com/SW-philip/dotfiles), which I've stopped updating (Its a distinctly different aesthetic, but is starred. Feel free to fork it I guess?).
+My NixOS config for four machines: a desktop, a Surface Pro 7+, a thin client on the TV and a Raspberry Pi. It's the successor to [dotfiles](https://github.com/SW-philip/dotfiles), which I've stopped updating (Its a distinctly different aesthetic, but is starred. Feel free to fork it I guess?).
 
 ![desktop](assets/screenshots/desktop.png)
 
@@ -15,6 +15,8 @@ This is tuned to my hardware and my habits. Read it, borrow from it, but know th
 |---|---|---|
 | `desktop` | i5-9600K, GTX 1660, two FHD monitors with DP (and sometimes a TV via HDMI) | unstable |
 | `surface` | Surface Pro 7+, linux-surface kernel, 8 GB of RAM | nixos-26.05 |
+| `retro` | Dell Inspiron 5579 on the TV, a Moonlight kiosk that streams games from the desktop | nixos-26.05 |
+| `pi` | Raspberry Pi 3B+, headless git hub that mirrors this repo | nixos-26.05 |
 
 | desktop | surface |
 |---|---|
@@ -22,7 +24,7 @@ This is tuned to my hardware and my habits. Read it, borrow from it, but know th
 
 They're on different channels on purpose, so a shared module can't assume either one's option shapes. The Surface offloads its builds to the desktop to avoid...well...an explosion.
 
-Both use [Lix](https://lix.systems), secure boot through lanzaboote, LUKS, btrfs subvolumes and impermanence. Secrets are sops-nix with age.
+The desktop and Surface use [Lix](https://lix.systems), secure boot through lanzaboote, LUKS, btrfs subvolumes and impermanence. Secrets are sops-nix with age.
 
 ## What's in it
 
@@ -30,6 +32,7 @@ Both use [Lix](https://lix.systems), secure boot through lanzaboote, LUKS, btrfs
 - **Theming.** Every colour comes from a palette file. `scripts/auto-theme.py` generates a palette from a few seed colours and `drmis` switches the whole desktop to one live. 19 palettes are in `themes/`. Most wallpapers aren't in the repo.
 - **[sqlch](https://github.com/SW-philip/sqlch)**, an internet radio player I wrote, is its own flake input.
 - **Emulation.** Pegasus plus RetroArch cores and standalone emulators, set up in `home/emulation`. The Surface gets a lighter set.
+- **Fleet tooling.** `tree-sync` keeps the working tree in step between machines through the Pi, `fleet-status` records what each host is running and how far behind it is, and `quivr` shows live per-host stats in the terminal. `ff` and a Waybar module read the same snapshot.
 - **A locked-down account for a kid**, with its own touch-friendly dashboard.
 - Plenty of small scripts for Bluetooth battery levels, notifications, backups and recovery. Those are in `scripts/` and `home/*.nix`.
 

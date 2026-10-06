@@ -7,6 +7,10 @@
     ../../home/openrgb/rgb-reactive.nix
     ../../home/ps-controller-colors.nix
     ../../home/niri-bridge
+    ../../home/claude-tidy.nix
+    ../../home/tree-sync.nix
+    ../../home/fleet-status.nix
+    ../../home/quivr.nix
     ../../home/pegasus
     ../../home/bluetooth-idle-notify.nix
   ];
@@ -70,7 +74,7 @@
     mesa-demos
     drm_info
     dig
-    wiiu-downloader
-    fit-launcher
+    vmpk qsynth fluidsynth soundfont-fluid
+    helio-workstation hydrogen
   ];
 }

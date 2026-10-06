@@ -19,22 +19,7 @@
     };
     Service = {
       Type = "simple";
-      # A host being actively controlled via NiriBridge (or simply idle
-      # between conversational turns during a debugging session) can still
-      # hit hypridle's 8-minute lock timeout -- observed live on both hosts
-      # during first real use (both independently logged "Sharing paused
-      # while the graphical session is locked" ~8 minutes after pairing).
-      # The exact mechanism isn't nailed down (niri's own idle-notify path
-      # doesn't appear to filter synthetic uinput input from real input, so
-      # the simplest explanation may just be an ordinary idle gap, not
-      # something specific to cross-machine control) -- but a locked
-      # session pauses niri-bridge.service either way, so inhibiting idle
-      # for the service's runtime fixes the symptom regardless of cause.
-      # systemd-inhibit --what=idle holds a logind inhibitor for this
-      # process's whole lifetime (released automatically on exit); hypridle
-      # already respects it (ignore_systemd_inhibit defaults to false,
-      # profiles/base.nix only overrides ignore_dbus_inhibit).
-      ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=idle --who=niri-bridge '--why=NiriBridge cross-machine input sharing active' --mode=block ${pkgs.niri-bridge}/bin/niri-bridge run --config ${config.home.homeDirectory}/.config/niri-bridge/config.toml";
+      ExecStart = "${pkgs.niri-bridge}/bin/niri-bridge run --config ${config.home.homeDirectory}/.config/niri-bridge/config.toml";
       Restart = "on-failure";
       RestartSec = 3;
       TimeoutStopSec = 4;

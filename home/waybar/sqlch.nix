@@ -1,9 +1,11 @@
 { config, lib, pkgs, ... }:
 let
   isDesktop = config.myConfig.isDesktop;
-  bar = if isDesktop then "rightBar" else "surfaceTopBar";
+  bar = if isDesktop then "leftBar" else "surfaceTopBar";
 
-  scripts = ./scripts;
+  # Single files, not the whole scripts dir: interpolating ./scripts would make
+  # every unrelated script edit change this module's config and restart waybar.
+  sqlchBin = ./scripts/waybar-sqlch;
 in {
   options.waybar.sqlch = {
     enable = lib.mkEnableOption "sqlch radio status and controls";
@@ -11,21 +13,23 @@ in {
 
   config = lib.mkIf config.waybar.sqlch.enable {
     programs.waybar.settings.${bar}."custom/sqlch" = {
-      exec = "${scripts}/waybar-sqlch --status";
+      exec = "${sqlchBin} --stream";
+      # Self-ticking feed: clicks/scrolls must not respawn it, and
+      # restart-interval brings it back after a palette-change exit.
+      exec-on-event = false;
+      restart-interval = 3;
       on-click        = "sqlch-gui-toggle";
-      on-scroll-up    = "${scripts}/waybar-sqlch --next  && pkill -RTMIN+8 waybar";
-      on-scroll-down  = "${scripts}/waybar-sqlch --prev  && pkill -RTMIN+8 waybar";
+      on-scroll-up    = "${sqlchBin} --next";
+      on-scroll-down  = "${sqlchBin} --prev";
       smooth-scrolling-threshold = 3;
-      signal = 8;
-      interval = 1;
       return-type = "json";
       max-length = 28;
       menu = "on-click-right";
-      menu-file = "${scripts}/sqlch-menu.xml";
+      menu-file = "${./scripts/sqlch-menu.xml}";
       menu-actions = {
-        sqlch-art         = "${scripts}/waybar-sqlch --art";
-        sqlch-stop        = "${scripts}/waybar-sqlch --stop  && pkill -RTMIN+8 waybar";
-        sqlch-clear-cache = "${scripts}/waybar-sqlch --clear-cache && pkill -RTMIN+8 waybar";
+        sqlch-art         = "${sqlchBin} --art";
+        sqlch-stop        = "${sqlchBin} --stop";
+        sqlch-clear-cache = "${sqlchBin} --clear-cache";
       };
     };
   };

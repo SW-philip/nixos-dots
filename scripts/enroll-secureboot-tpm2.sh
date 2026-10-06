@@ -34,6 +34,12 @@ case "$(hostname)" in
       ["de445ba9-d179-4470-a560-6c06f52a6481"]="cryptroot (nvme)"
     )
     ;;
+  retro)
+    MACHINE="retro"
+    LUKS_DESCS=(
+      ["a852db3d-1e7f-44c1-951e-7ff87edcffe6"]="root+home (sata ssd)"
+    )
+    ;;
   *)
     echo "ERROR: Unrecognised hostname '$(hostname)'. Edit this script to add your machine."
     exit 1

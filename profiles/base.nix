@@ -99,6 +99,31 @@ let
     done
     pidof hyprlock >/dev/null 2>&1 && niri msg action quit -s
   '';
+
+  # nix-your-shell's zsh hook is static; generate it at build time instead of
+  # forking the binary on every shell start.
+  nixYourShellInit = pkgs.runCommand "nix-your-shell-zsh" { } ''
+    ${pkgs.nix-your-shell}/bin/nix-your-shell zsh > $out
+  '';
+  # Desktop's DP monitors have no /sys/class/backlight node, so brightnessctl
+  # can't dim them; DDC/CI (VCP 0x10) can. Bus numbers shift between boots,
+  # and NVIDIA exposes no sysfs ddc node, so resolve them via ddcutil detect.
+  ddcDim = pkgs.writeShellScript "ddc-dim" ''
+    state="''${XDG_RUNTIME_DIR:-/run/user/$UID}/ddc-brightness"
+    mkdir -p "$state"
+    for bus in $(${pkgs.ddcutil}/bin/ddcutil detect --brief 2>/dev/null \
+        | awk '/I2C bus:/{b=$3; sub(".*i2c-","",b)} /DRM connector:.*-DP-[12]$/{print b}'); do
+      case "$1" in
+        dim)
+          ${pkgs.ddcutil}/bin/ddcutil --bus "$bus" getvcp 10 --brief 2>/dev/null \
+            | awk '{print $4}' > "$state/$bus"
+          ${pkgs.ddcutil}/bin/ddcutil --bus "$bus" setvcp 10 10 ;;
+        restore)
+          [ -s "$state/$bus" ] && ${pkgs.ddcutil}/bin/ddcutil --bus "$bus" setvcp 10 "$(cat "$state/$bus")" ;;
+      esac
+    done
+    true
+  '';
 in
 {
   imports = [
@@ -114,7 +139,6 @@ in
     ../home/usb-notify.nix
     ../home/bluetooth-battery-notify.nix
     ../home/bluetooth-device-probe.nix
-    ../home/fitlauncher-watchdog.nix
     ../home/sqlch-sync.nix
     inputs.sqlch.homeManagerModules.default
   ];
@@ -316,8 +340,8 @@ in
     syntaxHighlighting.enable = true;
 
     history = {
-      size = 50000;
-      save = 50000;
+      size = 10000;
+      save = 10000;
       extended = true;
       ignoreDups = true;
       ignoreAllDups = true;
@@ -345,24 +369,49 @@ in
       ".." = "cd ..";
       "..." = "cd ../..";
       "...." = "cd ../../..";
+      g = "git";
+      gst = "git status";
+      ga = "git add";
+      gaa = "git add --all";
+      gc = "git commit";
+      gcmsg = "git commit -m";
+      gco = "git checkout";
+      gb = "git branch";
+      gf = "git fetch";
+      gp = "git push";
+      ship = "~/nixos/scripts/ship.sh";
+      gl = "git pull";
+      gd = "git diff";
+      gfa = "git fetch --all --prune";
+      gm = "git merge";
+      gr = "git remote";
+      grm = "git rm";
+      grb = "git rebase";
+      grba = "git rebase --abort";
+      grbc = "git rebase --continue";
+      grbi = "git rebase -i";
+      gsw = "git switch";
+      gss = "git status -s";
+      gsta = "git stash push";
+      gstp = "git stash pop";
+      gcm = "git checkout main";
+      gpf = "git push --force-with-lease";
+      x = "ouch decompress";
+      extract = "ouch decompress";
       grep = "grep --color=auto";
       ip = "ip --color=auto";
       diff = "delta";
-      harmonize = "bash ~/nixos/scripts/harmonize-themes.sh";
     };
 
     # compaudit stats every dir in $fpath on every startup (Nix profiles inflate
     # $fpath heavily); that alone was ~40% of shell startup time (measured via
-    # zprof). Store paths are read-only and root-owned, so the insecure-perms
-    # check compaudit guards against can't happen here.
-    envExtra = ''
-      ZSH_DISABLE_COMPFIX=true
+    # zprof). Skip it, and the dump rebuild, unless the dump is over a day old.
+    completionInit = ''
+      autoload -Uz compinit
+      _zcd=(''${HOME}/.zcompdump(N.mh-24))
+      if (( ''${#_zcd} )); then compinit -C; else compinit; fi
+      unset _zcd
     '';
-
-    oh-my-zsh = {
-      enable = true;
-      plugins = [ "git" "sudo" "zoxide" "extract" "copypath" "copyfile" ];
-    };
 
     plugins = [
       {
@@ -370,20 +419,10 @@ in
         src = pkgs.zsh-powerlevel10k;
         file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme";
       }
-      {
-        name = "you-should-use";
-        src = pkgs.zsh-you-should-use;
-        file = "share/zsh/plugins/you-should-use/you-should-use.plugin.zsh";
-      }
-      {
-        name = "autopair";
-        src = pkgs.zsh-autopair;
-        file = "share/zsh/zsh-autopair/autopair.zsh";
-      }
     ];
 
     # p10k instant prompt only works if this is the first thing .zshrc does —
-    # sourced after oh-my-zsh/plugins it just writes a cache file nothing reads.
+    # sourced after the plugins it just writes a cache file nothing reads.
     initContent = lib.mkMerge [
       (lib.mkOrder 0 ''
         if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
@@ -430,7 +469,7 @@ in
       [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
       [ -f "$HOME/.config/sqlch/env" ] && source "$HOME/.config/sqlch/env"
 
-      ${pkgs.nix-your-shell}/bin/nix-your-shell zsh | source /dev/stdin
+      source ${nixYourShellInit}
 
       zstyle ':completion:*' menu select
       zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
@@ -447,6 +486,17 @@ in
       bindkey "^H"      backward-kill-word
       bindkey "^[[3;5~" kill-word
 
+      # esc-esc: prepend sudo to the line (or the previous command if empty)
+      _sudo_prepend() {
+        [[ -z $BUFFER ]] && zle up-history
+        [[ $BUFFER == sudo\ * ]] || BUFFER="sudo $BUFFER"
+        zle end-of-line
+      }
+      zle -N _sudo_prepend
+      bindkey "^[^[" _sudo_prepend
+
+      copypath() { print -n -- "''${1:A}" | wl-copy }
+      copyfile() { wl-copy < "$1" }
       mkcd() { mkdir -p "$1" && cd "$1" }
       nsh() { nix shell ''${@/#/nixpkgs#} }
       '')
@@ -530,9 +580,10 @@ in
       listener = [
         {
           timeout = 240;
-          on-timeout = "${pkgs.brightnessctl}/bin/brightnessctl -s s 10%";
-          on-resume = "${pkgs.brightnessctl}/bin/brightnessctl -r";
+          on-timeout = if config.myConfig.isDesktop then "${ddcDim} dim" else "${pkgs.brightnessctl}/bin/brightnessctl -s s 10%";
+          on-resume = if config.myConfig.isDesktop then "${ddcDim} restore" else "${pkgs.brightnessctl}/bin/brightnessctl -r";
         }
+      ] ++ lib.optionals (!config.myConfig.isDesktop) [
         {
           timeout = 480;
           on-timeout = "pidof hyprlock || ${config.myConfig.lockScreenScript}";
@@ -586,6 +637,14 @@ in
     delta lazygit gh tealdeer nix-your-shell comma
     dua mtr sqlite nodejs nvd nix-output-monitor
     easyeffects nwg-look uv
+
+    # MIDI songwriting: vmpk sends notes, fluidsynth (see `synth`) makes sound
+    vmpk fluidsynth qpwgraph
+
+    (writeShellScriptBin "synth" ''
+      exec ${fluidsynth}/bin/fluidsynth -a pipewire -m alsa_seq \
+        ${soundfont-generaluser-gs}/share/soundfonts/GeneralUser-GS.sf2 "$@"
+    '')
 
     (writeShellScriptBin "get-theme" ''
       exec ${pythonEnv}/bin/python3 ~/nixos/scripts/auto-theme.py "$@"

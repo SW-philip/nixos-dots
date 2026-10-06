@@ -68,12 +68,6 @@
         overlays = [ self.overlays.default ];
         config.allowUnfree = true;
       };
-    pkgsUnstableFor = system:
-      import nixpkgs-unstable {
-        inherit system;
-        overlays = [ self.overlays.default ];
-        config.allowUnfree = true;
-      };
     overlayModule = {
       nixpkgs.overlays = [
         self.overlays.default
@@ -82,6 +76,10 @@
     };
     allowUnfreeModule = {
       nixpkgs.config.allowUnfree = true;
+    };
+    # `nixos-version --configuration-revision` reads this back; fleet-status compares it to git.
+    revModule = {
+      system.configurationRevision = self.rev or self.dirtyRev or "unknown";
     };
 
     hmBase = {
@@ -127,16 +125,10 @@
       dsa-plymouth            = prev.callPackage ./pkgs/dsa-plymouth { };
       greeter                 = prev.callPackage ./pkgs/greeter { };
       lix-logout              = prev.callPackage ./pkgs/lix-logout { };
-      niri-panel = prev.callPackage ./pkgs/niri-panel {
-        setDefaultSink = ""; setWaybarMode = ""; tvCriteria = "";
-        hdmiSink = ""; spdifSink = ""; isDesktop = true;
-      };
-      wiiu-downloader         = prev.callPackage ./pkgs/wiiu-downloader { };
-      fit-launcher            = prev.callPackage ./pkgs/fit-launcher { };
       # niri-bridge needs rustc >=1.98; nixos-26.05 (the pinned `nixpkgs`
       # this overlay applies to) ships 1.95. Pull just the toolchain from
-      # nixpkgs-unstable's raw legacyPackages (not pkgsUnstableFor, which
-      # re-applies this overlay and would recurse on itself).
+      # nixpkgs-unstable's raw legacyPackages (an overlay-applied unstable set
+      # would re-apply this overlay and recurse on itself).
       # This mixes an unstable-channel rustPlatform/stdenv with stable-channel
       # buildInputs (wayland, pkg-config, fetchFromGitHub) on surface's
       # nixos-26.05-based pkgsFor — confirmed it links fine, but a Task 3
@@ -224,12 +216,14 @@
       default          = (pkgsFor system).sqlch;
       uniremote        = (pkgsFor system).uniremote;
       greeter          = (pkgsFor system).greeter;
-      niri-panel       = (pkgsFor system).niri-panel;
       lix-plymouth     = (pkgsFor system).lix-plymouth;
       dsa-plymouth     = (pkgsFor system).dsa-plymouth;
-      wiiu-downloader  = (pkgsFor system).wiiu-downloader;
-      fit-launcher     = (pkgsFor system).fit-launcher;
       niri-bridge      = (pkgsFor system).niri-bridge;
+    };
+    checks.${system} = {
+      surface = self.nixosConfigurations.surface.config.system.build.toplevel;
+      desktop = self.nixosConfigurations.desktop.config.system.build.toplevel;
+      retro   = self.nixosConfigurations.retro.config.system.build.toplevel;
     };
     nixosConfigurations = {
       surface = nixpkgs.lib.nixosSystem {
@@ -252,15 +246,13 @@
           hmBase
           hmPrepkoSurface
           hmKid
+          revModule
           { system.stateVersion = "25.11"; }
         ];
       };
       desktop = nixpkgs-unstable.lib.nixosSystem {
         inherit system;
-        specialArgs = {
-          inherit inputs;
-          pkgsUnstable = pkgsUnstableFor system;
-        };
+        specialArgs = { inherit inputs; };
         modules = [
           overlayModule
           allowUnfreeModule
@@ -276,7 +268,28 @@
           home-manager-unstable.nixosModules.home-manager
           hmBase
           hmPrepkoDesktop
+          revModule
           { system.stateVersion = "25.11"; }
+        ];
+      };
+      retro = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit inputs; };
+        modules = [
+          lanzaboote.nixosModules.lanzaboote
+          ./hosts/retro/config.nix
+          revModule
+          { system.stateVersion = "24.11"; }
+        ];
+      };
+
+      pi = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [
+          ./hosts/pi/config.nix
+          revModule
+          { system.stateVersion = "26.05"; }
         ];
       };
 

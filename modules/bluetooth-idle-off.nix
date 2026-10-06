@@ -2,7 +2,7 @@
 let
   idleOffScript = pkgs.writeShellApplication {
     name = "bluetooth-idle-off";
-    runtimeInputs = [ pkgs.bluez pkgs.coreutils pkgs.gnugrep ];
+    runtimeInputs = [ pkgs.bluez pkgs.glib pkgs.coreutils pkgs.gnugrep ];
     text = ''
       IDLE_SECS=180
       timer_pid=""
@@ -53,11 +53,12 @@ let
         timer_pid=$!
       }
 
-      # bluetoothctl (bare) is an interactive REPL: it reads stdin and
-      # treats EOF as an implicit `quit`. Under systemd, stdin defaults to
-      # /dev/null, which is immediate EOF, so bluetoothctl would exit
-      # almost instantly and never stream [CHG] events. Feeding it a
-      # never-ending stdin (tail -f /dev/null) keeps it alive to monitor.
+      # Event source is `gdbus monitor`, not a long-lived bare `bluetoothctl`
+      # REPL: with BLE discovery on, the REPL caches every advertising device
+      # it overhears and balloons to ~290 MB (see home/bluetooth-device-probe.nix).
+      # gdbus prints one PropertiesChanged line per signal and stays flat.
+      # Match on the interface name so MediaControl1's own `Connected` re-emit
+      # on the same path is ignored.
       #
       # The initial-sync check and the monitor loop are wrapped together
       # in one brace group so they run as a single pipe stage - and
@@ -67,7 +68,7 @@ let
       # live in the parent shell's job table while every cancel_timer
       # call from inside the loop checks the subshell's job table -
       # never seeing it, so it could never be cancelled.
-      stdbuf -oL bluetoothctl < <(tail -f /dev/null) | {
+      gdbus monitor --system --dest org.bluez | {
         # Initial state sync - covers service (re)start while already idle.
         if is_powered && [[ "$(connected_count)" -eq 0 ]]; then
           start_timer
@@ -75,16 +76,16 @@ let
 
         while IFS= read -r line; do
           case "$line" in
-            *"Powered: yes"*)
+            *"'org.bluez.Adapter1'"*"'Powered': <true>"*)
               [[ "$(connected_count)" -eq 0 ]] && start_timer
               ;;
-            *"Powered: no"*)
+            *"'org.bluez.Adapter1'"*"'Powered': <false>"*)
               cancel_timer
               ;;
-            *"Connected: yes"*)
+            *"'org.bluez.Device1'"*"'Connected': <true>"*)
               cancel_timer
               ;;
-            *"Connected: no"*)
+            *"'org.bluez.Device1'"*"'Connected': <false>"*)
               [[ "$(connected_count)" -eq 0 ]] && start_timer
               ;;
           esac
@@ -104,7 +105,7 @@ in
       Restart = "always";
       RestartSec = 2;
 
-      # bluetoothctl only talks to bluezd over the D-Bus system socket —
+      # bluetoothctl/gdbus only talk to bluezd over the D-Bus system socket —
       # bluez's own dbus policy (share/dbus-1/system.d/bluetooth.conf)
       # allows any user to call org.bluez, so this needs no capabilities,
       # no device nodes, and no network of its own.

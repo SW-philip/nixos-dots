@@ -32,7 +32,29 @@
   ############################################################
   networking.networkmanager.enable = true;
   systemd.services.NetworkManager-wait-online.enable = false;
-  systemd.services.NetworkManager-dispatcher.enable = false;
+
+  # Wifi radio off while any ethernet is connected, back on when the last one
+  # drops. Recomputes from nmcli state on every event (a vanished USB NIC can't
+  # be identified by interface name); the marker means we only re-enable wifi
+  # we turned off ourselves, never one the user disabled by hand.
+  networking.networkmanager.dispatcherScripts = [{
+    type = "basic";
+    source = pkgs.writeShellScript "wifi-off-on-ethernet" ''
+      nmcli=${pkgs.networkmanager}/bin/nmcli
+      marker=/run/wifi-off-by-ethernet
+
+      case "$2" in up|down) ;; *) exit 0 ;; esac
+
+      if $nmcli -t -f TYPE,STATE device | ${pkgs.gnugrep}/bin/grep -qx 'ethernet:connected'; then
+        if [ "$($nmcli radio wifi)" = enabled ]; then
+          $nmcli radio wifi off && touch "$marker"
+        fi
+      elif [ -e "$marker" ]; then
+        $nmcli radio wifi on
+        rm -f "$marker"
+      fi
+    '';
+  }];
 
   # nsncd (Rust nscd reimplementation) is a longstanding source of bugs
   # (https://github.com/NixOS/nixpkgs/issues/344901) — it SIGTERM-flaps
@@ -116,7 +138,7 @@
     brightnessctl
     smartmontools
 
-    btrfs-progs      # btrfs maintenance (balance, scrub, subvolume ops)
+    btrfs-progs     # btrfs maintenance (balance, scrub, subvolume ops)
     cryptsetup       # LUKS runtime management / recovery
     nvme-cli         # NVMe diagnostics
 
@@ -210,10 +232,20 @@
     flake  = "/home/${config.myConfig.user}/nixos";
   };
 
-  security.sudo.extraRules = [{
-    users = [ config.myConfig.user ];
-    commands = [{ command = "ALL"; options = [ "NOPASSWD" ]; }];
-  }];
+  # No blanket NOPASSWD: sudo asks for the password (nh prompts through
+  # /run/wrappers/bin/sudo). Narrow NOPASSWD rules live next to the service
+  # they serve (tailscale.nix, protonvpn.nix).
+
+  boot.kernel.sysctl = {
+    "kernel.kptr_restrict" = 2;
+    "kernel.dmesg_restrict" = 1;
+    "kernel.unprivileged_bpf_disabled" = 1;
+    "net.ipv4.conf.all.accept_redirects" = 0;
+    "net.ipv4.conf.default.accept_redirects" = 0;
+    "net.ipv6.conf.all.accept_redirects" = 0;
+    "net.ipv4.conf.all.send_redirects" = 0;
+    "net.ipv4.conf.all.accept_source_route" = 0;
+  };
 
   hardware.enableRedistributableFirmware = true;
 

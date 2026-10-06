@@ -5,16 +5,9 @@ SNARK_FILE="$HOME/.config/waybar/snark.json"
 # shellcheck source=/dev/null
 source "$HOME/.config/waybar/palette.sh"
 
-snark_for() {
-  local bucket="$1"
-  local fallback="$2"
-  if [[ -f "$SNARK_FILE" ]] && command -v jq >/dev/null; then
-    local s
-    s=$(jq -r ".network.${bucket}[]?" "$SNARK_FILE" 2>/dev/null | shuf -n1 || true)
-    [[ -n "$s" && "$s" != "null" ]] && { echo "$s"; return; }
-  fi
-  echo "$fallback"
-}
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/waybar-lib.sh"
+snark_for() { waybar_snark network "$1" "${2:-}"; }
 
 # Nerd Font glyph arsenal
 ICON_WIFI="󰖩"
@@ -28,9 +21,11 @@ text="$ICON_OFFLINE"
 compact="$ICON_OFFLINE"
 tooltip=$(printf "<span foreground='${REST}'>Offline</span>\n<span foreground='${REST}'>────────────────────</span>\n<span foreground='${ROOT}'>%s</span>" "$(snark_for offline 'communing with nature.')")
 
-# Airplane mode check (if rfkill exists)
+# Airplane mode = every radio blocked; one blocked radio (an unused wlan on a
+# wired desktop) is not airplane mode.
 if command -v rfkill >/dev/null; then
-  if rfkill list all | grep -qi "Soft blocked: yes"; then
+  rfkill_states=$(rfkill -n -o SOFT 2>/dev/null || true)
+  if [ -n "$rfkill_states" ] && ! grep -qx "unblocked" <<<"$rfkill_states"; then
     jq -nc --arg text "$ICON_AIRPLANE" \
            --arg text_compact "$ICON_AIRPLANE" \
            --arg tooltip "$(printf "<span foreground='${PIANO}'>Airplane mode</span>\n<span foreground='${REST}'>────────────────────</span>\n<span foreground='${ROOT}'>%s</span>" "$(snark_for airplane 'Airplane mode engaged.')")" \

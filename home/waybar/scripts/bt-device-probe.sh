@@ -173,6 +173,22 @@ _jbl_fields_from_cache() {
   ' "$JBL_CACHE" 2>/dev/null || echo "{}"
 }
 
+# _jbl_poll_throttled -- run jbl-speaker-poll unless it already ran recently.
+# The poll opens a BLE scan + GATT session to the speaker, and that bounces the
+# A2DP link on this adapter; the bounce emits a fresh Connected event, which
+# used to re-run the poll and loop forever. The poll rewrites $JBL_CACHE on every
+# run (failures included), so its mtime is the last-attempt time.
+_JBL_POLL_MIN_GAP=${_JBL_POLL_MIN_GAP:-300}
+_jbl_poll_throttled() {
+  local last now
+  if [[ -f "$JBL_CACHE" ]]; then
+    last=$(stat -c %Y "$JBL_CACHE" 2>/dev/null || echo 0)
+    now=$(date +%s)
+    (( now - last < _JBL_POLL_MIN_GAP )) && return 0
+  fi
+  jbl-speaker-poll 2>/dev/null || true
+}
+
 # _is_jbl <mac> -- is this the JBL speaker? Authoritative once jbl-speaker-poll
 # has cached a `.mac` (a known-good JBL address): true iff it matches, so a
 # different Bluetooth speaker no longer inherits the JBL's battery/model from
@@ -216,7 +232,7 @@ _jbl_merge() {
 }
 
 # _refresh_battery <mac> -- configured-device path: rewrite only the `battery`
-# key of the existing cache so quantum-bluetooth.sh's tooltip stays current,
+# key of the existing cache so bluetooth_status.py's tooltip stays current,
 # skipping the DIS walk and the menu. No-op for the mug (ember-mug.nix owns
 # its cache), when there is no cache file, and when no battery reading is
 # available.
@@ -230,7 +246,7 @@ _refresh_battery() {
   # protocol (the connect event means it's up now -- the timer often last
   # fired after it dropped) and merge the full field set, not just battery.
   if _is_jbl "$mac"; then
-    jbl-speaker-poll 2>/dev/null || true
+    _jbl_poll_throttled
     _jbl_merge "$mac"
     return 0
   fi
@@ -278,7 +294,7 @@ probe_cmd() {
     # writer of the JBL field set; read it back so the common tail's rewrite
     # is a no-op, and fall through to a bare {type} when the poll produced
     # nothing usable.
-    jbl-speaker-poll 2>/dev/null || true
+    _jbl_poll_throttled
     _jbl_merge "$mac"
     if [[ -f "$CACHE_DIR/${mac}.json" ]]; then
       fields_json=$(cat "$CACHE_DIR/${mac}.json")

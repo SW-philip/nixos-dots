@@ -11,6 +11,8 @@
     ../../home/tree-sync.nix
     ../../home/fleet-status.nix
     ../../home/quivr.nix
+    ../../home/on.nix
+    ../../home/shared-apps
     ../../home/pegasus
     ../../home/bluetooth-idle-notify.nix
   ];

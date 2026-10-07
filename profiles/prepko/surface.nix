@@ -12,6 +12,8 @@
     ../../home/tree-sync.nix
     ../../home/fleet-status.nix
     ../../home/quivr.nix
+    ../../home/on.nix
+    ../../home/shared-apps
     ../../home/network-notify.nix
   ];
 

@@ -88,9 +88,12 @@ ts hostA "$T/A" save >/dev/null
 mkdir -p "$T/shim"
 printf '#!/usr/bin/env bash\necho "$*" >> "%s/notify.log"\n' "$T" > "$T/shim/notify-send"
 chmod +x "$T/shim/notify-send"
+export XDG_STATE_HOME="$T/state"
 rc=0; PATH="$T/shim:$PATH" ts hostB "$T/B" auto >/dev/null 2>&1 || rc=$?
 assert_eq "auto still exits 0" "0" "$rc"
 assert_eq "auto notifies once" "1" "$(wc -l < "$T/notify.log" 2>/dev/null || echo 0)"
+PATH="$T/shim:$PATH" ts hostB "$T/B" auto >/dev/null 2>&1 || true
+assert_eq "a repeat tick stays quiet" "1" "$(wc -l < "$T/notify.log")"
 assert_eq "notification says DIVERGED" "1" "$(grep -c DIVERGED "$T/notify.log" 2>/dev/null)"
 out=$(ts hostB "$T/B" status 2>&1)
 assert_eq "status prints the DIVERGED line" "1" "$(grep -c '^tree-sync: DIVERGED: wip here and on pi both have new commits' <<<"$out")"

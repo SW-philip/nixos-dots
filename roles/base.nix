@@ -94,6 +94,13 @@
       ClientAliveInterval = 300;
       ClientAliveCountMax = 2;
     };
+    # `waypipe ssh` needs a -R unix-socket forward and sshd refuses it under
+    # AllowTcpForwarding no (AllowStreamLocalForwarding can't override). Tailnet only;
+    # -L pivots stay blocked.
+    extraConfig = ''
+      Match Address 100.64.0.0/10
+        AllowTcpForwarding remote
+    '';
   };
   networking.firewall = {
     enable = true;
@@ -137,6 +144,7 @@
     lm_sensors
     brightnessctl
     smartmontools
+    waypipe          # remote end of `on`: a non-interactive ssh only sees the system profile
 
     btrfs-progs     # btrfs maintenance (balance, scrub, subvolume ops)
     cryptsetup       # LUKS runtime management / recovery

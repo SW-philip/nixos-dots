@@ -176,6 +176,18 @@ cmd_assets() {
   rm -f "$list"
 }
 
+# One notification per divergence: the stamp holds the two tips it was raised for, and
+# goes away when the tree stops being diverged, so a new divergence notifies again.
+notify_diverged() {
+  local rc=$1 stamp=${XDG_STATE_HOME:-$HOME/.local/state}/tree-sync-diverged tips
+  if [[ "$rc" -ne 2 ]]; then rm -f "$stamp"; return 0; fi
+  tips=$(git -C "$ROOT" rev-parse HEAD "$REMOTE/$BRANCH")
+  [[ "$(cat "$stamp" 2>/dev/null)" == "$tips" ]] && return 0
+  mkdir -p "$(dirname "$stamp")"
+  printf '%s\n' "$tips" > "$stamp"
+  notify-send -u critical "tree-sync" "wip DIVERGED from the pi: run tree-sync status" || true
+}
+
 main() {
   local cmd=${1:-} rc=0
   [[ $# -gt 0 ]] && shift
@@ -189,9 +201,7 @@ main() {
     assets)  cmd_assets ;;
     auto)    hub_up || return 0
              pull_tree || rc=$?
-             if [[ "$rc" -eq 2 ]]; then
-               notify-send -u critical "tree-sync" "wip DIVERGED from the pi: run tree-sync status" || true
-             fi
+             notify_diverged "$rc"
              save_tree || warn "autosave failed (hub dropped mid-run?)"
              sync_cs || true
              cmd_assets ;;

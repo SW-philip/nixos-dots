@@ -1,4 +1,25 @@
-{ p, l, barHeight ? 45, cursorSize ? 48, isDesktop ? false, toggleOskBin ? "toggle-osk", launcherBin ? "launcher", sidebarToggleBin ? "swaync-toggle", lockScreenBin ? "hyprlock" }: ''
+{ p, l, barHeight ? 45, cursorSize ? 48, isDesktop ? false, toggleOskBin ? "toggle-osk", launcherBin ? "launcher", sidebarToggleBin ? "swaync-toggle", lockScreenBin ? "hyprlock" }:
+let
+  # Remote-window colours: which accent is far enough from ROOT (the local focused border)
+  # depends on the theme, so rank FIFTH/SEVENTH/SOTTO by RGB distance from ROOT and hand
+  # the farthest to desktop, the next to surface, the last to retro/pi.
+  hexDigit = {
+    "0" = 0; "1" = 1; "2" = 2; "3" = 3; "4" = 4; "5" = 5; "6" = 6; "7" = 7; "8" = 8; "9" = 9;
+    a = 10; b = 11; c = 12; d = 13; e = 14; f = 15;
+    A = 10; B = 11; C = 12; D = 13; E = 14; F = 15;
+  };
+  hexByte = s: i: 16 * hexDigit.${builtins.substring i 1 s} + hexDigit.${builtins.substring (i + 1) 1 s};
+  sq = x: x * x;
+  dist2 = a: b:
+    sq (hexByte a 1 - hexByte b 1) + sq (hexByte a 3 - hexByte b 3) + sq (hexByte a 5 - hexByte b 5);
+  ranked = builtins.sort (a: b: dist2 p.ROOT a > dist2 p.ROOT b) [ p.FIFTH p.SEVENTH p.SOTTO ];
+  remoteColor = {
+    desktop = builtins.elemAt ranked 0;
+    surface = builtins.elemAt ranked 1;
+    other   = builtins.elemAt ranked 2;
+  };
+in
+''
 // home/niri/config.kdl — niri cleanroom compositor config
 
 // ── Input ──────────────────────────────────────────────────
@@ -192,7 +213,7 @@ window-rule {
     }
 }
 window-rule {
-    match app-id="drmis-pick"
+    match app-id="dev.prepko.drmis-pick"
     open-floating true
     default-column-width { fixed 720; }
     default-window-height { fixed 560; }
@@ -296,6 +317,57 @@ window-rule {
     }
 }
 
+// Windows running on another fleet host (`on` / app-launch, via waypipe's
+// --title-prefix "[<host>] "). Shape first, shared by every host: square corners
+// (local windows are rounded), a 4px border (local is 2) and a hard offset shadow,
+// the house shadow's shape in the host's colour instead of STAFF. Colour per host
+// next, none of them ROOT (the local focused border), inactive dimmed so a remote
+// window stays recognisable when unfocused. After the is-floating rule so a
+// floating remote window keeps all of it.
+window-rule {
+    match title="^\\[(desktop|surface|retro|pi)\\] "
+    geometry-corner-radius 0
+    border {
+        width 4
+    }
+    shadow {
+        on
+        softness 0
+        spread 0
+        offset x=6 y=7
+    }
+}
+window-rule {
+    match title="^\\[desktop\\] "
+    border {
+        active-color "${remoteColor.desktop}"
+        inactive-color "${remoteColor.desktop}66"
+    }
+    shadow {
+        color "${remoteColor.desktop}99"
+    }
+}
+window-rule {
+    match title="^\\[surface\\] "
+    border {
+        active-color "${remoteColor.surface}"
+        inactive-color "${remoteColor.surface}66"
+    }
+    shadow {
+        color "${remoteColor.surface}99"
+    }
+}
+window-rule {
+    match title="^\\[(retro|pi)\\] "
+    border {
+        active-color "${remoteColor.other}"
+        inactive-color "${remoteColor.other}66"
+    }
+    shadow {
+        color "${remoteColor.other}99"
+    }
+}
+
 // Frosted terminal: ghostty's own background-opacity (set in
 // home/ghostty/config.nix) fades only the background, not text — paired
 // with blur true here so what's behind shows through blurred. Also
@@ -313,8 +385,8 @@ window-rule {
 // surface keeps xray for the iGPU.
 window-rule {
     match app-id="com.mitchellh.ghostty"
-    match app-id="drmis-pick"
-    match app-id="volume-popup"
+    match app-id="dev.prepko.drmis-pick"
+    match app-id="dev.prepko.volume-popup"
     match app-id="dev.prepko.quivr"
     background-effect {
         blur true

@@ -10,6 +10,6 @@ if pkill -f "volume-control.sh" 2>/dev/null; then
 fi
 
 exec ghostty \
-    --class=volume-popup \
+    --class=dev.prepko.volume-popup \
     --title="Volume" \
     -e "${SCRIPTS}/volume-control.sh"

@@ -195,7 +195,7 @@ let
   appearanceActions = [
     {
       label = "󰔎  Pick Theme";
-      command = "ghostty --class=drmis-pick -e drmis pick";
+      command = "ghostty --class=dev.prepko.drmis-pick -e drmis pick";
     }
     {
       label = "Free Palestine";

@@ -30,6 +30,7 @@ in
     ../../modules/greetd.nix
     ../../modules/retro-session.nix
     ../../modules/tailscale.nix
+    ../../modules/syncthing.nix
     ../../modules/niri-bridge.nix
     ../../modules/protonvpn.nix
     ../../modules/sqlch.nix
@@ -103,6 +104,17 @@ in
   # See docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md.
   fileSystems."/srv/game-saves" = {
     device  = "100.64.0.1:/srv/game-saves";
+    fsType  = "nfs";
+    options = [
+      "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
+      "x-systemd.automount" "x-systemd.mount-timeout=10s"
+    ];
+  };
+
+  # desktop's /srv/prepko (Pictures/Downloads pass-through). Inside prepko's 0700 home on purpose:
+  # all_squash makes every local user prepko on this mount, so the path must not be traversable by others.
+  fileSystems."/home/prepko/.desktop" = {
+    device  = "100.64.0.1:/srv/prepko";
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"

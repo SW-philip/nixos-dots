@@ -38,6 +38,7 @@ in
     ./bluetooth.nix
     ./netstatus.nix
     ./fleet.nix
+    ./sync.nix
     ./volume.nix
     ./weather.nix
     ./sqlch.nix
@@ -68,7 +69,7 @@ in
         # sqlch leads modules-right (its outermost/left edge): the track title
         # resizes it constantly, and as the left-most right module only its own
         # left edge moves, so the rest stay pinned to the screen edge.
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/kdeconnect" "custom/volume" ];
+        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/sync" "custom/kdeconnect" "custom/volume" ];
       };
 
       # Desktop has no battery module (charge is an eww widget).
@@ -126,7 +127,7 @@ in
         modules-center = [ "custom/clock" ];
         # sqlch leads modules-right so its title-driven width changes only
         # push its own left edge, not the rest of the cluster (see rightBar).
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/notification" "custom/kdeconnect" "custom/volume" ];
+        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/sync" "custom/notification" "custom/kdeconnect" "custom/volume" ];
       };
 
     };
@@ -218,6 +219,7 @@ in
     bluetooth.enable = true;
     netstatus.enable = true;
     fleet.enable = true;
+    sync.enable = true;
     volume.enable = true;
     weather.enable = true;
     sqlch.enable = true;

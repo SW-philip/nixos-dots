@@ -29,6 +29,7 @@ in
     ../../modules/sqlch.nix
     ../../modules/greetd.nix
     ../../modules/tailscale.nix
+    ../../modules/syncthing.nix
     ../../modules/sunshine.nix
     ../../modules/retro-tiles.nix
     ../../modules/niri-bridge.nix
@@ -184,6 +185,8 @@ in
     exports = ''
       /srv/roms 100.64.0.2(ro,all_squash,anonuid=1002,anongid=984,no_subtree_check)
       /srv/game-saves 100.64.0.2(rw,all_squash,anonuid=1002,anongid=984,no_subtree_check)
+      # anonuid/gid are prepko (1000:users) so files surface writes here are owned by prepko
+      /srv/prepko 100.64.0.2(rw,all_squash,anonuid=1000,anongid=100,no_subtree_check)
     '';
   };
 

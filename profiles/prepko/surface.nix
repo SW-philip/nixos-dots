@@ -11,6 +11,8 @@
     ../../home/claude-tidy.nix
     ../../home/tree-sync.nix
     ../../home/fleet-status.nix
+    ../../home/sync-status.nix
+    ../../home/pass-through.nix
     ../../home/quivr.nix
     ../../home/on.nix
     ../../home/shared-apps

@@ -41,7 +41,8 @@ let
   fleetBlock = [
     "break"
     { type = "custom"; format = "${an p.SOTTO}${rule "󰒍" "FLEET"}${rs}"; }
-  ] ++ map (h: { type = "command"; key = "󰒋  ${h}"; text = "${f.fleet}/bin/ff-fleet ${h}"; }) fleetHosts;
+  ] ++ map (h: { type = "command"; key = "󰒋  ${h}"; text = "${f.fleet}/bin/ff-fleet ${h}"; }) fleetHosts
+    ++ [ { type = "command"; key = "󰓦  sync"; text = "${f.sync}/bin/ff-sync"; } ];
 
   desktopBlock = [
     "break"

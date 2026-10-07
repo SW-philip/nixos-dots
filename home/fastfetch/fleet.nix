@@ -22,6 +22,12 @@ in
     inputs = with pkgs; [ jq coreutils ];
     pre = colourEnv;
   };
+  sync = wrap {
+    name = "ff-sync";
+    file = ../../scripts/ff-sync.sh;
+    inputs = with pkgs; [ jq coreutils ];
+    pre = colourEnv;
+  };
   sessionFrom = wrap {
     name = "ff-session-from";
     file = ../../scripts/ff-session.sh;

@@ -217,6 +217,11 @@ window#waybar {
 #custom-fleet.bad                  { color: ${p.FORTE}; }
 #custom-fleet.stale                { color: ${p.REST}; opacity: 0.6; }
 #custom-fleet.nosnap               { color: ${p.REST}; opacity: 0.45; }
+#custom-sync                       { color: ${p.REST}; }
+#custom-sync.warn                  { color: ${p.FERMATA}; }
+#custom-sync.bad                   { color: ${p.FORTE}; }
+#custom-sync.stale                 { color: ${p.REST}; opacity: 0.6; }
+#custom-sync.nosnap                { color: ${p.REST}; opacity: 0.45; }
 
 /* -----------------------------------------------------------------
    Bluetooth — dim at rest, state color on hover

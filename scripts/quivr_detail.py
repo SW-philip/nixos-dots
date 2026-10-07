@@ -3,6 +3,8 @@ from quivr_view import bar, fmt_rate, norm
 
 CORE_CELL_WIDTH = 20
 FOOTER = "esc back  [ ] host  t top  q quit"
+# Run in this order: ship lands wip on main, deploy-all rolls main out, release cuts the tag.
+ACTIONS = {"1": "ship", "2": "deploy", "3": "release"}
 TABLE_OVERHEAD = 3  # blank line, title, column header
 
 
@@ -135,7 +137,7 @@ def parse_key(data):
 
 
 def handle_key(state, key, nhosts):
-    s = dict(state, top=False)
+    s = dict(state, top=False, action=None)
     if key == "q":
         s["quit"] = True
     elif s["mode"] == "overview":
@@ -145,6 +147,8 @@ def handle_key(state, key, nhosts):
             s["sel"] = (s["sel"] + 1) % nhosts
         elif key in ("enter", "right", "l"):
             s["mode"] = "detail"
+        elif key in ACTIONS:
+            s["action"] = ACTIONS[key]
     else:
         if key in ("esc", "left", "h"):
             s["mode"] = "overview"

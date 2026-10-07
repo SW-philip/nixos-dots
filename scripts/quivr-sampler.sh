@@ -30,12 +30,13 @@ main() {
   prev_cpu=$(read_cpu)
   prev_net=$(read_net)
   n=0
+  step=${QUIVR_FIRST_STEP:-0.2} # short first interval so the viewer has a row almost at once
   while :; do
-    sleep "$INTERVAL"
+    sleep "$step"
     cur_cpu=$(read_cpu)
     cur_net=$(read_net)
     cpu=$(echo "$prev_cpu $cur_cpu" | awk '{ dt = $3 - $1; di = $4 - $2; if (dt <= 0) print 0; else printf "%d\n", (dt - di) * 100 / dt }')
-    net=$(echo "$prev_net $cur_net" | awk -v i="$INTERVAL" '{ r = ($3 - $1) / i; t = ($4 - $2) / i; if (r < 0) r = 0; if (t < 0) t = 0; printf "%d %d\n", r, t }')
+    net=$(echo "$prev_net $cur_net" | awk -v i="$step" '{ r = ($3 - $1) / i; t = ($4 - $2) / i; if (r < 0) r = 0; if (t < 0) t = 0; printf "%d %d\n", r, t }')
     mem=$(awk '/^MemTotal:/ { t = $2 } /^MemAvailable:/ { a = $2 } END { print t + 0, t - a }' "$PROC/meminfo")
     load=$(awk '{ print $1 }' "$PROC/loadavg")
     up=$(awk '{ print int($1) }' "$PROC/uptime")
@@ -47,6 +48,7 @@ main() {
       "$cpu" "$2" "$1" "$load" "$(read_temp)" "$3" "$4" "${disk:-0}" "$up" "${cpus:-1}"
     prev_cpu=$cur_cpu
     prev_net=$cur_net
+    step=$INTERVAL
     n=$((n + 1))
     if [ "$COUNT" -gt 0 ] && [ "$n" -ge "$COUNT" ]; then exit 0; fi
   done

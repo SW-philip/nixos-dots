@@ -13,14 +13,17 @@ source "${FLEET_PALETTE:-$HOME/.config/waybar/palette.sh}" 2>/dev/null || true
 # shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/waybar-lib.sh"
 
-OK=${FIFTH:-}; WARN=${FERMATA:-}; BAD=${FORTE:-}; DIM=${REST:-}; ACCENT=${ROOT:-}
+OK=${ROOT:-}; WARN=${FERMATA:-}; BAD=${FORTE:-}; DIM=${REST:-}; ACCENT=${ROOT:-}
 GLYPH='<span font_family="Hack Nerd Font Mono">󰒋</span>'
 # the count slot is always rendered (an invisible 0 when nothing needs attention) so the bar never jitters
-IDLE="$GLYPH <span alpha=\"0\">0</span>"
+# the proportional bar font makes the %-8s columns ragged
+MONO_OPEN='<span font_family="Hack Nerd Font Mono">'; MONO_CLOSE='</span>'
+IDLE="$GLYPH <span alpha=\"1%\">0</span>"
 
 col() { # colour text — a bare string when the palette is unavailable
   if [[ -n "$1" ]]; then printf "<span foreground='%s'>%s</span>" "$1" "$2"; else printf '%s' "$2"; fi
 }
+mark_of() { case $1 in ok) echo "●" ;; warn) echo "▲" ;; bad) echo "✕" ;; *) echo "○" ;; esac; }
 colour_of() { case $1 in ok) echo "$OK" ;; warn) echo "$WARN" ;; bad) echo "$BAD" ;; *) echo "$DIM" ;; esac; }
 age() {   # seconds -> 45s | 12m | 3h | 2d
   local s=$1
@@ -89,9 +92,9 @@ for row in "${rows[@]}"; do
   if [[ "$cls" == bad ]]; then worst=bad; elif [[ "$cls" == warn && "$worst" == ok ]]; then worst=warn; fi
   if [[ "$label" == down ]]; then any_down=1; fi
   if [[ "$label" == *diverged* ]]; then any_diverged=1; fi
-  line=$(printf '● %-8s %s %s' "$name" "${short:-—}" "$label")
+  line=$(printf '%s %-8s %-8s %s' "$(mark_of "$cls")" "$name" "${short:-—}" "$label")
   if [[ -n "$when" ]]; then line+=" · $when"; fi
-  tip+="$(col "$(colour_of "$cls")" "$line")"$'\n'
+  tip+="$MONO_OPEN$(col "$(colour_of "$cls")" "$line")$MONO_CLOSE"$'\n'
 done
 
 if (( stale )); then class=stale; bucket=stale

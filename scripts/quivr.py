@@ -117,8 +117,9 @@ def wait_for(feed, seconds=6):
 
 
 def run_once(feeds, c):
+    deadline = time.time() + 6
     for f in feeds:
-        wait_for(f)
+        wait_for(f, max(0, deadline - time.time()))
     width = shutil.get_terminal_size((120, 24)).columns
     print(render_frame([f.row(time.time()) for f in feeds], time.time(), c, width))
     return 0
@@ -167,6 +168,38 @@ def run_top(host, fd, old):
     enter_screen(fd)
 
 
+REPO = os.environ.get("QUIVR_REPO", os.path.expanduser("~/nixos"))
+# release.sh insists on main, and ship leaves the checkout on wip
+ACTION_SCRIPTS = {
+    "ship": "scripts/ship.sh",
+    "deploy": "scripts/deploy-all.sh",
+    "release": "git switch -q main && scripts/release.sh; rc=$?; git switch -q wip; exit $rc",
+}
+
+
+def run_action(name, fd, old):
+    """Leave the TUI, confirm, run the script in the repo, wait for a key, come back."""
+    leave_screen(fd, old)
+    try:
+        print(f"quivr: {name}  ({ACTION_SCRIPTS[name]})")
+        sys.stdout.write("run it? [y/N] ")
+        sys.stdout.flush()
+        tty.setcbreak(fd)
+        if sys.stdin.read(1).lower() == "y":
+            print()
+            rc = subprocess.run(["bash", "-c", ACTION_SCRIPTS[name]], cwd=REPO).returncode
+            print(f"\nquivr: {name} exited {rc}  (any key to return)")
+        else:
+            print("\nskipped  (any key to return)")
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        tty.setcbreak(fd)
+        os.read(fd, 64)
+    except OSError as e:
+        print(f"quivr: cannot run {name}: {e}")
+        time.sleep(2)
+    enter_screen(fd)
+
+
 def read_keys(fd):
     data = os.read(fd, 64).decode(errors="ignore")
     if data == "\x1b" and select.select([fd], [], [], 0.05)[0]:
@@ -185,7 +218,7 @@ def run_live(feeds, c):
         return 2
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
-    state = {"mode": "overview", "sel": 0, "quit": False, "top": False}
+    state = {"mode": "overview", "sel": 0, "quit": False, "top": False, "action": None}
     detail = None
     try:
         enter_screen(fd)
@@ -218,6 +251,9 @@ def run_live(feeds, c):
                     return 0
                 if state["top"]:
                     run_top(host, fd, old)
+                    pending = ""
+                elif state["action"]:
+                    run_action(state["action"], fd, old)
                     pending = ""
     except KeyboardInterrupt:
         return 0

@@ -211,6 +211,16 @@ window-rule {
 // No fixed size — lix-logout should hug its own content (a small button
 // row), not be forced to a guessed dimension. Floating windows open
 // centered by default.
+// quivr: a floating, square-cornered panel (waybar fleet click toggles it).
+// Later rule, so the zero radius overrides the global radiusMd.
+window-rule {
+    match app-id="dev.prepko.quivr"
+    open-floating true
+    default-column-width { fixed 880; }
+    default-window-height { fixed 520; }
+    geometry-corner-radius 0
+    clip-to-geometry true
+}
 window-rule {
     match app-id="dev.prepko.lix-logout"
     open-floating true
@@ -305,6 +315,7 @@ window-rule {
     match app-id="com.mitchellh.ghostty"
     match app-id="drmis-pick"
     match app-id="volume-popup"
+    match app-id="dev.prepko.quivr"
     background-effect {
         blur true
         ${if isDesktop then "" else "xray true"}

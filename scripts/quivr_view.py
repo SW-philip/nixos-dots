@@ -136,5 +136,6 @@ def render_frame(rows, now, c, width, selected=None):
     compact = width < 105
     lines = [f"{c.accent}quivr{c.rs}  {c.dim}{time.strftime('%H:%M:%S', time.localtime(now))}{c.rs}", ""]
     lines += [render_row(name, state, s, c, compact, selected == i) for i, (name, state, s) in enumerate(rows)]
-    lines += ["", f"{c.dim}↑↓ select  ⏎ detail  q quit{c.rs}"]
+    lines += ["", f"{c.dim}↑↓ select  ⏎ detail  q quit{c.rs}",
+              f"{c.accent}1{c.rs} ship  {c.dim}→{c.rs}  {c.accent}2{c.rs} deploy  {c.dim}→{c.rs}  {c.accent}3{c.rs} release"]
     return "\n".join(lines)

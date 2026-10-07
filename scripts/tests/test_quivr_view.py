@@ -148,7 +148,10 @@ class Rendering(unittest.TestCase):
         self.assertIn("quivr", lines[0])
         self.assertTrue(any(ln.startswith("▸ ● desktop") for ln in lines))
         self.assertTrue(any("reconnecting" in ln for ln in lines))
-        self.assertIn("q quit", lines[-1])
+        self.assertIn("q quit", lines[-2])
+        self.assertIn("1 ship", lines[-1])
+        self.assertLess(lines[-1].index("ship"), lines[-1].index("deploy"))
+        self.assertLess(lines[-1].index("deploy"), lines[-1].index("release"))
 
 
 if __name__ == "__main__":

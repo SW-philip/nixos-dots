@@ -37,7 +37,7 @@ echo 61000 > "$S/class/hwmon/hwmon1/temp1_input"
 echo 52000 > "$S/class/thermal/thermal_zone0/temp"
 printf 'processor\t: 0\n\nprocessor\t: 1\n' > "$P/cpuinfo"
 
-PROC_ROOT="$P" SYS_ROOT="$S" QUIVR_INTERVAL=1 QUIVR_COUNT=1 sh "$SAMPLER" > "$T/out" 2> "$T/err" &
+PROC_ROOT="$P" SYS_ROOT="$S" QUIVR_INTERVAL=1 QUIVR_FIRST_STEP=1 QUIVR_COUNT=1 sh "$SAMPLER" > "$T/out" 2> "$T/err" &
 pid=$!
 sleep 0.4
 write_counters 2

@@ -160,6 +160,13 @@ class Navigation(unittest.TestCase):
         self.assertEqual(qd.handle_key(s, "]", 4)["sel"], 0)
         self.assertEqual(qd.handle_key(s, "[", 4)["sel"], 2)
 
+    def test_action_keys(self):
+        for key, name in (("1", "ship"), ("2", "deploy"), ("3", "release")):
+            self.assertEqual(qd.handle_key(self.new(), key, 4)["action"], name)
+        self.assertIsNone(qd.handle_key(self.new(mode="detail"), "1", 4)["action"])
+        s = qd.handle_key(self.new(), "1", 4)
+        self.assertIsNone(qd.handle_key(s, "down", 4)["action"])
+
     def test_top_and_quit(self):
         self.assertTrue(qd.handle_key(self.new(mode="detail"), "t", 4)["top"])
         self.assertFalse(qd.handle_key(self.new(), "t", 4)["top"])

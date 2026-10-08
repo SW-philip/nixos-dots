@@ -18,6 +18,7 @@ in
     ../../home/battery-low-notify.nix
     ../../home/claude-tidy.nix
     ../../home/tree-sync.nix
+    ../../home/theme-sync.nix
     ../../home/fleet-status.nix
     ../../home/sync-status.nix
     ../../home/pass-through.nix

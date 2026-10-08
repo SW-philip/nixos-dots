@@ -11,7 +11,7 @@ let
     import time
 
     IDLE_SECS = 11 * 60
-    SUSPEND_SECS = 20 * 60  # further idle time, with the display already blanked
+    SUSPEND_SECS = 20 * 60  # further idle time after the blank point
     SYSTEMCTL = "${pkgs.systemd}/bin/systemctl"
     EVENT_SIZE = 24  # struct input_event on 64-bit
     WLR_RANDR = "${pkgs.wlr-randr}/bin/wlr-randr"
@@ -21,6 +21,7 @@ let
     last_activity = time.monotonic()
     last_stream_check = 0.0
     blanked = False
+    blank_tried = False
 
 
     def randr(*args):
@@ -68,6 +69,7 @@ let
                     data = b""
                 if data:
                     last_activity = time.monotonic()
+                    blank_tried = False
                     if blanked:
                         blanked = not set_output(True)
                 else:
@@ -82,18 +84,21 @@ let
             last_stream_check = now
             if streaming():
                 last_activity = now
-        if not blanked and now - last_activity > IDLE_SECS:
-            blanked = set_output(False)
-            last_activity = now
-        elif blanked and now - last_activity > SUSPEND_SECS:
-            # Resume restarts this service (system-sleep hook in config.nix), which re-lights the output.
+        idle = now - last_activity
+        if idle > IDLE_SECS + SUSPEND_SECS:
+            # Not gated on blanked: with the kiosk stopped there is no output to blank, but the
+            # machine should still sleep. Resume restarts this service (system-sleep hook in
+            # config.nix), which re-lights the output.
             subprocess.run([SYSTEMCTL, "suspend"])
             last_activity = time.monotonic()
+        elif not blank_tried and idle > IDLE_SECS:
+            blank_tried = True
+            blanked = set_output(False)
   '';
 in
 {
   systemd.services.idle-blank = {
-    description = "Blank the display after 11 minutes without input or a Moonlight stream, suspend 20 minutes later";
+    description = "Blank the display after 11 minutes without input or a Moonlight stream, suspend 20 minutes after that, display or not";
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.iproute2 ];
     serviceConfig = {

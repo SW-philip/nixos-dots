@@ -462,24 +462,79 @@ let
       "input=${p.SCORE}"
     ];
 
-  # Derived from themeConfigs so a new per-theme key can't be forgotten here
-  # (drmis KeyErrors at runtime on a missing one). toJSON turns each
-  # derivation into its store path; pandora is baked into config, not read by drmis.
-  themeMapJson = pkgs.writeText "drmis-theme-map.json" (builtins.toJSON {
-    _meta  = {};
-    themes = lib.mapAttrs (_: cfgs: removeAttrs cfgs [ "pandora" ]) themeConfigs;
-  });
+  # Where each per-theme rendered file lands, relative to $HOME. A new
+  # deployable file is one entry here plus its themeConfigs key; drmis needs
+  # no change. mode: copy = real file, link = symlink into the store.
+  themeTargets =
+    let
+      copy = dest: { inherit dest; mode = "copy"; };
+      link = dest: { inherit dest; mode = "link"; };
+    in {
+      swayncCss          = copy ".config/swaync/style.css";
+      ewwScss            = copy ".config/eww/colors.scss";
+      niriKdl            = copy ".config/niri/config.kdl";
+      waybarCss          = copy ".config/waybar/style.css";
+      waybarSh           = copy ".config/waybar/palette.sh";
+      nemoCss            = copy ".config/gtk-3.0/gtk.css";
+      squeekboardCss     = copy ".config/squeekboard-gtk/gtk-3.0/gtk.css";
+      fuzzelColors       = copy ".config/fuzzel/fuzzel-colors.ini";
+      lixLogoutCss       = copy ".config/lix-logout/style.css";
+      uniremoteCss       = copy ".config/uniremote/style.css";
+      ghostty            = copy ".config/ghostty/config";
+      ghosttyCss         = copy ".config/ghostty/ghostty.css";
+      tmuxTheme          = copy ".config/tmux/theme.conf";
+      hyprlockConf       = copy ".config/hypr/hyprlock.conf";
+      fastfetchLogo      = link ".local/share/fastfetch/logo.png";
+      nixMark            = link ".local/state/nix-mark-img";
+      fastfetchConfig    = copy ".config/fastfetch/config.jsonc";
+      fastfetchConfigSsh = copy ".config/fastfetch/config-ssh.jsonc";
+      zedTheme           = copy ".config/zed/themes/drmis.json";
+      startpageCss       = copy ".local/share/startpage/palette.css";
+    };
+
+  # themeConfigs keys that are not table-deployed: drmis reads them directly
+  # (firefox's two files go per profile) or they are baked elsewhere (pandora).
+  themeDataKeys = [
+    "firefoxCss" "userContentCss" "pandora" "tuigreetTheme"
+    "wallpaperFallback" "wallpaperLiveDir" "isLight"
+  ];
+
+  # Derived from themeConfigs so a new per-theme key can't be forgotten here.
+  # toJSON turns each derivation into its store path; pandora is baked into
+  # config, not read by drmis. Every themeConfigs key must be a table target or
+  # a listed data key, and every target must exist in themeConfigs.
+  themeMapJson =
+    let
+      sample   = lib.head (lib.attrValues themeConfigs);
+      known    = lib.attrNames themeTargets ++ themeDataKeys;
+      unknown  = lib.subtractLists known (lib.attrNames sample);
+      dests    = lib.mapAttrsToList (_: t: t.dest) themeTargets;
+    in
+    assert lib.assertMsg (unknown == [])
+      "themeConfigs keys with no themeTargets entry or themeDataKeys listing: ${toString unknown}";
+    assert lib.assertMsg (lib.unique dests == dests)
+      "themeTargets has duplicate dest paths";
+    pkgs.writeText "drmis-theme-map.json" (builtins.toJSON {
+      _meta  = {};
+      themes = lib.mapAttrs (_: cfgs:
+        removeAttrs cfgs ([ "pandora" ] ++ lib.attrNames themeTargets) // {
+          files = lib.mapAttrs (key: tgt: tgt // { src = cfgs.${key}; }) themeTargets;
+        }) themeConfigs;
+    });
 
   drmisPython = pkgs.python3.withPackages (ps: [ ps.rich ps.readchar ]);
 
-  drmisPy = pkgs.writeText "drmis.py" (
-    builtins.replaceStrings [ "@THEME_MAP_PATH@" ] [ "${themeMapJson}" ]
-      (builtins.readFile ./drmis.py)
-  );
+  # A directory, not a single file: drmis.py is the core and drmis_tui.py is
+  # imported lazily. @THEME_MAP_PATH@ is substituted into the core only.
+  drmisSrc = pkgs.runCommand "drmis-src" { } ''
+    mkdir $out
+    substitute ${./drmis.py} $out/drmis.py --replace-fail @THEME_MAP_PATH@ ${themeMapJson}
+    cp ${./drmis_tui.py} $out/drmis_tui.py
+  '';
 
   drmis = pkgs.writeShellScriptBin "drmis" ''
     export PATH="${lib.makeBinPath [ pkgs.resvg ]}:$PATH"
-    exec ${drmisPython}/bin/python3 ${drmisPy} "$@"
+    exec ${drmisPython}/bin/python3 -c 'import sys; sys.path.insert(0, "${drmisSrc}"); import drmis; drmis.main()' "$@"
   '';
 
 in
@@ -487,6 +542,7 @@ in
 
   myConfig.sidebarToggleScript = sidebarToggleBin;
   myConfig.lockScreenScript = lockScreenBin;
+  myConfig.drmisBin = "${drmis}/bin/drmis";
 
   home.activation.applyTheme = lib.hm.dag.entryAfter ["writeBoundary"] ''
     $DRY_RUN_CMD ${drmis}/bin/drmis let

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Standalone tests for drmis pick pure helpers. Run: python3 home/niri/test_drmis_pick.py"""
-import importlib.util
 from pathlib import Path
-
-_spec = importlib.util.spec_from_file_location("drmis", Path(__file__).with_name("drmis.py"))
-drmis = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(drmis)
+import sys
+sys.path.insert(0, str(Path(__file__).parent))
+import drmis_tui as drmis
 
 
 def _themes():

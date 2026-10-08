@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
   # Sets each connected PS4/PS5 controller's lightbar to a themed color and
   # keeps the same physical controller on the same color across reconnects.
@@ -81,6 +81,12 @@ let
     '';
   };
 
+  consumer = import ./niri/theme-consumer.nix { inherit lib; } {
+    name = "ps-controller-colors";
+    description = "Recolor connected controller lightbars after a drmis theme change";
+    exec = "${colorScript}/bin/ps-controller-colors";
+  };
+
   watchScript = pkgs.writeShellApplication {
     name = "ps-controller-colors-watch";
     runtimeInputs = [ pkgs.glib pkgs.bluez colorScript ];
@@ -124,4 +130,7 @@ in
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
+
+  systemd.user.services.drmis-ps-controller-colors = consumer.service;
+  systemd.user.paths.drmis-ps-controller-colors = consumer.path;
 }

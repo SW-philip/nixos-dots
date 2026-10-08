@@ -11,6 +11,9 @@ drmis = importlib.util.module_from_spec(_spec)
 sys.modules["drmis"] = drmis
 _spec.loader.exec_module(drmis)
 
+sys.path.insert(0, str(_DRMIS.parent))
+import drmis_tui  # noqa: E402
+
 
 class TestResolveWallpaper(unittest.TestCase):
     def test_returns_slug_png_when_present(self):
@@ -51,33 +54,33 @@ class TestRegenWallpapers(unittest.TestCase):
             d = self.root / fam / slug
             d.mkdir(parents=True)
             (d / f"palette-{slug}.sh").write_text("x")
-        drmis.THEMES_ROOT = self.root
+        drmis_tui.THEMES_ROOT = self.root
 
     def tearDown(self):
         self.tmp.cleanup()
 
     def test_no_family_runs_all_once(self):
-        with mock.patch.object(drmis.Path, "home", return_value=self.home), \
-             mock.patch.object(drmis.subprocess, "run",
+        with mock.patch.object(drmis_tui.Path, "home", return_value=self.home), \
+             mock.patch.object(drmis_tui.subprocess, "run",
                                return_value=mock.Mock(returncode=0)) as run:
-            drmis.regen_wallpapers(family=None, force=False)
+            drmis_tui.regen_wallpapers(family=None, force=False)
         self.assertEqual(run.call_count, 1)
         self.assertIn("--all", run.call_args_list[0].args[0])
 
     def test_family_filter_iterates_that_family(self):
-        with mock.patch.object(drmis.Path, "home", return_value=self.home), \
-             mock.patch.object(drmis.subprocess, "run",
+        with mock.patch.object(drmis_tui.Path, "home", return_value=self.home), \
+             mock.patch.object(drmis_tui.subprocess, "run",
                                return_value=mock.Mock(returncode=0)) as run:
-            drmis.regen_wallpapers(family="Animals", force=True)
+            drmis_tui.regen_wallpapers(family="Animals", force=True)
         called = [c.args[0][-1] for c in run.call_args_list]
         self.assertEqual(len(called), 1)
         self.assertTrue(called[0].endswith("/Animals/octopus"))
 
     def test_missing_script_is_noop(self):
         (self.home / "nixos" / "scripts" / "make-splotch-bg.py").unlink()
-        with mock.patch.object(drmis.Path, "home", return_value=self.home), \
-             mock.patch.object(drmis.subprocess, "run") as run:
-            drmis.regen_wallpapers(family=None, force=False)
+        with mock.patch.object(drmis_tui.Path, "home", return_value=self.home), \
+             mock.patch.object(drmis_tui.subprocess, "run") as run:
+            drmis_tui.regen_wallpapers(family=None, force=False)
         run.assert_not_called()
 
 

@@ -20,7 +20,8 @@ age() {   # seconds -> 45s | 12m | 3h | 2d
 }
 
 GLYPH='<span font_family="Hack Nerd Font Mono">󰓦</span>'
-IDLE="$GLYPH <span alpha=\"1%\">0</span>"
+# a figure space holds the count slot's width with no ink: a near-transparent digit still casts the bar's text-shadow as a dark smudge
+IDLE="$GLYPH&#8199;"
 emit() { jq -nc --arg text "$1" --arg class "$2" --arg tooltip "$3" '{text:$text, class:$class, tooltip:$tooltip}'; }
 
 if [[ ! -r $SNAP ]] || ! jq -e '.level' "$SNAP" >/dev/null 2>&1; then

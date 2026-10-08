@@ -25,7 +25,7 @@ snap() {   # snap <level> <generated_at> <conflict-count> <reason>
 
 snap ok 2000000090 0 ""
 assert_eq "ok: class"          ok  "$(field .class)"
-assert_eq "ok: idle slot" '<span font_family="Hack Nerd Font Mono">󰓦</span> <span alpha="1%">0</span>' "$(field .text)"
+assert_eq "ok: idle slot" '<span font_family="Hack Nerd Font Mono">󰓦</span>&#8199;' "$(field .text)"
 [[ $(field .tooltip) == *"SWphil: connected"* && $(field .tooltip) == *"Documents  idle  100%"* ]]
 assert_eq "ok: tooltip rows"   0 $?
 

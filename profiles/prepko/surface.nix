@@ -1,4 +1,12 @@
 { inputs, pkgs, lib, config, ... }:
+let
+  mugConsumer = import ../../home/niri/theme-consumer.nix { inherit lib; } {
+    name = "ember-mug";
+    description = "Sync the Ember mug LED to the drmis theme ROOT color";
+    exec = "${config.myConfig.drmisBin} mug-sync";
+    environment.PATH = lib.makeBinPath [ pkgs.python-ember-mug ];
+  };
+in
 {
   imports = [
     ../base.nix
@@ -55,6 +63,9 @@
   # The Tailscale IP, not the MagicDNS name: surface's resolv.conf can list
   # the DHCP resolvers ahead of 100.100.100.100, which NXDOMAIN *.ts.net.
   ########################################
+  systemd.user.services.drmis-mug = mugConsumer.service;
+  systemd.user.paths.drmis-mug = mugConsumer.path;
+
   programs.zsh.shellAliases = {
     nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
     nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";

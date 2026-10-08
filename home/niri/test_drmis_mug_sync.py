@@ -2,6 +2,7 @@
 """Standalone tests for drmis's ember-mug HALL-sync argv builder.
 Run: python3 home/niri/test_drmis_mug_sync.py"""
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -27,6 +28,24 @@ class TestEmberMugLedArgv(unittest.TestCase):
 
     def test_none_when_hex_malformed(self):
         self.assertIsNone(drmis.ember_mug_led_argv("/bin/ember-mug", "not-a-hex"))
+
+
+class MugSyncArgv(unittest.TestCase):
+    def test_uses_the_themes_root_color(self):
+        with tempfile.TemporaryDirectory() as d:
+            sh = Path(d) / "palette.sh"
+            sh.write_text('ROOT="#112233"\n')
+            theme_map = {"themes": {"t": {"files": {"waybarSh": {"src": str(sh)}}}}}
+            argv = drmis.mug_sync_argv("t", theme_map, which=lambda _: "/bin/ember-mug")
+        self.assertEqual(argv, ["/bin/ember-mug", "set", "-m", drmis.EMBER_MUG_MAC,
+                                "--led-colour", "112233"])
+
+    def test_none_without_the_binary(self):
+        theme_map = {"themes": {"t": {"files": {"waybarSh": {"src": "/nonexistent"}}}}}
+        self.assertIsNone(drmis.mug_sync_argv("t", theme_map, which=lambda _: None))
+
+    def test_none_for_unknown_theme(self):
+        self.assertIsNone(drmis.mug_sync_argv("nope", {"themes": {}}, which=lambda _: "/bin/ember-mug"))
 
 
 if __name__ == "__main__":

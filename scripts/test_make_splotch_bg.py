@@ -168,6 +168,14 @@ class TestBuild(unittest.TestCase):
         self.assertIn(f'fill="{splotch.FLAT_BG}"', svg)
         self.assertNotIn("radialGradient", svg)
 
+    def test_light_theme_gets_light_field(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            theme_dir = _make_theme_dir(tmp, "lightcheck")
+            (theme_dir / "palette-lightcheck.nix").write_text("{\n  isLight = true;\n}\n")
+            svg = splotch.build(theme_dir)
+        self.assertIn(f'fill="{splotch.FLAT_BG_LIGHT}"', svg)
+        self.assertNotIn(f'fill="{splotch.FLAT_BG}"', svg)
+
     def test_flat_fill_is_hue_free(self):
         r, g, b = (int(splotch.FLAT_BG.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
         self.assertEqual(r, g)

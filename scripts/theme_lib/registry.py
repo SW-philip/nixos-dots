@@ -11,7 +11,7 @@ from pathlib import Path
 
 from theme_lib.musical import to_musical
 from theme_lib.naming import slugify
-from theme_lib.paths import CUSTOM_DIR, THEMES_ROOT, MAKE_WALLPAPER, NIXOS_ROOT
+from theme_lib.paths import DARK_DIR, THEMES_ROOT, MAKE_WALLPAPER, NIXOS_ROOT
 from theme_lib.palette_files import write_nix, write_sh, SEED_KEYS
 
 
@@ -42,7 +42,7 @@ def register_theme(name: str, palette: dict, source: str, force: bool = False,
     making a later `--batch --force` re-derive non-idempotent.
     """
     slug = slugify(name)
-    theme_dir = output_dir if output_dir is not None else CUSTOM_DIR / slug
+    theme_dir = output_dir if output_dir is not None else DARK_DIR / slug
     already = theme_dir.exists()
     theme_dir.mkdir(parents=True, exist_ok=True)
 

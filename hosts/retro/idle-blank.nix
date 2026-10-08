@@ -11,6 +11,8 @@ let
     import time
 
     IDLE_SECS = 11 * 60
+    SUSPEND_SECS = 20 * 60  # further idle time, with the display already blanked
+    SYSTEMCTL = "${pkgs.systemd}/bin/systemctl"
     EVENT_SIZE = 24  # struct input_event on 64-bit
     WLR_RANDR = "${pkgs.wlr-randr}/bin/wlr-randr"
     RUNUSER = "${pkgs.util-linux}/bin/runuser"
@@ -83,11 +85,15 @@ let
         if not blanked and now - last_activity > IDLE_SECS:
             blanked = set_output(False)
             last_activity = now
+        elif blanked and now - last_activity > SUSPEND_SECS:
+            # Resume restarts this service (system-sleep hook in config.nix), which re-lights the output.
+            subprocess.run([SYSTEMCTL, "suspend"])
+            last_activity = time.monotonic()
   '';
 in
 {
   systemd.services.idle-blank = {
-    description = "Turn the display off after 11 minutes without input or a Moonlight stream";
+    description = "Blank the display after 11 minutes without input or a Moonlight stream, suspend 20 minutes later";
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.iproute2 ];
     serviceConfig = {

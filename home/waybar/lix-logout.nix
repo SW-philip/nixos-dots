@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.waybar.lixLogout;
-  p = import ../../themes/Rose-Pine/midnight-rose/palette-midnight-rose.nix;
+  p = import ../../themes/Dark/midnight-rose/palette-midnight-rose.nix;
 in
 {
   options.waybar.lixLogout = {

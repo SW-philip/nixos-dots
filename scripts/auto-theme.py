@@ -29,7 +29,7 @@ except ImportError:
     print("❌ Error: 'requests' library not found. Install with: pip install requests")
     sys.exit(1)
 
-from theme_lib.paths import THEMES_ROOT, CUSTOM_DIR, PALETTE_SOURCES
+from theme_lib.paths import THEMES_ROOT, DARK_DIR, PALETTE_SOURCES, ROSE_PINE_SLUGS
 from theme_lib.colormath import parse_colorhunt_url, map_colorhunt_to_slots
 from theme_lib.palette import derive_full_palette
 from theme_lib.cache import load_cache
@@ -53,13 +53,13 @@ def main():
     parser.add_argument("--list-api", metavar="KEYWORD", help="Preview API results for a keyword")
     parser.add_argument("--register-only", action="store_true", help="Generate files but don't activate")
     parser.add_argument("--force", action="store_true", help="Overwrite existing hand-crafted palette files")
-    parser.add_argument("--output-dir", metavar="PATH", help="Write theme files here instead of themes/Custom/<slug>")
+    parser.add_argument("--output-dir", metavar="PATH", help="Write theme files here instead of themes/Dark/<slug>")
     parser.add_argument("--rp-strength", type=float, default=0.0, metavar="0-1",
                         help="Blend accent hues toward Rose Pine semantics (0=off, 1=full)")
     parser.add_argument("--batch", action="store_true",
                         help="Regenerate derived files for all existing themes (preserves palette unless --force)")
     parser.add_argument("--family", metavar="NAME",
-                        help="Limit --batch to one family (Custom, Rose-Pine)")
+                        help="Limit --batch to one family (Dark, Light)")
     parser.add_argument("--sources", action="store_true", help="List available palette sources")
     parser.add_argument("--source", metavar="NAME",
                         help="Palette source to use for keyword queries (default: colormagic)")
@@ -142,7 +142,8 @@ def main():
                             print(f"  ⏭  {slug}: no seeds to re-derive {missing}, skipping")
                             skip += 1
                             continue
-                        p = derive_full_palette(initial, rp_strength=strength, family=fam_dir.name)
+                        fam = "Rose-Pine" if slug in ROSE_PINE_SLUGS else fam_dir.name
+                        p = derive_full_palette(initial, rp_strength=strength, family=fam)
                         register_theme(slug, p, "batch", force=True, output_dir=theme_dir, raw_seeds=initial)
                     else:
                         # Default: regenerate derived files (wallpaper) from the existing

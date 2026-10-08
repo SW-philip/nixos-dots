@@ -98,7 +98,8 @@ _UNIVERSAL_STRENGTH = 0.6
 _UNIVERSAL_MIN_SAT = 0.35
 
 
-def derive_full_palette(mapped: dict, rp_strength: float = 0.0, family: str | None = None) -> dict:
+def derive_full_palette(mapped: dict, rp_strength: float = 0.0, family: str | None = None,
+                        harmonize: bool = True) -> dict:
     """Takes a dict with HALL, TONIC, MEDIANT, DOMINANT, SUBDOMINANT and derives the full depth."""
     mode = _theme_mode(mapped["HALL"])
     is_dark = mode == "dark"
@@ -156,7 +157,9 @@ def derive_full_palette(mapped: dict, rp_strength: float = 0.0, family: str | No
     # Every family except Rose-Pine (which already gets its own dedicated,
     # fixed-role treatment above) gets its 6 accents pulled toward well-separated
     # hue anchors by default — no flag needed.
-    if family != "Rose-Pine":
+    # harmonize=False keeps a deliberately restrained palette (e.g. an autumn
+    # one) from being spread back across the whole hue wheel.
+    if harmonize and family != "Rose-Pine":
         mapped = harmonize_accents_by_rank(
             mapped, _UNIVERSAL_ACCENT_KEYS, _UNIVERSAL_ANCHOR_HUES,
             _UNIVERSAL_STRENGTH, min_sat=_UNIVERSAL_MIN_SAT)

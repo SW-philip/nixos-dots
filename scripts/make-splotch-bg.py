@@ -38,6 +38,8 @@ DIFFUSE_STDDEV = 90
 # Fixed, hue-free dark slate gray — identical across every theme so the
 # base field never competes for attention with the blobs' own theme hue.
 FLAT_BG = "#242424"
+# Light themes get the mirror-image field: same hue-free idea, light end.
+FLAT_BG_LIGHT = "#e6e6e6"
 
 REPO = Path(__file__).resolve().parent.parent
 DEFAULT_THEMES_ROOT = REPO / "themes"
@@ -118,17 +120,14 @@ def _luminance(hexcolor):
     return 0.2126 * _srgb_to_linear(r) + 0.7152 * _srgb_to_linear(g) + 0.0722 * _srgb_to_linear(b)
 
 
-_FLAT_BG_LUMINANCE = _luminance(FLAT_BG)
-
-
-def _contrast_vs_bg(hexcolor):
+def _contrast_vs_bg(hexcolor, bg=FLAT_BG):
     """WCAG contrast ratio against FLAT_BG. A color can clear the
     saturation floor and still be indistinguishable from FLAT_BG's own
     lightness (14%) if it's merely 'not literally black' — this is the
     actual visibility guarantee is_hued() needs, not an absolute
     lightness cutoff."""
-    lum = _luminance(hexcolor)
-    lighter, darker = max(lum, _FLAT_BG_LUMINANCE), min(lum, _FLAT_BG_LUMINANCE)
+    lum, bg_lum = _luminance(hexcolor), _luminance(bg)
+    lighter, darker = max(lum, bg_lum), min(lum, bg_lum)
     return (lighter + 0.05) / (darker + 0.05)
 
 
@@ -165,7 +164,7 @@ def _delta_e(hex1, hex2):
     return sum((a - b) ** 2 for a, b in zip(lab1, lab2)) ** 0.5
 
 
-def is_hued(hexcolor):
+def is_hued(hexcolor, bg=FLAT_BG):
     """True for anything that reads as an actual color, visible against
     FLAT_BG — false for black, white, the low-saturation structural
     grays used for UI chrome (REST/BAR/MUTE/DIM/...), and anything too
@@ -173,22 +172,22 @@ def is_hued(hexcolor):
     _h, l, s = _hls(hexcolor)
     if s < HUED_MIN_SAT or l > HUED_LIGHT_HI:
         return False
-    return _contrast_vs_bg(hexcolor) >= MIN_CONTRAST_VS_BG
+    return _contrast_vs_bg(hexcolor, bg) >= MIN_CONTRAST_VS_BG
 
 
 def is_distinct(hexcolor, others):
     return all(_delta_e(hexcolor, o) >= MIN_DELTA_E for o in others)
 
 
-def pick_hued(colors, var_list, distinct_from=frozenset()):
+def pick_hued(colors, var_list, distinct_from=frozenset(), bg=FLAT_BG):
     for v in var_list:
         c = colors.get(v)
-        if c and is_hued(c) and is_distinct(c, distinct_from):
+        if c and is_hued(c, bg) and is_distinct(c, distinct_from):
             return c
     return None
 
 
-def synthesize_hued(colors, var_list, distinct_from=frozenset()):
+def synthesize_hued(colors, var_list, distinct_from=frozenset(), bg=FLAT_BG):
     """Fallback for themes with no hued-and-distinct color in var_list
     (e.g. the intentionally near-monochrome onyx-mauve/slate-lavender):
     take the highest-saturation existing color as a hue donor, then walk
@@ -214,21 +213,21 @@ def synthesize_hued(colors, var_list, distinct_from=frozenset()):
         l = min(max(l0, BOOST_LIGHT_LO), BOOST_LIGHT_HI)
         while l <= 0.85:
             candidate = _from_hls(h, l, new_s)
-            if is_hued(candidate) and is_distinct(candidate, distinct_from):
+            if is_hued(candidate, bg) and is_distinct(candidate, distinct_from):
                 return candidate
             l += 0.02
     return candidate
 
 
-def pick_blob_colors(colors):
+def pick_blob_colors(colors, bg=FLAT_BG):
     """Two blob fill colors: one drawn from the theme's own logo ink
     (LOGO_VARS), one from the rest of the palette (BLOB_CANDIDATE_VARS).
-    Both are guaranteed hued and visible against FLAT_BG, and guaranteed
+    Both are guaranteed hued and visible against bg, and guaranteed
     perceptually distinct from each other — via synthesis when the theme
     has no naturally-hued-and-distinct candidate in the relevant list."""
-    logo = pick_hued(colors, LOGO_VARS) or synthesize_hued(colors, LOGO_VARS)
-    palette = pick_hued(colors, BLOB_CANDIDATE_VARS, distinct_from={logo}) or \
-        synthesize_hued(colors, BLOB_CANDIDATE_VARS, distinct_from={logo})
+    logo = pick_hued(colors, LOGO_VARS, bg=bg) or synthesize_hued(colors, LOGO_VARS, bg=bg)
+    palette = pick_hued(colors, BLOB_CANDIDATE_VARS, distinct_from={logo}, bg=bg) or \
+        synthesize_hued(colors, BLOB_CANDIDATE_VARS, distinct_from={logo}, bg=bg)
     return [logo, palette]
 
 
@@ -272,12 +271,21 @@ def make_wobbles(rng, r):
     ]
 
 
+def field_for(theme_dir):
+    """Light themes (palette says isLight = true) get FLAT_BG_LIGHT."""
+    for f in sorted(os.listdir(theme_dir)):
+        if f.startswith("palette-") and f.endswith(".nix"):
+            if re.search(r"^\s*isLight\s*=\s*true;", (Path(theme_dir) / f).read_text(), re.M):
+                return FLAT_BG_LIGHT
+    return FLAT_BG
+
+
 def plan_blobs(theme_dir):
     theme_dir = Path(theme_dir)
     rng = random.Random(seed_for(theme_dir.name))
     colors = load_colors(theme_dir)
 
-    blob_colors = pick_blob_colors(colors)
+    blob_colors = pick_blob_colors(colors, field_for(theme_dir))
     rng.shuffle(blob_colors)
 
     theta = rng.uniform(0, 2 * math.pi)
@@ -313,7 +321,7 @@ def build(theme_dir):
 <rect width="8" height="1.5" fill="#000" opacity="0.06"/>
 </pattern>
 </defs>
-<rect width="{W}" height="{H}" fill="{FLAT_BG}"/>
+<rect width="{W}" height="{H}" fill="{field_for(theme_dir)}"/>
 {body}
 <rect width="{W}" height="{H}" fill="url(#lin-h)"/>
 <rect width="{W}" height="{H}" fill="url(#lin-d)"/>

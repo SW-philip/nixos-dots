@@ -9,10 +9,10 @@ import drmis_tui as drmis
 def _themes():
     # (slug, family, dir, sh, colors) — same shape as get_all_themes()
     return [
-        ("citrus", "Custom",    None, None, {"HALL": "#111111"}),
-        ("octopus",    "Custom",    None, None, {"HALL": "#222222"}),
-        ("eagles",     "Custom",    None, None, {"HALL": "#004c54"}),
-        ("rose-pine",  "Rose-Pine", None, None, {"HALL": "#191724"}),
+        ("citrus",     "Dark",  None, None, {"HALL": "#111111"}),
+        ("octopus",    "Dark",  None, None, {"HALL": "#222222"}),
+        ("eagles",     "Dark",  None, None, {"HALL": "#004c54"}),
+        ("rose-pine",  "Light", None, None, {"HALL": "#f4ede8"}),
     ]
 
 
@@ -20,12 +20,14 @@ def test_build_pick_rows_sections_and_order():
     rows = drmis.build_pick_rows(_themes())
     kinds_labels = [(r["kind"], r["label"]) for r in rows]
     assert kinds_labels == [
-        ("header", "🎨 Themes"),
+        ("header", "🌙 Dark"),
         ("theme",  "citrus"),
         ("theme",  "octopus"),
         ("theme",  "eagles"),
-        ("header", "🌹 Rosé Pine"),
+        ("header", "☀️ Light"),
         ("theme",  "rose-pine"),
+        ("header", "◐ Mode"),
+        ("action", "Toggle light / dark"),
         ("header", "🎲 Shuffle"),
         ("action", "Random (any)"),
     ], kinds_labels
@@ -50,7 +52,7 @@ def test_move_cursor_skips_headers_and_wraps():
     rows = drmis.build_pick_rows(_themes())
     sel = drmis.selectable_indices(rows)
     first, last = sel[0], sel[-1]
-    # down from octopus (idx 2) lands on eagles (idx 3); down from eagles skips the Rosé Pine header at 4
+    # down from octopus (idx 2) lands on eagles (idx 3); down from eagles skips the Light header at 4
     assert drmis.move_cursor(rows, 2, +1) == 3
     assert drmis.move_cursor(rows, 3, +1) == 5
     # wrap: down from last selectable -> first selectable
@@ -62,12 +64,12 @@ def test_move_cursor_skips_headers_and_wraps():
 def test_move_cursor_from_header_index():
     rows = drmis.build_pick_rows(_themes())
     sel = drmis.selectable_indices(rows)
-    # idx 0 is the first header ("🎨 Themes"); going down should land on the first selectable, not skip it
+    # idx 0 is the first header ("🌙 Dark"); going down should land on the first selectable, not skip it
     assert drmis.move_cursor(rows, 0, +1) == sel[0]
     # going up from the first header should wrap to the last selectable
     assert drmis.move_cursor(rows, 0, -1) == sel[-1]
-    # from a mid-list header (the "🌹 Rosé Pine" header), down -> next selectable after it, up -> previous selectable before it
-    rp_hdr = next(i for i, r in enumerate(rows) if r["label"] == "🌹 Rosé Pine")
+    # from a mid-list header (the "☀️ Light" header), down -> next selectable after it, up -> previous selectable before it
+    rp_hdr = next(i for i, r in enumerate(rows) if r["label"] == "☀️ Light")
     nxt = next(i for i in sel if i > rp_hdr)
     prv = next(i for i in reversed(sel) if i < rp_hdr)
     assert drmis.move_cursor(rows, rp_hdr, +1) == nxt

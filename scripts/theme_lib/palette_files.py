@@ -5,10 +5,12 @@ config; `palette-<slug>.sh` feeds waybar and the wallpaper scripts.
 """
 from pathlib import Path
 
-from theme_lib.colormath import _hex_to_hsl, _hsl_to_hex
+from theme_lib.colormath import _hex_to_hsl, _hsl_to_hex, _theme_mode
 
 
 def write_nix(path: Path, p: dict, name: str):
+    # allThemes falls back to TEMPO == "13px" for light themes; say it outright instead.
+    is_light_line = "  isLight = true;\n" if _theme_mode(p["HALL"]) == "light" else ""
     path.write_text(f"""\
 {{
   # ── Ground ────────────────────────────────────────────────────
@@ -54,7 +56,7 @@ def write_nix(path: Path, p: dict, name: str):
 
   # ── Meta ──────────────────────────────────────────────────────
   TEMPO   = "{p['TEMPO']}";
-  MEASURE = "{p['MEASURE']}";
+{is_light_line}  MEASURE = "{p['MEASURE']}";
   STAFF   = "{p['STAFF']}";
   STAFF_A_OUTER     = "{p['STAFF_A_OUTER']}";
   STAFF_A_DROP      = "{p['STAFF_A_DROP']}";

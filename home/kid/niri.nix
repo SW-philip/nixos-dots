@@ -1,13 +1,13 @@
 { pkgs, ... }:
 let
-  moon = import ../../themes/Rose-Pine/indigo-rose/palette-indigo-rose.nix;
+  moon = import ../../themes/Dark/indigo-rose/palette-indigo-rose.nix;
 
   # Their wallpaper: the orange soft-serve from the Lix "ice cream" theme named
   # after the account. Static — this account has no theme switcher, so swaybg just paints this.
   # Imported as a Nix path (copied into the store), so the PNG is force-tracked
   # past themes/**/wallpaper-*.png in .gitignore — the theme rotation's runtime
   # ${home}/nixos lookup isn't available to this account.
-  wallpaper = ../../themes/Custom/kid/wallpaper-kid.png;
+  wallpaper = ../../themes/Light/kid/wallpaper-kid.png;
 
   # Mod+H target: bounce back to the dashboard. Closing whatever's on top is
   # safe even when the kid is already on "home" — the dashboard itself is a

@@ -101,6 +101,13 @@
   '';
   services.thermald.enable = true;
 
+  # Every fleet-status probe used to log in over ssh and journal a user-manager start/stop; keep
+  # the journal small and in RAM so idle chatter doesn't hit the SSD.
+  services.journald.extraConfig = ''
+    Storage=volatile
+    RuntimeMaxUse=64M
+  '';
+
   ############################################################
   # Hardening (light)
   ############################################################

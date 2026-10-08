@@ -16,7 +16,7 @@ __pycache__/
 themes/**/wallpaper-*.png
 # ...except Kid's: home/kid/niri.nix imports it as a Nix path
 # literal (they has no ~/nixos for a runtime lookup like the theme rotation uses).
-!themes/Custom/kid/wallpaper-kid.png
+!themes/Light/kid/wallpaper-kid.png
 
 # Generated / profiling outputs (no reason to track these)
 boot_profile*

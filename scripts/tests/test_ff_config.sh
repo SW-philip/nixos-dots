@@ -13,7 +13,7 @@ render() {
       flake = builtins.getFlake (toString $ROOT);
       pkgs  = flake.inputs.nixpkgs.legacyPackages.x86_64-linux;
       lib   = pkgs.lib;
-      dir   = $ROOT + \"/themes/Custom/charcoal-cyan\";
+      dir   = $ROOT + \"/themes/Dark/charcoal-cyan\";
       files = builtins.readDir dir;
       nixName = builtins.head (builtins.attrNames (
         lib.filterAttrs (n: _: lib.hasPrefix \"palette-\" n && lib.hasSuffix \".nix\" n) files));

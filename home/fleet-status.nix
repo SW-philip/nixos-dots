@@ -20,7 +20,7 @@ in
 
   systemd.user.timers.fleet-status = {
     Unit.Description = "fleet-status timer";
-    Timer = { OnStartupSec = "90s"; OnUnitActiveSec = "2min"; };
+    Timer = { OnStartupSec = "90s"; OnUnitActiveSec = "5min"; };
     Install.WantedBy = [ "timers.target" ];
   };
 }

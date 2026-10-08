@@ -20,7 +20,7 @@ from theme_lib.sources import fetch_api_palette
 
 CATEGORIES = {
     "animals": {
-        "family": "Custom",
+        "family": "Dark",
         "keywords": [
             "octopus", "squid", "fox", "axolotl", "peacock", "flamingo",
             "chameleon", "raven", "koi", "jellyfish", "monarch", "scarab",

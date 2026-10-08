@@ -1,6 +1,6 @@
 { pkgs, config, ... }:
 let
-  moon = import ../../themes/Rose-Pine/indigo-rose/palette-indigo-rose.nix;
+  moon = import ../../themes/Dark/indigo-rose/palette-indigo-rose.nix;
 
   # Arbitrary unused high port, loopback-only — nothing outside this account
   # needs to reach it.

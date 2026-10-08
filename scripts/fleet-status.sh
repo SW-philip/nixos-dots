@@ -33,7 +33,7 @@ HEAD_SHA=$(git -C "$ROOT" rev-parse "$HEAD_REF" 2>/dev/null || true)
 drift_paths() {
   case $1 in
     pi)    DRIFT_PATHS=(-- flake.nix flake.lock hosts/pi identities roles/ssh-known-hosts.nix) ;;
-    retro) DRIFT_PATHS=(-- flake.nix flake.lock hosts/retro identities roles pkgs/josefin-sans.nix themes/Custom/slate-lavender) ;;
+    retro) DRIFT_PATHS=(-- flake.nix flake.lock hosts/retro identities roles pkgs/josefin-sans.nix themes/Dark/slate-lavender) ;;
     *)     DRIFT_PATHS=(-- . ':(exclude)docs' ':(exclude)*.md' ':(exclude).superpowers' ':(exclude)scripts/tests' ':(exclude).claude-shared') ;;
   esac
 }
@@ -57,7 +57,8 @@ probe_host() {
     is_online "$host" && up=true
     # skip the ssh attempt only when tailscale answered and says the host is offline
     if (( ts_ok == 0 )) || [[ $up == true ]]; then
-      if raw=$(timeout "$((SSH_TIMEOUT + 3))" ssh -n -o BatchMode=yes -o ConnectTimeout="$SSH_TIMEOUT" "$host" "$PROBE_CMD" 2>/dev/null); then
+      if raw=$(timeout "$((SSH_TIMEOUT + 3))" ssh -n -o BatchMode=yes -o ConnectTimeout="$SSH_TIMEOUT" \
+          -o ControlMaster=auto -o ControlPersist=10m -o "ControlPath=${XDG_RUNTIME_DIR:-/tmp}/fleet-ssh-%C" "$host" "$PROBE_CMD" 2>/dev/null); then
         ssh_ok=true; up=true
       fi
     fi

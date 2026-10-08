@@ -22,12 +22,16 @@ let
                       in if files ? ${f} then "${dir}/${f}" else null;
 
           p = import "${dir}/${nixName}";
-        in {
-          inherit family slug wallpaper dir;
-          palette   = p;
-          shContent = builtins.readFile "${dir}/${shName}";
-          isLight   = p.isLight or ((p.TEMPO or "12px") == "13px");
-        };
+          isLight = p.isLight or ((p.TEMPO or "12px") == "13px");
+        in
+          # the folder is the mode: a light palette in Dark/ (or the reverse) is a filing mistake
+          assert lib.assertMsg (isLight == (family == "Light"))
+            "theme ${slug}: isLight = ${lib.boolToString isLight} but it lives in themes/${family}/";
+          {
+            inherit family slug wallpaper dir isLight;
+            palette   = p;
+            shContent = builtins.readFile "${dir}/${shName}";
+          };
 
       familyDirs = lib.filterAttrs (_: t: t == "directory") (builtins.readDir themesRoot);
 
@@ -427,6 +431,7 @@ let
       zedTheme        = pkgs.writeText "zed-theme-${slug}.json"         (builtins.toJSON (mkZedTheme { inherit t; }));
       startpageCss   = pkgs.writeText "startpage-palette-${slug}.css" (import ../startpage/palette.css.nix t.palette);
       isLight         = t.isLight;
+      pair            = t.palette.PAIR or null;
     }
   ) allThemes;
 
@@ -496,7 +501,7 @@ let
   # (firefox's two files go per profile) or they are baked elsewhere (pandora).
   themeDataKeys = [
     "firefoxCss" "userContentCss" "pandora" "tuigreetTheme"
-    "wallpaperFallback" "wallpaperLiveDir" "isLight"
+    "wallpaperFallback" "wallpaperLiveDir" "isLight" "pair"
   ];
 
   # Derived from themeConfigs so a new per-theme key can't be forgotten here.
@@ -509,11 +514,26 @@ let
       known    = lib.attrNames themeTargets ++ themeDataKeys;
       unknown  = lib.subtractLists known (lib.attrNames sample);
       dests    = lib.mapAttrsToList (_: t: t.dest) themeTargets;
+      # PAIR is "the next theme in my group": following it from any theme must
+      # come back to that theme through themes that exist (a closed cycle).
+      pairCloses = s:
+        let
+          limit = lib.length (lib.attrNames allThemes);
+          go = n: x:
+            let y = allThemes.${x}.palette.PAIR or null; in
+            if n > limit || y == null || !(allThemes ? ${y}) then false
+            else if y == s then true
+            else go (n + 1) y;
+        in go 1 s;
+      badPairs = lib.filter (s: (allThemes.${s}.palette.PAIR or null) != null && !(pairCloses s))
+        (lib.attrNames allThemes);
     in
     assert lib.assertMsg (unknown == [])
       "themeConfigs keys with no themeTargets entry or themeDataKeys listing: ${toString unknown}";
     assert lib.assertMsg (lib.unique dests == dests)
       "themeTargets has duplicate dest paths";
+    assert lib.assertMsg (badPairs == [])
+      "themes whose PAIR chain does not return to them: ${toString badPairs}";
     pkgs.writeText "drmis-theme-map.json" (builtins.toJSON {
       _meta  = {};
       themes = lib.mapAttrs (_: cfgs:

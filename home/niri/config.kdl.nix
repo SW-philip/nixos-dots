@@ -518,6 +518,7 @@ binds {
     Mod+Shift+Period { move-column-to-monitor-right; }
     Mod+Ctrl+Shift+Comma  { spawn "drmis" "prev"; }
     Mod+Ctrl+Shift+Period { spawn "drmis" "next"; }
+    Mod+Ctrl+Shift+M      { spawn "drmis" "mode" "toggle"; }
     Mod+Ctrl+D { spawn "kanshictl" "switch" "desktop-dual"; }
     Mod+Ctrl+S { spawn "kanshictl" "switch" "desktop-single-dp2"; }
 

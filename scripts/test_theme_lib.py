@@ -128,11 +128,18 @@ class TestToMusical(unittest.TestCase):
         self.assertEqual(m["ROOT"], rank_accents(p)[0])
 
 
+class TestRosePineSlugs(unittest.TestCase):
+    def test_slug_set_matches_the_variant_map(self):
+        from theme_lib.paths import ROSE_PINE_SLUGS
+        self.assertEqual(ROSE_PINE_SLUGS,
+                         frozenset({"midnight-rose", "indigo-rose", "cream-terracotta"}))
+
+
 class TestCategories(unittest.TestCase):
     def test_animals_category_shape(self):
         from theme_lib.categories import CATEGORIES
         self.assertIn("animals", CATEGORIES)
-        self.assertEqual(CATEGORIES["animals"]["family"], "Custom")
+        self.assertEqual(CATEGORIES["animals"]["family"], "Dark")
         kws = CATEGORIES["animals"]["keywords"]
         self.assertIn("octopus", kws)
         self.assertIn("fox", kws)

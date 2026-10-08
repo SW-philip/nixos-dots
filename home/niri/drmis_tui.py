@@ -1,7 +1,7 @@
 import os, re, subprocess, sys
 from pathlib import Path
 
-from drmis import THEMES_ROOT, current_theme, do_set, do_toggle, family_flags, get_all_themes, parse_palette
+from drmis import THEMES_ROOT, current_theme, do_mode, do_set, do_toggle, family_flags, get_all_themes, parse_palette
 
 def slug_from_name(name):
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
@@ -63,6 +63,16 @@ def do_get(args):
         subprocess.run(["uv", "run", str(auto_theme), query, "--compare"])
         return
 
+    if "--rose-pine" in args:
+        idx  = args.index("--rose-pine")
+        name = (args[idx + 1] if idx + 1 < len(args)
+                and not args[idx + 1].startswith("-") else None)
+        if not name:
+            print("drmis get --rose-pine: variant name required (main/moon/dawn)", file=sys.stderr)
+            sys.exit(1)
+        scaffold_theme(name, "Dark", extra_args=["--rose-pine"])
+        return
+
     fam_flags = family_flags()
     for a in args:
         family = fam_flags.get(a.lower()) if a.startswith("--") else None
@@ -74,17 +84,16 @@ def do_get(args):
                 print(f"drmis get {a}: name required", file=sys.stderr); sys.exit(1)
             # The folder flag only chooses the destination family; the keyword
             # search (API) happens for every family inside auto-theme.py.
-            extra = ["--rose-pine"] if family == "Rose-Pine" else None
-            scaffold_theme(name, family, extra_args=extra)
+            scaffold_theme(name, family)
             return
 
     if "--new" in args:
         idx    = args.index("--new")
         name   = args[idx + 1] if idx + 1 < len(args) else None
-        family = "Custom"
+        family = "Dark"
         if "--family" in args:
             fi = args.index("--family")
-            family = args[fi + 1] if fi + 1 < len(args) else "Custom"
+            family = args[fi + 1] if fi + 1 < len(args) else "Dark"
         if not name:
             print("drmis get --new: name required", file=sys.stderr); sys.exit(1)
         scaffold_theme(name, family)
@@ -147,8 +156,8 @@ SWATCH_KEYS = ("HALL", "STAGE", "WING", "FORTE", "PIANO", "SOTTO", "SEVENTH", "F
 
 
 PICK_SECTIONS = [
-    ("Custom",    "🎨 Themes"),
-    ("Rose-Pine", "🌹 Rosé Pine"),
+    ("Dark",  "🌙 Dark"),
+    ("Light", "☀️ Light"),
 ]
 
 
@@ -181,6 +190,8 @@ def build_pick_rows(themes):
         if fam not in seen:
             add_family(fam, fam)
 
+    rows.append({"kind": "header", "label": "◐ Mode"})
+    rows.append({"kind": "action", "label": "Toggle light / dark", "action": "mode"})
     rows.append({"kind": "header", "label": "🎲 Shuffle"})
     rows.append({"kind": "action", "label": "Random (any)", "action": "random"})
     return rows
@@ -266,6 +277,9 @@ def run_pick(theme_map):
             idx = move_cursor(rows, idx, +1)
         elif key in (K.ENTER, "\r", "\n"):
             row = rows[idx]
+            if row["kind"] == "action" and row.get("action") == "mode":
+                do_mode("toggle", theme_map)
+                break
             if row["kind"] == "action" and row.get("action") == "random":
                 slug = random.choice([r["slug"] for r in rows if r["kind"] == "theme"])
             else:
@@ -385,7 +399,7 @@ def run_tui(theme_map):
             if not arg:
                 console.print("[yellow]usage:[/yellow] new <name>")
             else:
-                scaffold_theme(arg, "Custom")
+                scaffold_theme(arg, "Dark")
                 themes = get_all_themes()
         elif cmd == "help":
             console.print("[bold]commands:[/bold] list · set · get · edit · new · regen · toggle · help · q")

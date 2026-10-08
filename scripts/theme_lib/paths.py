@@ -5,7 +5,10 @@ from pathlib import Path
 NIXOS_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = NIXOS_ROOT / "scripts"
 THEMES_ROOT = NIXOS_ROOT / "themes"
-CUSTOM_DIR  = THEMES_ROOT / "Custom"
+DARK_DIR  = THEMES_ROOT / "Dark"
+# Themes derived from the official Rose Pine palette: derive_full_palette must
+# not harmonize their accents, whichever folder they live in.
+ROSE_PINE_SLUGS = frozenset({"midnight-rose", "indigo-rose", "cream-terracotta"})
 API_CACHE_FILE = NIXOS_ROOT / "scripts" / "api-palette-cache.json"
 MAKE_WALLPAPER = NIXOS_ROOT / "scripts" / "make-splotch-bg.py"
 COLOR_MAGIC_API      = "https://colormagic.app/api/palette/search"

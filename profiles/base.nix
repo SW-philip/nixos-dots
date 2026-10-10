@@ -589,7 +589,7 @@ in
           on-timeout = "pidof hyprlock || ${config.myConfig.lockScreenScript}";
         }
         {
-          timeout = 900;
+          timeout = 600;
           on-timeout = "niri msg action power-off-monitors 2>/dev/null; hyprctl dispatch dpms off 2>/dev/null; true";
           on-resume = "niri msg action power-on-monitors 2>/dev/null; hyprctl dispatch dpms on 2>/dev/null; true";
         }

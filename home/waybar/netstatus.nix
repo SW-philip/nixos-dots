@@ -63,7 +63,8 @@ in {
       Unit.Description = "Periodic WiFi rescan to keep the menu list fresh";
       Timer = {
         OnBootSec = "1min";
-        OnUnitActiveSec = "3min";
+        OnUnitActiveSec = if isDesktop then "3min" else "10min";
+        AccuracySec = "1min";
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];
@@ -87,6 +88,7 @@ in {
       Timer = {
         OnStartupSec = "5s";
         OnUnitActiveSec = "30s";
+        AccuracySec = "10s";
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];

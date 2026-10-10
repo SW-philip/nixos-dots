@@ -36,7 +36,7 @@ in {
     programs.waybar.settings.${bar}."custom/kdeconnect" = {
       exec = "${statusScript}/bin/waybar-kdeconnect-status";
       return-type = "json";
-      interval = 5;
+      interval = 15;
       signal = 3;
       tooltip = true;
       on-click = "${guiScript}/bin/waybar-kdeconnect-gui";

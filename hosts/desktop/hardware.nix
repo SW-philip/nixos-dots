@@ -47,13 +47,13 @@
   fileSystems."/" = {
     device = "/dev/mapper/luks-d8543351-206f-4b3e-884f-9d0ea8c2eebd";
     fsType = "btrfs";
-    options = [ "subvol=@" ];
+    options = [ "subvol=@" "compress=zstd:1" "noatime" ];
   };
 
   fileSystems."/home" = {
     device = "/dev/mapper/luks-d8543351-206f-4b3e-884f-9d0ea8c2eebd";
     fsType = "btrfs";
-    options = [ "subvol=@home" ];
+    options = [ "subvol=@home" "compress=zstd:1" "noatime" ];
   };
 
   fileSystems."/nix" = {
@@ -79,7 +79,7 @@
   fileSystems."/mnt/backup" = {
     device = "/dev/mapper/luks-ef5a92e1-47b4-44e1-bfe0-e8d03f437369";
     fsType = "btrfs";
-    options = [ "defaults" "nofail" "x-systemd.device-timeout=10" ];
+    options = [ "compress=zstd" "noatime" "nofail" "x-systemd.device-timeout=10" ];
   };
 
   fileSystems."/srv" = {

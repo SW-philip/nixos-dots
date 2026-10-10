@@ -26,6 +26,7 @@ in
     inputs.nixos-hardware.nixosModules.microsoft-surface-pro-intel
     inputs.sops-nix.nixosModules.sops
     ../../roles/sops-shared.nix
+    ../../roles/wifi-home.nix
     ../../roles/ssh-known-hosts.nix
     ../../modules/greetd.nix
     ../../modules/retro-session.nix
@@ -93,7 +94,7 @@ in
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "ro" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
-      "x-systemd.automount" "x-systemd.mount-timeout=10s"
+      "x-systemd.automount" "x-systemd.mount-timeout=10s" "x-systemd.idle-timeout=300"
     ];
   };
 
@@ -107,7 +108,7 @@ in
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
-      "x-systemd.automount" "x-systemd.mount-timeout=10s"
+      "x-systemd.automount" "x-systemd.mount-timeout=10s" "x-systemd.idle-timeout=300"
     ];
   };
 
@@ -118,7 +119,7 @@ in
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
-      "x-systemd.automount" "x-systemd.mount-timeout=10s"
+      "x-systemd.automount" "x-systemd.mount-timeout=10s" "x-systemd.idle-timeout=300"
     ];
   };
 
@@ -260,5 +261,8 @@ in
     algorithm = "zstd";
     memoryPercent = 100;
   };
+  # Kill sooner on sustained pressure: with only zram behind 8 GB, waiting the
+  # default 30 s lets the machine thrash first.
+  systemd.oomd.settings.OOM.DefaultMemoryPressureDurationSec = "20s";
 
 }

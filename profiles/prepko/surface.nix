@@ -47,6 +47,21 @@ in
   # home/waybar/scripts/kdeconnect-status.sh checks bus ownership before
   # calling kdeconnect-cli, so the waybar poll itself doesn't activate it.
   ########################################
+  # Ghostty tags its own scopes ManagedOOMMemoryPressure=kill and Firefox has no
+  # tag, so oomd's only candidates were terminals (and whatever ran in them,
+  # e.g. the agent). Untag the terminal, make Firefox the one it can kill and
+  # throttle it first. Prefix drop-ins match every PID-suffixed transient scope.
+  xdg.configFile."systemd/user/app-ghostty-surface-.scope.d/oomd.conf".text = ''
+    [Scope]
+    ManagedOOMMemoryPressure=auto
+  '';
+  xdg.configFile."systemd/user/app-niri-firefox-.scope.d/oomd.conf".text = ''
+    [Scope]
+    ManagedOOMMemoryPressure=kill
+    ManagedOOMMemoryPressureLimit=50%
+    MemoryHigh=5G
+  '';
+
   xdg.configFile."autostart/org.kde.kdeconnect.daemon.desktop".text = ''
     [Desktop Entry]
     Hidden=true

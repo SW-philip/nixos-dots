@@ -218,6 +218,8 @@
     http-connections = 25;
     connect-timeout = 10;
     stalled-download-timeout = 90;
+    min-free = 2 * 1024 * 1024 * 1024;
+    max-free = 8 * 1024 * 1024 * 1024;
     trusted-users = [ config.myConfig.user ];
     # GitHub redirects archive downloads to codeload.github.com; Nix blocks cross-host redirects by default
     allowed-uris = [
@@ -234,6 +236,7 @@
     options = "--delete-older-than 14d";
     persistent = true;
   };
+  nix.optimise.automatic = true;
 
   programs.nh = {
     enable = true;

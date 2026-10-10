@@ -130,7 +130,15 @@ in
   # Backstop only: cage waits for its client and systemd signals only cage's
   # MainPID, so the wrapper polls the unit state (see retro-stream above).
   # Without this a stuck stop waits the default 90 s before SIGKILL.
-  systemd.services."cage-tty1".serviceConfig.TimeoutStopSec = 10;
+  systemd.services."cage-tty1" = {
+    serviceConfig = {
+      TimeoutStopSec = 10;
+      Restart = "always";
+      RestartSec = 2;
+    };
+    startLimitIntervalSec = 60;
+    startLimitBurst = 5;
+  };
 
   hardware.graphics = {
     enable = true;

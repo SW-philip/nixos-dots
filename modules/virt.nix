@@ -1,15 +1,21 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 {
   ############################################################
   # Libvirt / KVM
   ############################################################
 
   # libvirt 12.2.0 added LoadCredentialEncrypted in its upstream service file,
-  # which requires /dev/tpmrm0. This machine has no TPM hardware, so we clear it.
+  # which requires /dev/tpmrm0. Cleared back when this machine had no TPM; it
+  # has /dev/tpmrm0 now, so this may be removable (untested).
   systemd.services.libvirtd.serviceConfig.LoadCredentialEncrypted = "";
+
+  # No VMs run day to day: start libvirtd on demand through its sockets
+  # (virt-manager and virsh connecting wake it) instead of at every boot.
+  systemd.services.libvirtd.wantedBy = lib.mkForce [ ];
 
   virtualisation.libvirtd = {
     enable = true;
+    onBoot = "ignore";
     qemu = {
       package = pkgs.qemu_kvm;
       runAsRoot = false;

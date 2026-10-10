@@ -270,6 +270,16 @@ window-rule {
     open-focused true
 }
 
+// Pegasus launched from Sunshine (retro-pegasus) has no rule of its own, so
+// niri used the 0.5-proportion default column and it showed up as a half-width
+// tile on the desktop instead of filling the screen. Substring match because
+// the exact app-id (pegasus-fe vs the .desktop name org.pegasus_frontend.Pegasus)
+// hasn't been confirmed live; pegasus-exit in scripts.nix matches "pegasus" too.
+window-rule {
+    match app-id="(?i)pegasus"
+    open-fullscreen true
+}
+
 // Emulators: niri-fullscreen (compositor-level, no waybar strip or gaps, so
 // no top/bottom bars), still not the emulators' own exclusive fullscreen.
 // xemu/azahar/eden used to launch with their own -full-screen/-f flags

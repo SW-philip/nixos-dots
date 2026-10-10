@@ -75,6 +75,7 @@ in
         # Slow cadence on the 8GB Surface -- a BLE scan+connect every 2min is
         # more than that host wants competing with Firefox/builds for memory.
         OnUnitActiveSec = "300s";
+        AccuracySec = "1min";
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];

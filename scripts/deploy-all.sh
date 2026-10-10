@@ -65,6 +65,7 @@ stream_live() {
   on_desktop '
     ss -H -tn state established "( sport = :48010 )" | grep -q . && exit 0
     ss -H -uan | grep -qE ":(47998|47999|48000) " && exit 0
+    systemctl --user is-active --quiet sunshine || exit 1
     id=$(systemctl --user show -p InvocationID --value sunshine)
     last=$(journalctl --user "_SYSTEMD_INVOCATION_ID=$id" --no-pager -o cat 2>/dev/null \
       | grep -E "CLIENT (CONNECTED|DISCONNECTED)" | tail -n1)

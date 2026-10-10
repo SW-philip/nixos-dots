@@ -25,8 +25,14 @@ in
   };
 
   systemd.user.timers.theme-sync = {
-    Unit.Description = "theme-sync timer";
-    Timer = { OnStartupSec = "3min"; OnUnitActiveSec = "2min"; };
-    Install.WantedBy = [ "timers.target" ];
+    # Only ticks while niri-bridge runs: the two hosts' themes only need to
+    # match when one keyboard is driving both. BindsTo stops the timer with it.
+    Unit = {
+      Description = "theme-sync timer";
+      BindsTo = [ "niri-bridge.service" ];
+      After = [ "niri-bridge.service" ];
+    };
+    Timer = { OnActiveSec = "10s"; OnUnitActiveSec = "2min"; AccuracySec = "1min"; };
+    Install.WantedBy = [ "niri-bridge.service" ];
   };
 }

@@ -25,7 +25,7 @@ in
 
   systemd.user.timers.sync-status = {
     Unit.Description = "sync-status timer";
-    Timer = { OnStartupSec = "90s"; OnUnitActiveSec = "2min"; };
+    Timer = { OnStartupSec = "90s"; OnUnitActiveSec = "2min"; AccuracySec = "1min"; };
     Install.WantedBy = [ "timers.target" ];
   };
 }

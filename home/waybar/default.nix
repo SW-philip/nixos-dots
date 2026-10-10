@@ -153,11 +153,11 @@ in
         height = desktopBarThickness;
         modules-left   = [ "custom/niri-workspace" "custom/weather" ];
         modules-center = [ "custom/clock" ];
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/notification" "custom/kdeconnect" "custom/volume" ];
+        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/sync" "custom/notification" "custom/kdeconnect" "custom/volume" ];
       }
       // lib.genAttrs [ "custom/niri-workspace" "custom/weather" "custom/clock" "custom/notification" ]
            (m: config.programs.waybar.settings.rightBar.${m} or {})
-      // lib.genAttrs [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/kdeconnect" "custom/volume" ]
+      // lib.genAttrs [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/sync" "custom/kdeconnect" "custom/volume" ]
            (m: config.programs.waybar.settings.leftBar.${m} or {}))
     ];
   };

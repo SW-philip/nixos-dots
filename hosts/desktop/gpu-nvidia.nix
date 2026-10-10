@@ -15,6 +15,9 @@
   hardware.nvidia = {
     modesetting.enable = true;
     powerManagement.enable = true;
+    # Keeps the driver initialised between clients so NVENC sessions (Sunshine,
+    # Jellyfin) start without a cold-load delay.
+    nvidiaPersistenced = true;
     open = false;
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
@@ -39,7 +42,6 @@
   };
 
   programs.steam.enable = true;
-  programs.steam.remotePlay.openFirewall = true;
   programs.steam.extraCompatPackages = [ pkgs.proton-ge-bin ];
 
   # Standalone Wine for running Windows installers (e.g. FitGirl setup.exe)

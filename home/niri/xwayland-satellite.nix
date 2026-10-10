@@ -48,6 +48,7 @@ in
     Unit.Description = "Periodic idle check for xwayland-satellite";
     Timer = {
       OnUnitActiveSec = "2min";
+      AccuracySec = "1min";
       OnActiveSec = "2min";
     };
     Install.WantedBy = [ "timers.target" ];

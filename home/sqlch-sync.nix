@@ -41,6 +41,7 @@ in
     Timer = {
       OnStartupSec = "2min";
       OnUnitActiveSec = "30min";
+      AccuracySec = "1min";
       Persistent = true;
     };
     Install.WantedBy = [ "timers.target" ];

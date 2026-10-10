@@ -19,7 +19,8 @@ NET_TIMEOUT=${TREE_SYNC_TIMEOUT:-20}
 LOCK=${TREE_SYNC_LOCK:-${XDG_RUNTIME_DIR:-/tmp}/tree-sync.lock}
 BRANCH=wip
 CS=$ROOT/.claude-shared
-SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=5"
+# one master per run: hub_up, fetch and push each used to pay a full handshake (costly on the pi)
+SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=5 -o ControlMaster=auto -o ControlPersist=60 -o ControlPath=${XDG_RUNTIME_DIR:-/tmp}/tree-sync-ssh-%C"
 export GIT_SSH_COMMAND=${GIT_SSH_COMMAND:-"ssh $SSH_OPTS"}
 export GIT_OPTIONAL_LOCKS=0
 
@@ -46,6 +47,7 @@ save_tree() {
     # nothing unsaved: drop our stale autosave if the hub still has one
     if [[ -n "$(net "$ROOT" ls-remote "$REMOTE" "refs/autosave/$HOST")" ]]; then
       net "$ROOT" push -q "$REMOTE" ":refs/autosave/$HOST"
+      git -C "$ROOT" update-ref -d "refs/pi-autosave/$HOST"
     fi
   else
     # temporary index: the real index, worktree and branch stay exactly as they are
@@ -64,10 +66,17 @@ save_tree() {
     done < <(git -C "$ROOT" ls-files -z --others --exclude-standard)
     tree=$(GIT_INDEX_FILE=$idx git -C "$ROOT" write-tree)
     rm -f "$idx"
+    # identical tree to the last autosave: a new commit would only add pi SD churn
+    if [ "$(git -C "$ROOT" rev-parse -q --verify "refs/pi-autosave/$HOST^{tree}" 2>/dev/null)" = "$tree" ]; then
+      push_branch
+      return 0
+    fi
     br=$(git -C "$ROOT" branch --show-current)
     sha=$(git -C "$ROOT" -c user.name="tree-sync ($HOST)" -c user.email="tree-sync@$HOST" \
       commit-tree "$tree" -p HEAD -m "autosave $HOST on ${br:-detached} $(date -u +%FT%TZ)")
     net "$ROOT" push -q "$REMOTE" "+$sha:refs/autosave/$HOST"
+    # the dedupe above compares against this; `save` alone never fetches it
+    git -C "$ROOT" update-ref "refs/pi-autosave/$HOST" "$sha"
     say "autosaved unsaved work to $REMOTE (refs/autosave/$HOST)"
   fi
   push_branch

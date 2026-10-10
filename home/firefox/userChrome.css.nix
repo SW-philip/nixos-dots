@@ -156,6 +156,51 @@ p: ''
   color: ${p.SCORE} !important;
 }
 
+/* ── Menu bar (File/Edit/…) and its dropdowns ────────────── */
+#toolbar-menubar {
+  background-color: ${p.HALL} !important;
+  color: ${p.SCORE} !important;
+  -moz-appearance: none !important;
+}
+
+#main-menubar > menu {
+  color: ${p.SCORE} !important;
+}
+
+#main-menubar > menu:hover,
+#main-menubar > menu[_moz-menuactive="true"],
+#main-menubar > menu[open] {
+  background-color: ${p.MUTE} !important;
+  color: ${p.SCORE} !important;
+}
+
+menupopup,
+panel[type="arrow"] {
+  --panel-background: ${p.STAGE} !important;
+  --panel-color: ${p.SCORE} !important;
+  --panel-border-color: ${p.WING} !important;
+}
+
+menupopup menuitem,
+menupopup menu {
+  color: ${p.SCORE} !important;
+}
+
+menupopup menuitem[_moz-menuactive="true"],
+menupopup menu[_moz-menuactive="true"] {
+  background-color: ${p.MUTE} !important;
+  color: ${p.SCORE} !important;
+}
+
+menupopup menuitem[disabled="true"],
+menupopup menu[disabled="true"] {
+  color: ${p.BAR} !important;
+}
+
+menuseparator {
+  border-color: ${p.WING} !important;
+}
+
 /* ── Bookmarks / personal toolbar ────────────────────────── */
 #PersonalToolbar {
   background-color: ${p.HALL} !important;

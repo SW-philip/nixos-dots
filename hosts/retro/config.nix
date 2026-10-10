@@ -6,6 +6,8 @@
     ./idle-blank.nix
     ../../identities/prepko.nix
     ../../roles/secure-boot.nix
+    ../../roles/wifi-home.nix
+    inputs.sops-nix.nixosModules.sops
     ../../roles/ssh-known-hosts.nix
   ];
 
@@ -26,6 +28,9 @@
   boot.initrd.luks.devices."luks-a852db3d-1e7f-44c1-951e-7ff87edcffe6".crypttabExtraOpts = [ "tpm2-device=auto" ];
   security.tpm2.enable = true;
 
+  # Holding a key at power-on still opens the menu.
+  boot.loader.timeout = 0;
+
   ############################################################
   # Users
   ############################################################
@@ -42,6 +47,16 @@
     extraGroups = [ "audio" "video" "input" ];
   };
 
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
+  };
+  nix.optimise.automatic = true;
+  services.fstrim.enable = true;
+  documentation.enable = false;
+  environment.defaultPackages = [ ];
+
   nix.settings = {
     allowed-users = [ "prepko" ];
     # nixos-rebuild --build-host copies unsigned closures from desktop.
@@ -53,6 +68,10 @@
   ############################################################
   networking.networkmanager.enable = true;
   networking.networkmanager.wifi.powersave = false;
+
+  sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  # ath10k stalls on 2.4 GHz while Bluetooth is active.
+  homeWifi.band = "a";
 
   services.tailscale.enable = true;
   networking.firewall = {
@@ -100,6 +119,9 @@
     esac
   '';
   services.thermald.enable = true;
+  zramSwap.enable = true;
+  # roles/secure-boot.nix keeps 10 signed UKIs on the ESP; this box needs 3.
+  boot.loader.systemd-boot.configurationLimit = lib.mkForce 3;
 
   # Every fleet-status probe used to log in over ssh and journal a user-manager start/stop; keep
   # the journal small and in RAM so idle chatter doesn't hit the SSD.

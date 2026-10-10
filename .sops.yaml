@@ -1,6 +1,8 @@
 keys:
   - &desktop age1REPLACE-WITH-YOUR-AGE-PUBKEY
   - &surface age1REPLACE-WITH-YOUR-AGE-PUBKEY
+  - &retro age1REPLACE-WITH-YOUR-AGE-PUBKEY
+  - &pi age1REPLACE-WITH-YOUR-AGE-PUBKEY
 creation_rules:
   - path_regex: secrets/passwords\.yaml$
     key_groups:
@@ -17,3 +19,8 @@ creation_rules:
   - path_regex: secrets/shared\.yaml$
     key_groups:
       - age: [*desktop, *surface]
+
+  # Home Wi-Fi PSK: only the hosts that join it can decrypt.
+  - path_regex: secrets/wifi\.yaml$
+    key_groups:
+      - age: [*desktop, *surface, *retro, *pi]

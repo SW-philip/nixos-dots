@@ -33,6 +33,7 @@ in
     ../../modules/sunshine.nix
     ../../modules/retro-tiles.nix
     ../../modules/niri-bridge.nix
+    ../../modules/btrbk.nix
     ./myln.nix
     ./impermanence.nix
   ];
@@ -124,8 +125,22 @@ in
   zramSwap = {
     enable = true;
     algorithm = "zstd";
-    memoryPercent = 100;
+    memoryPercent = 50;
   };
+  boot.kernel.sysctl = {
+    "vm.swappiness" = 100;
+    "vm.page-cluster" = 0;
+
+    # ptrace_scope, dmesg/kptr restrict and unprivileged-bpf are already tight;
+    # rp_filter is left loose on purpose (tailscale and wireguard route
+    # asymmetrically).
+    "kernel.kexec_load_disabled" = 1;
+    "fs.protected_fifos" = 2;
+    "fs.protected_regular" = 2;
+  };
+
+  # No modem here; NetworkManager pulls ModemManager in by default.
+  networking.modemmanager.enable = false;
 
   ############################################################
   # Retro — ROM storage + Pegasus collection metadata (one directory

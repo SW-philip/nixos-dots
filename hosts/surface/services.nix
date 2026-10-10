@@ -36,6 +36,8 @@ in
   services.smartd = {
     enable = true;
     autodetect = false;
+    # default 30 min check interval keeps waking the NVMe
+    extraOptions = [ "-i" "7200" ];
     notifications.wall.enable = true;
     devices = [{
       device = "/dev/nvme0";

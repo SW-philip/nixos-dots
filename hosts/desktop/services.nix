@@ -122,7 +122,7 @@ in
   #   tailscale0 (trusted interface, all ports open)
   #   enp4s0 (LAN, explicit allow below)
   ############################################################
-  networking.firewall.allowedTCPPorts = [ 8080 ] ++ lib.optional config.iptv.enable 8765;
+  networking.firewall.allowedTCPPorts = lib.optional config.iptv.enable 8765;
   networking.firewall.interfaces."enp4s0".allowedTCPPorts = [ 8096 ];
 
   ############################################################

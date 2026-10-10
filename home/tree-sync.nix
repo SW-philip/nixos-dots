@@ -23,7 +23,7 @@ in
 
   systemd.user.timers.tree-sync = {
     Unit.Description = "tree-sync timer";
-    Timer = { OnStartupSec = "2min"; OnUnitActiveSec = "5min"; };
+    Timer = { OnStartupSec = "2min"; OnUnitActiveSec = "5min"; AccuracySec = "1min"; };
     Install.WantedBy = [ "timers.target" ];
   };
 

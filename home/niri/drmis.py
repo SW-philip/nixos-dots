@@ -257,7 +257,8 @@ def do_set(slug, theme_map):
     subprocess.run(["pkill", "-f", "waybar-weather"],              stderr=subprocess.DEVNULL)
     subprocess.run(["pkill", "-SIGUSR2", "ghostty"],               stderr=subprocess.DEVNULL)
     subprocess.run(["tmux", "source-file", str(Path.home() / ".config/tmux/theme.conf")], stderr=subprocess.DEVNULL)
-    subprocess.run(["pkill", "-SIGUSR2", "waybar"],                stderr=subprocess.DEVNULL)
+    # SIGUSR2 reload leaks ~5 zombie children of waybar per call; a restart reaps them all
+    subprocess.run(["systemctl", "--user", "restart", "waybar"],   stderr=subprocess.DEVNULL)
     try:
         subprocess.run(["niri", "msg", "action", "load-config-file"], stderr=subprocess.DEVNULL)
     except FileNotFoundError:

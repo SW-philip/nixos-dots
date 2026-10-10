@@ -10,7 +10,8 @@
   boot.kernelParams = lib.mkAfter [ "usbcore.autosuspend=1" ];
 
   boot.kernel.sysctl = {
-    "vm.swappiness" = 10;
+    "vm.swappiness" = 100;
+    "vm.page-cluster" = 0;
     "kernel.nmi_watchdog" = 0;
     "vm.dirty_writeback_centisecs" = 1500;
     "vm.dirty_background_ratio" = 5;
@@ -41,7 +42,6 @@
 
   services.power-profiles-daemon.enable = true;
   services.thermald.enable = true;
-  services.irqbalance.enable = true;
 
   # thermald needs root + raw /dev/cpu/*/msr + /sys powercap access to
   # actually throttle — can't drop privileges or lock down kernel/device
@@ -80,7 +80,7 @@
     serviceConfig = {
       Type = "oneshot";
       ExecStart = pkgs.writeShellScript "auto-power-profile" ''
-        if [ "$(cat /sys/class/power_supply/ADP1/online)" = "1" ]; then
+        if cat /sys/class/power_supply/A*/online | grep -qx 1; then
           ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set balanced
         else
           ${pkgs.power-profiles-daemon}/bin/powerprofilesctl set power-saver
@@ -141,13 +141,19 @@
         # history.log: post overwrites on every cycle, so a flapping burst
         # (suspend/resume repeating within seconds) clobbers its own evidence
         # before anyone can look at it. Append one line per cycle instead.
-        pre_time="$(${pkgs.coreutils}/bin/sed -n 2p /home/prepko/.cache/sleep-drain/pre 2>/dev/null || echo "$now")"
-        pre_suspects="$(${pkgs.coreutils}/bin/sed -n 4p /home/prepko/.cache/sleep-drain/pre 2>/dev/null)"
+        pre_time="$(${pkgs.gnused}/bin/sed -n 2p /home/prepko/.cache/sleep-drain/pre 2>/dev/null || echo "$now")"
+        pre_suspects="$(${pkgs.gnused}/bin/sed -n 4p /home/prepko/.cache/sleep-drain/pre 2>/dev/null)"
         duration=$(( now - pre_time ))
+        # Share of the sleep the SoC spent in S0ix (slp_s0_residency_usec delta).
+        pre_s0ix="$(${pkgs.gnused}/bin/sed -n 3p /home/prepko/.cache/sleep-drain/pre 2>/dev/null)"
+        s0ix_pct=n/a
+        if [ "$s0ix" -ge 0 ] && [ "''${pre_s0ix:--1}" -ge 0 ] && [ "$duration" -gt 0 ]; then
+          s0ix_pct="$(${pkgs.gawk}/bin/awk -v d=$(( s0ix - pre_s0ix )) -v t="$duration" 'BEGIN{printf "%d%%", d/(t*10000)}')"
+        fi
         {
-          printf '%s\tduration=%ss\twake_count=%s\ttop_source=%s\tsuspects=%s\n' \
+          printf '%s\tduration=%ss\ts0ix=%s\twake_count=%s\ttop_source=%s\tsuspects=%s\n' \
             "$(${pkgs.coreutils}/bin/date -d "@$now" -Iseconds)" \
-            "$duration" "$wake_count" "''${top_source:-none}" "''${pre_suspects:-none}"
+            "$duration" "$s0ix_pct" "$wake_count" "''${top_source:-none}" "''${pre_suspects:-none}"
         } >> /home/prepko/.cache/sleep-drain/history.log
         # Cap growth — keep the most recent 2000 cycles.
         ${pkgs.coreutils}/bin/tail -n 2000 /home/prepko/.cache/sleep-drain/history.log \

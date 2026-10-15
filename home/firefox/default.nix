@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 let
   # Surface Pro 7+ has 8 GB RAM and systemd-oomd (stock NixOS) will SIGKILL a
   # whole scope under app.slice — including the ghostty scope running a shell /
@@ -12,6 +12,11 @@ in
   programs.firefox = {
     enable = true;
     configPath = ".mozilla/firefox";
+    # Autoconfig script needs privileged APIs, which the default sandbox withholds.
+    package = lib.mkIf (!config.myConfig.isDesktop) (pkgs.firefox.override {
+      extraAutoConfig = ''pref("general.config.sandbox_enabled", false);'';
+      extraPrefsFiles = [ (pkgs.writeText "tablet-ua.js" (builtins.readFile ./tablet-ua.js)) ];
+    });
     profiles.default = {
       path = "default";
       isDefault = true;

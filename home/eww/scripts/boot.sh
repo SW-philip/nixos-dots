@@ -46,17 +46,16 @@ fi
 sleep_drain_pct="null"
 sleep_hours="null"
 sd_dir="${XDG_CACHE_HOME:-$HOME/.cache}/sleep-drain"
-if [[ -r "$sd_dir/pre" && -r "$sd_dir/post" ]]; then
-  pe=$(sed -n 1p "$sd_dir/pre"); pt=$(sed -n 2p "$sd_dir/pre")
-  qe=$(sed -n 1p "$sd_dir/post"); qt=$(sed -n 2p "$sd_dir/post")
+# Latest sleep that ran on battery start to finish and lasted >=5 min; AC
+# at either end (or energy rising) means the delta isn't a drain.
+if [[ -r "$sd_dir/drain.log" ]]; then
   ef=$(cat /sys/class/power_supply/BAT*/energy_full 2>/dev/null | head -1 || echo 0)
-  if [[ "$pe" =~ ^[0-9]+$ && "$pt" =~ ^[0-9]+$ && "$qe" =~ ^[0-9]+$ \
-     && "$qt" =~ ^[0-9]+$ && "$ef" =~ ^[0-9]+$ ]] \
-     && (( ef > 0 && qt > pt && qt - pt >= 300 )); then
-    # clamp: battery can gain charge across a suspend, which would print negative
-    sleep_drain_pct=$(awk -v d="$((pe - qe))" -v f="$ef" 'BEGIN { x = d * 100 / f; printf "%.1f", (x < 0 ? 0 : x) }')
-    sleep_hours=$(awk -v s="$((qt - pt))" 'BEGIN { printf "%.1f", s / 3600 }')
-  fi
+  [[ "$ef" =~ ^[0-9]+$ ]] || ef=0
+  read -r sleep_drain_pct sleep_hours < <(awk -F'\t' -v f="$ef" '
+    f > 0 && $2 >= 300 && $5 == 0 && $6 == 0 && $3 >= $4 {
+      pct = ($3 - $4) * 100 / f; hrs = $2 / 3600 }
+    END { if (hrs != "") printf "%.1f %.1f\n", pct, hrs; else print "null null" }
+  ' "$sd_dir/drain.log")
 fi
 
 cur=$(readlink -f /run/current-system 2>/dev/null || echo cur)

@@ -100,6 +100,7 @@
       energy="$(${pkgs.coreutils}/bin/cat /sys/class/power_supply/BAT1/energy_now 2>/dev/null || echo 0)"
       now="$(${pkgs.coreutils}/bin/date +%s)"
       s0ix="$(${pkgs.coreutils}/bin/cat /sys/kernel/debug/pmc_core/slp_s0_residency_usec 2>/dev/null || echo -1)"
+      ac="$(${pkgs.coreutils}/bin/cat /sys/class/power_supply/ADP1/online 2>/dev/null || echo 1)"
 
       if [ "$1" = pre ]; then
         # Active, non-hub USB devices = things that may hold the SoC out of S0ix.
@@ -112,7 +113,7 @@
           [ -n "$prod" ] || continue
           suspects="''${suspects:+$suspects; }$prod"
         done
-        printf '%s\n%s\n%s\n%s\n' "$energy" "$now" "$s0ix" "$suspects" \
+        printf '%s\n%s\n%s\n%s\n%s\n' "$energy" "$now" "$s0ix" "$suspects" "$ac" \
           > /home/prepko/.cache/sleep-drain/pre
         # Phase 3: snapshot wake counters for the post hook to diff.
         # Line 1 = kernel wakeup_count; lines 2+ = "<source>\t<active_count>".
@@ -155,6 +156,15 @@
             "$(${pkgs.coreutils}/bin/date -d "@$now" -Iseconds)" \
             "$duration" "$s0ix_pct" "$wake_count" "''${top_source:-none}" "''${pre_suspects:-none}"
         } >> /home/prepko/.cache/sleep-drain/history.log
+        # drain.log feeds the eww wing. A sleep only counts as a drain sample if
+        # AC was absent at both ends; charging masks (or inverts) the delta.
+        pre_energy="$(${pkgs.gnused}/bin/sed -n 1p /home/prepko/.cache/sleep-drain/pre 2>/dev/null || echo 0)"
+        pre_ac="$(${pkgs.gnused}/bin/sed -n 5p /home/prepko/.cache/sleep-drain/pre 2>/dev/null || echo 1)"
+        printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$now" "$duration" "$pre_energy" "$energy" "$pre_ac" "$ac" \
+          >> /home/prepko/.cache/sleep-drain/drain.log
+        ${pkgs.coreutils}/bin/tail -n 500 /home/prepko/.cache/sleep-drain/drain.log \
+          > /home/prepko/.cache/sleep-drain/drain.log.tmp \
+          && ${pkgs.coreutils}/bin/mv /home/prepko/.cache/sleep-drain/drain.log.tmp /home/prepko/.cache/sleep-drain/drain.log
         # Cap growth — keep the most recent 2000 cycles.
         ${pkgs.coreutils}/bin/tail -n 2000 /home/prepko/.cache/sleep-drain/history.log \
           > /home/prepko/.cache/sleep-drain/history.log.tmp \

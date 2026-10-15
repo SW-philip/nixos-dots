@@ -62,13 +62,27 @@
 
   # Session restore
   ############################################################
-  services.niri-session-manager.enable = true;
-  # Upstream module (github:MTeaHead/niri-session-manager) ships no
-  # ConditionEnvironment guard, so it starts under graphical-session.target
-  # even with no niri IPC socket to talk to (e.g. an SSH-only login) and
-  # spins in an infinite Restart=always loop. Same guard as kanshi.service
-  # (home/niri/default.nix).
-  systemd.user.services.niri-session-manager.unitConfig.ConditionEnvironment =
+  services.nirinit = {
+    enable = true;
+    settings = {
+      # Apps that restore their own windows/tabs on relaunch.
+      skip.apps = [ "firefox" "thunderbird" "spotify" ];
+      # app-id -> launch command, for apps whose app-id isn't their binary.
+      launch = {
+        "com.mitchellh.ghostty"          = "ghostty";
+        "dev.zed.Zed"                    = "zeditor";
+        "com.github.xournalpp.xournalpp" = "xournalpp";
+        "element"                        = "element-desktop";
+        "org.kde.kdenlive"               = "kdenlive";
+        "org.kde.easyeffects"            = "easyeffects";
+        "libreoffice-writer"             = "libreoffice --writer";
+      };
+    };
+  };
+  # Upstream module ships no ConditionEnvironment guard, so it starts under
+  # graphical-session.target with no niri IPC socket (e.g. an SSH-only login)
+  # and loops on Restart=always. Same guard as kanshi.service.
+  systemd.user.services.nirinit.unitConfig.ConditionEnvironment =
     [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
 
 }

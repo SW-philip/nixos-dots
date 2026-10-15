@@ -25,6 +25,8 @@ let
     MODE=$(cat "$HOME/.local/state/waybar-mode" 2>/dev/null)
     if [ "$MODE" = "single-dp2" ]; then
       exec ${pkgs.waybar}/bin/waybar -c "$CFG/config-single-dp2"
+    elif [ "$MODE" = "portrait" ] && [ -e "$CFG/config-surface-portrait" ]; then
+      exec ${pkgs.waybar}/bin/waybar -c "$CFG/config-surface-portrait"
     else
       exec ${pkgs.waybar}/bin/waybar -c "${config.xdg.configFile."waybar/config-main".source}"
     fi
@@ -162,6 +164,39 @@ in
     ];
   };
 
+  # Portrait is 912px wide: split surface-top's modules over two stacked bars.
+  xdg.configFile."waybar/config-surface-portrait" = lib.mkIf (!isDesktop) {
+    text =
+      let
+        s = config.programs.waybar.settings.surfaceTopBar;
+        pick = mods: lib.genAttrs mods (m: s.${m} or {});
+        base = { layer = "top"; position = "top"; output = "eDP-1"; height = surfaceBarThickness; };
+        pills = {
+          "group/pill-conn"  = { orientation = "horizontal"; modules = [ "custom/network" "custom/bluetooth" ]; };
+          "group/pill-sys"   = { orientation = "horizontal"; modules = [ "custom/fleet" "custom/sync" "custom/kdeconnect" ]; };
+          "group/pill-audio" = { orientation = "horizontal"; modules = [ "custom/notification" "custom/volume" ]; };
+        };
+        topLeft = [ "custom/battery" "custom/niri-workspace" ];
+        topRight = [ "group/pill-conn" "group/pill-sys" ];
+        botLeft = [ "custom/weather" "group/pill-audio" ];
+        topPillMods = [ "custom/network" "custom/bluetooth" "custom/fleet" "custom/sync" "custom/kdeconnect" ];
+        botPillMods = [ "custom/notification" "custom/volume" ];
+      in builtins.toJSON [
+        (base // {
+          name = "surface-portrait-top";
+          modules-left = topLeft;
+          modules-center = [ "custom/clock" ];
+          modules-right = topRight;
+        } // { inherit (pills) "group/pill-conn" "group/pill-sys"; } // pick (topLeft ++ [ "custom/clock" ] ++ topPillMods))
+        (base // {
+          name = "surface-portrait-bottom";
+          modules-left = botLeft;
+          modules-center = [ ];
+          modules-right = [ "custom/sqlch" ];
+        } // { inherit (pills) "group/pill-audio"; } // pick ([ "custom/weather" "custom/sqlch" ] ++ botPillMods))
+      ];
+  };
+
   # ── Systemd Service Overrides ─────────────────────────────────────
   systemd.user.services.waybar = {
     Unit = {
@@ -197,6 +232,23 @@ in
     };
   };
 
+  systemd.user.services.waybar-orient = lib.mkIf (!isDesktop) {
+    Unit = {
+      Description = "Switch waybar layout on screen rotation";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
+    };
+    Service = {
+      Type = "simple";
+      Environment = [ "PATH=${lib.makeBinPath [ pkgs.bash pkgs.coreutils pkgs.jq pkgs.systemd pkgs.eww (import ../niri/scripts.nix { inherit pkgs lib; }).tabletShell ]}:/run/current-system/sw/bin" ];
+      ExecStart = "${pkgs.bash}/bin/bash ${./scripts/waybar-orient.sh}";
+      Restart = "on-failure";
+      RestartSec = "3s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   # ── File Resources ────────────────────────────────────────────────
   # Shared read-only snark pool: `<module>.<state>[]` arrays, picked with `shuf`
   # by battery.sh/netstatus.sh/protonvpn-status.sh. Separate from
@@ -211,6 +263,16 @@ in
     [Unit]
     ConditionEnvironment=XDG_CURRENT_DESKTOP=niri
   '';
+
+  # Waybar stays down while the cover is detached (the eww tablet strip is the
+  # bar then), unless the strip failed to come up. ExecCondition exit 1 is a
+  # silent skip, so waybar-orient's `restart` on rotation cannot resurrect it.
+  xdg.configFile."systemd/user/waybar.service.d/cover-guard.conf" = lib.mkIf (!isDesktop) {
+    text = ''
+      [Service]
+      ExecCondition=/bin/sh -c '! { grep -qx detached %t/surface-cover 2>/dev/null && [ ! -e %t/tablet-strip-failed ]; }'
+    '';
+  };
 
   # ── Module Enablement ─────────────────────────────────────────────
   waybar = {

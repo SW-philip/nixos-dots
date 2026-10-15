@@ -20,6 +20,8 @@
     Service = {
       Type = "simple";
       ExecStart = "${pkgs.niri-bridge}/bin/niri-bridge run --config ${config.home.homeDirectory}/.config/niri-bridge/config.toml";
+      # Upstream shells out to openssl for fingerprint inspection; a user unit has no PATH to find it.
+      Environment = [ "PATH=${pkgs.openssl}/bin" ];
       Restart = "on-failure";
       RestartSec = 3;
       TimeoutStopSec = 4;

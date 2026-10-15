@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import sys
 import threading
 from pathlib import Path
@@ -12,6 +13,7 @@ from uniremote import __version__
 from uniremote.api import RokuAPI, SmartThingsAPI
 from uniremote.config import Config
 from uniremote.header import Header
+from uniremote.recenter import center_own_window
 from uniremote.status import NOT_SET_UP, DeviceStatus, roku_status, samsung_status
 from uniremote.tablet import cover_detached, cover_path
 from uniremote.views.samsung import SamsungView
@@ -137,6 +139,7 @@ class MainWindow(Adw.ApplicationWindow):
                      lambda *_: self.is_active() and self._poll())
         self._tick_id = GLib.timeout_add_seconds(POLL_SECONDS, self._tick)
         self.connect("close-request", self._on_close_request)
+        self.connect("map", lambda *_: self._recenter_soon())
         self._watch_tablet()
         self._poll()
 
@@ -185,15 +188,22 @@ class MainWindow(Adw.ApplicationWindow):
         path = cover_path()
 
         def apply(*_):
+            was = self.has_css_class("tablet")
             if cover_detached(path):
                 self.add_css_class("tablet")
             else:
                 self.remove_css_class("tablet")
+            if was != self.has_css_class("tablet"):
+                self._recenter_soon()
 
         self._cover_watch = Gio.File.new_for_path(str(path)).monitor_file(
             Gio.FileMonitorFlags.NONE, None)
         self._cover_watch.connect("changed", apply)
         apply()
+
+    def _recenter_soon(self):
+        # Let GTK finish resizing for the new CSS before niri re-centres.
+        GLib.timeout_add(250, lambda: run_async(center_own_window, os.getpid()) or False)
 
     def toast(self, message: str):
         self._toast_overlay.add_toast(Adw.Toast(title=message, timeout=3))

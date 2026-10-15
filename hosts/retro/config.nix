@@ -1,6 +1,7 @@
 { inputs, pkgs, lib, ... }:
 {
   imports = [
+    ../../modules/nixfetch.nix
     ./hardware.nix
     ./kiosk.nix
     ./idle-blank.nix
@@ -20,7 +21,8 @@
   ############################################################
   # Boot (lanzaboote via roles/secure-boot.nix) + LUKS (TPM2 auto-unlock; enrolled by hand, see plan Task 4)
   ############################################################
-  environment.systemPackages = [ pkgs.sbctl ];
+  environment.systemPackages = [ pkgs.sbctl pkgs.fastfetch ];
+  environment.shellAliases.ff = "fastfetch";
 
   # A headless box can't sit at a passphrase prompt. The crypttab option is
   # inert until a TPM2 keyslot is enrolled; the passphrase slot stays as recovery.

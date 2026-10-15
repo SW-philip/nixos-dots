@@ -598,39 +598,6 @@ in
   xdg.configFile."swaync/config.json" = lib.mkForce { source = swayncConfig; force = true; };
   xdg.configFile."fuzzel/fuzzel.ini"  = lib.mkForce { source = fuzzelConfig; force = true; };
 
-  # single_instance_apps: apps that restore their own windows/tabs on
-  # relaunch, so niri-session-manager must not spawn a second copy on top
-  # of what they self-restore.
-  # app_mappings: app-id -> launch command, for apps whose saved app-id
-  # doesn't match the binary that launches them (confirmed live via
-  # `niri msg -j windows`, not guessed — see
-  # docs/superpowers/plans/2026-07-08-niri-named-workspaces.md Task 3).
-  # xournalpp mapping predates this file (previously hand-edited
-  # directly in ~/.config); folded in here to keep them declarative.
-  xdg.configFile."niri-session-manager/config.toml" = {
-    # force: this path predates home-manager management (a hand-edited
-    # file already existed on disk); without force, activation fails
-    # with "Existing file would be clobbered".
-    force = true;
-    text = ''
-      [single_instance_apps]
-      apps = [
-          "firefox",
-          "thunderbird",
-          "spotify",
-      ]
-
-      [app_mappings]
-      "com.mitchellh.ghostty"            = ["ghostty"]
-      "dev.zed.Zed"                      = ["zeditor"]
-      "com.github.xournalpp.xournalpp"   = ["xournalpp"]
-      "element"                          = ["element-desktop"]
-      "org.kde.kdenlive"                 = ["kdenlive"]
-      "org.kde.easyeffects"              = ["easyeffects"]
-      "libreoffice-writer"               = ["libreoffice", "--writer"]
-    '';
-  };
-
   xdg.configFile."xdg-desktop-portal/niri-portals.conf".text = ''
     [preferred]
     default=gtk
@@ -712,6 +679,8 @@ in
           outputs = [
             { criteria = "eDP-1"; status = "enable"; mode = "2736x1824@60.000"; scale = 2.0; }
           ];
+          # kanshi re-applies 2.0 at login even if the cover is already detached.
+          exec = [ "${s.surfaceScale}/bin/surface-scale" ];
         };
       }
     ];

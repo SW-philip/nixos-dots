@@ -84,6 +84,18 @@ assert_eq "retro offline: rev null" "null" "$(field retro rev)"
 assert_eq "retro offline was never ssh'd" "0" "$(grep -c '^retro$' "$T/ssh.log")"
 assert_eq "self is probed locally, not over ssh" "0" "$(grep -c '^desktop$' "$T/ssh.log")"
 
+echo "== sensors =="
+assert_eq "no sensor lines: temp null" "null" "$(field pi temp_c)"
+assert_eq "no sensor lines: undervolt null" "null" "$(field pi undervolt)"
+printf 'rev=%s\nbuilt=%s\ntemp=%s\nuv=%s\n' "$C3" $((NOW - 60)) 61234 1 > "$T/probe/pi"
+run
+assert_eq "temp is whole degrees" "61" "$(field pi temp_c)"
+assert_eq "undervolt latched" "true" "$(field pi undervolt)"
+printf 'rev=%s\nbuilt=%s\ntemp=\nuv=0\n' "$C3" $((NOW - 60)) > "$T/probe/pi"
+run
+assert_eq "empty temp stays null" "null" "$(field pi temp_c)"
+assert_eq "undervolt clear" "false" "$(field pi undervolt)"
+
 echo "== ahead =="
 printf 'rev=%s\nbuilt=%s\n' "$C3" $((NOW - 5)) > "$T/probe/surface"
 git -C "$R" branch -f wip "$C2"

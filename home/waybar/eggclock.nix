@@ -14,7 +14,7 @@ in
     home.packages = [ eggclockScript ];
 
     programs.waybar.settings.${bar}."custom/eggclock" = {
-      exec = "${eggclockScript}/bin/waybar-eggclock";
+      exec = "${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/waybar/scripts/waybar-sparkle ${eggclockScript}/bin/waybar-eggclock";
       return-type = "json";
       interval = 60;
     };

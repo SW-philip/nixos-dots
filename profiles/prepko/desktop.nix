@@ -11,6 +11,8 @@
     ../../home/tree-sync.nix
     ../../home/theme-sync.nix
     ../../home/fleet-status.nix
+    ../../home/nixfetch.nix
+    ../../home/pi-git-mirror.nix
     ../../home/flake-check.nix
     ../../home/reaper.nix
     ../../home/sync-status.nix

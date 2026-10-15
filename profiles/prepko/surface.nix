@@ -20,6 +20,7 @@ in
     ../../home/tree-sync.nix
     ../../home/theme-sync.nix
     ../../home/fleet-status.nix
+    ../../home/nixfetch.nix
     ../../home/sync-status.nix
     ../../home/pass-through.nix
     ../../home/quivr.nix

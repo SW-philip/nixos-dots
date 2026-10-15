@@ -34,7 +34,7 @@ in {
     home.packages = [ statusScript menuScript guiScript ];
 
     programs.waybar.settings.${bar}."custom/kdeconnect" = {
-      exec = "${statusScript}/bin/waybar-kdeconnect-status";
+      exec = "${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/waybar/scripts/waybar-sparkle ${statusScript}/bin/waybar-kdeconnect-status";
       return-type = "json";
       interval = 15;
       signal = 3;

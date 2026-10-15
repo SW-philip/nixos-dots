@@ -281,6 +281,28 @@ window#waybar {
 #tray > .needs-attention  { -gtk-icon-effect: highlight; }
 
 /* -----------------------------------------------------------------
+   Pills (portrait bar) — one chip wrapping several modules. The group
+   carries the chip look; its children drop theirs, hover included
+   (id+class outranks .module:hover, so no lift inside a pill).
+   ----------------------------------------------------------------- */
+#pill-conn, #pill-sys, #pill-audio {
+  background-color: ${p.STAGE};
+  border: 1px solid ${keyline};
+  border-radius: 7px;
+  box-shadow: ${drop};
+  margin: 4px 3px;
+}
+
+#pill-conn .module, #pill-sys .module, #pill-audio .module,
+#pill-conn .module:hover, #pill-sys .module:hover, #pill-audio .module:hover {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 4px 8px;
+}
+
+/* -----------------------------------------------------------------
    Tooltips
    ----------------------------------------------------------------- */
 window.background.tooltip {

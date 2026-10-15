@@ -41,7 +41,7 @@ let
   '';
 
   mkModule = output: {
-    exec             = "${wsBin}/bin/waybar-niri-workspace feed ${output}";
+    exec             = "${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/waybar/scripts/waybar-sparkle ${wsBin}/bin/waybar-niri-workspace feed ${output}";
     return-type      = "json";
     # Clicks must not restart the feed process, and there is no interval —
     # the feed pushes updates itself. restart-interval respawns it if niri

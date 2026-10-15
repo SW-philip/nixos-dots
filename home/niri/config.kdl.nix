@@ -552,8 +552,8 @@ binds {
     XF86AudioPlay  { spawn "playerctl" "play-pause"; }
     XF86AudioNext  { spawn "playerctl" "next"; }
     XF86AudioPrev  { spawn "playerctl" "previous"; }
-    XF86MonBrightnessUp   { spawn "brightnessctl" "set" "+5%"; }
-    XF86MonBrightnessDown { spawn "brightnessctl" "set" "5%-"; }
+    XF86MonBrightnessUp   { spawn "brightnessctl" "-e4" "-n2%" "set" "+5%"; }
+    XF86MonBrightnessDown { spawn "brightnessctl" "-e4" "-n2%" "set" "5%-"; }
 
     // Screenshot
     Print { screenshot; }

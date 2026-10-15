@@ -11,6 +11,7 @@
   ############################################################
   programs.steam = {
     enable = true;
+    extraCompatPackages = [ pkgs.proton-ge-bin ];
   };
 
   # Scale Steam UI to match eDP-1's 2.0 compositor scale (2736x1824 → 1368x912 logical).

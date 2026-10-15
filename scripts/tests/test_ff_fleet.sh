@@ -21,6 +21,9 @@ cat > "$FF_FLEET_FILE" <<JSON
  {"host":"noahead","up":true,"ssh_ok":true,"rev":"1234567890abcdef","dirty":false,"built_at":1,"built_age_s":720,"drift":2},
  {"host":"unstamped","up":true,"ssh_ok":true,"rev":null,"dirty":false,"built_at":1,"built_age_s":100000,"drift":null,"ahead":null},
  {"host":"unknown","up":true,"ssh_ok":true,"rev":"1234567890abcdef","dirty":false,"built_at":1,"built_age_s":720,"drift":null,"ahead":null},
+ {"host":"hot","up":true,"ssh_ok":true,"rev":"1234567890abcdef","dirty":false,"built_at":1,"built_age_s":720,"drift":0,"ahead":0,"temp_c":74,"undervolt":false},
+ {"host":"uv","up":true,"ssh_ok":true,"rev":"1234567890abcdef","dirty":false,"built_at":1,"built_age_s":720,"drift":0,"ahead":0,"temp_c":55,"undervolt":true},
+ {"host":"cool","up":true,"ssh_ok":true,"rev":"1234567890abcdef","dirty":false,"built_at":1,"built_age_s":720,"drift":0,"ahead":0,"temp_c":55,"undervolt":false},
  {"host":"nossh","up":true,"ssh_ok":false,"rev":null,"dirty":false,"built_at":null,"built_age_s":null,"drift":null,"ahead":null},
  {"host":"down","up":false,"ssh_ok":false,"rev":null,"dirty":false,"built_at":null,"built_age_s":null,"drift":null,"ahead":null}
 ]}
@@ -34,6 +37,9 @@ assert_eq "diverged is bad"    "<bad>●</> 12345678 <bad>diverged</> · 2d"    
 assert_eq "dirty"              "<warn>●</> 12345678 <warn>dirty</> · 12m"                        "$(row dirty)"
 assert_eq "unstamped"          "<warn>●</> <warn>unstamped</> · 28h"                             "$(row unstamped)"
 assert_eq "unknown commit"     "<warn>●</> 12345678 <warn>unknown commit</> · 12m"               "$(row unknown)"
+assert_eq "hot host shows temp"   "<ok>●</> 12345678 <ok>in step</> · 12m <warn>74°C</>"       "$(row hot)"
+assert_eq "undervolt shows"       "<ok>●</> 12345678 <ok>in step</> · 12m <bad>undervolt</>"      "$(row uv)"
+assert_eq "cool host stays quiet" "<ok>●</> 12345678 <ok>in step</> · 12m"                        "$(row cool)"
 assert_eq "ssh not answering"  "<warn>●</> <warn>up, ssh not answering</>"                       "$(row nossh)"
 assert_eq "down"               "<bad>●</> <bad>down</>"                                          "$(row down)"
 assert_eq "host not in file"   "<dim>not in snapshot</>"                                         "$(row ghost)"

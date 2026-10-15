@@ -26,7 +26,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from waybar_palette import Palette
+from waybar_palette import Palette, sparkle
 
 CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "quantum_clock"
 MODE_FILE = CACHE_DIR / "mode"
@@ -65,6 +65,8 @@ HOUR_NAMES = ["midnight", "one", "two", "three", "four", "five",
               "six", "seven", "eight", "nine", "ten", "eleven"]
 PAST_WORDS = ["", "five past", "ten past", "quarter past",
               "twenty past", "twenty-five past", "half past"]
+NATURAL_LIT = 2
+NATURAL_ACCENTS = ("ROOT", "FIFTH", "SOTTO", "SEVENTH", "PIANO")
 TO_WORDS = ["", "five to", "ten to", "quarter to", "twenty to", "twenty-five to"]
 
 
@@ -196,6 +198,22 @@ def natural(dt: datetime) -> str:
     return f"{TO_WORDS[(60 - r) // 5]} {HOUR_NAMES[(h + 1) % 24]}"
 
 
+def natural_markup(dt: datetime, p, base: str | None = None) -> str:
+    """natural() with a couple of random letters in accent colors. Seeded by date +
+    phrase so the picks hold still between ticks and reshuffle only when the phrase
+    changes. `base` colors the rest; None leaves it to the host's text color."""
+    phrase = natural(dt)
+    rng = random.Random(dt.strftime("%Y%m%d ") + phrase)
+    pool = [p[k] for k in NATURAL_ACCENTS if k in p]
+    letters = [i for i, ch in enumerate(phrase) if ch.isalpha()]
+    lit = {i: rng.choice(pool) for i in rng.sample(letters, min(NATURAL_LIT, len(letters)))} if pool else {}
+    out = []
+    for i, ch in enumerate(phrase):
+        color = lit.get(i, base if ch.isalpha() else None)
+        out.append(span(color, ch) if color else ch)
+    return "".join(out)
+
+
 def bcd_bits(dt: datetime):
     """rows of bit weights 8,4,2,1 x 6 digits of HHMMSS"""
     digits = [int(c) for c in dt.strftime("%H%M%S")]
@@ -267,7 +285,7 @@ def render(ep: float, mode: str, p) -> dict:
                f"{q(p['ROOT'], f'{hh:X}')}{q(p['REST'], '.')}{q(p['PIANO'], f'{mm:X}')}"
                f"{q(p['REST'], '.')}{q(p['SOTTO'], f'{ss:X}')}\n\n{base}")
     elif mode == "natural":
-        text, tip = span(p["REST"], natural(dt)), f"{q(p['REST'], 'Natural time')}\n\n{base}"
+        text, tip = natural_markup(dt, p, p["REST"]), f"{q(p['REST'], 'Natural time')}\n\n{base}"
     elif mode == "caliper":
         text, tip = render_caliper(dt, h24, p), f"{q(p['SOTTO'], 'Caliper clock')}\n\n{base}"
     elif mode == "binary":
@@ -276,6 +294,8 @@ def render(ep: float, mode: str, p) -> dict:
                f"{binary_grid(dt, p)}\n\n{base}")
     else:
         text, tip = fmt(dt, h24), base
+    if mode != "natural":
+        text = sparkle(text, p)
     return {"text": text, "tooltip": tip, "class": mode}
 
 
@@ -322,7 +342,10 @@ def main(argv: list[str]) -> int:
     elif cmd == "toggle":
         toggle_24h()
     elif cmd == "lock":
-        print(natural(now_dt()))
+        try:
+            print(natural_markup(now_dt(), Palette().get()))
+        except OSError:
+            print(natural(now_dt()))
     elif cmd in ("help", "-h", "--help"):
         print(__doc__)
     else:

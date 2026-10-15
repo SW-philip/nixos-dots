@@ -113,6 +113,32 @@
     [ "$pick" = "Quit Pegasus" ] && exec $NIRI msg action close-window --id "$id"
   '';
 
+  # Tablet mode (cover detached) is a notch bulkier: 2.4 divides eDP-1's 2736x1824
+  # into whole logical pixels (1140x760). Live niri setting, not persisted.
+  surfaceScale = pkgs.writeShellScriptBin "surface-scale" ''
+    state="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/surface-cover"
+    scale=2.0
+    [ "$(cat "$state" 2>/dev/null)" = detached ] && scale=2.4
+    exec "''${NIRI:-${pkgs.niri}/bin/niri}" msg output eDP-1 scale "$scale"
+  '';
+
+  # Swaps waybar for the eww tablet strip while the Type Cover is detached
+  # (see home/niri/tablet-shell.sh). Called by surface-kbd-monitor and eww.service.
+  tabletShell = pkgs.writeShellScriptBin "tablet-shell" ''
+    export TABLET_EWW=${pkgs.eww}/bin/eww
+    export TABLET_SYSTEMCTL=${pkgs.systemd}/bin/systemctl
+    export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep ]}:$PATH"
+    exec ${pkgs.bash}/bin/bash ${./tablet-shell.sh}
+  '';
+
+  # Crossfade over the tablet-mode switchover (see home/niri/tablet-fade.sh).
+  tabletFade = pkgs.writeShellScriptBin "tablet-fade" ''
+    export TABLET_EWW=${pkgs.eww}/bin/eww
+    export TABLET_SYSTEMCTL=${pkgs.systemd}/bin/systemctl
+    export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.procps ]}:$PATH"
+    exec ${pkgs.bash}/bin/bash ${./tablet-fade.sh} "$@"
+  '';
+
   # Cover detached: the tablet tile grid (eww window launcher-tablet). Otherwise fuzzel's
   # drun list, with a random dry placeholder line. Desktop has no cover-state file, so it
   # always gets fuzzel. PATH is appended so a caller's own PATH wins (tests stub fuzzel

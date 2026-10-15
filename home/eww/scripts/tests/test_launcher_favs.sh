@@ -9,7 +9,7 @@ fail() { echo "FAIL - $1"; fails=$((fails+1)); }
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-run() { LAUNCHER_FAVS="$1" bash "$DIR/../launcher-favs.sh"; }
+run() { LAUNCHER_PORTRAIT="${PORTRAIT:-0}" LAUNCHER_FAVS="$1" bash "$DIR/../launcher-favs.sh"; }
 
 items() { # n -> JSON array of n tiles
   jq -nc --argjson n "$1" '[range($n) | {icon:"i\(.)", label:"L\(.)", cmd:"c\(.)"}]'
@@ -42,6 +42,12 @@ out="$(run "$SEED")"
 [ "$(jq -c '[.[]|length]' <<<"$out")" = "[4,4,4,2]" ] && pass "seed is 4+4+4+2" || fail "seed is 4+4+4+2"
 [ "$(jq '[.[][]|select(.cmd|contains("'"'"'"))]|length' <<<"$out")" = "0" ] && pass "seed cmds have no single quote" || fail "seed cmds have no single quote"
 [ "$(jq -r '.[3][1].cmd' <<<"$out")" = "fuzzel" ] && pass "last tile is All apps -> fuzzel" || fail "last tile is All apps -> fuzzel"
+
+out="$(PORTRAIT=1 run "$TMP/twelve.json")"
+[ "$(jq -c '[.[]|length]' <<<"$out")" = "[3,3,3,3]" ] && pass "portrait: rows of 3" || fail "portrait: rows of 3"
+[ "$(jq -c '[.[0][].accent]' <<<"$out")" = "[0,1,2]" ] && pass "portrait: accent = column" || fail "portrait: accent = column"
+[ "$(jq -r '.[3][2].cmd' <<<"$out")" = "c11" ] && pass "portrait: order preserved" || fail "portrait: order preserved"
+[ "$(jq -c '[.[]|length]' <<<"$(PORTRAIT=1 run "$SEED")")" = "[3,3,3,3,2]" ] && pass "portrait: seed is 3+3+3+3+2" || fail "portrait: seed is 3+3+3+3+2"
 
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }
 echo "all passed"

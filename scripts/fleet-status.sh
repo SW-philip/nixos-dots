@@ -15,7 +15,8 @@ NOW=${FLEET_NOW:-$(date +%s)}
 # rev=<deployed flake rev>, built=<when the current system generation was installed: mtime of the /nix/var/nix/profiles/system link, which survives reboots, unlike /run/current-system>
 # absolute nixos-version path: a systemd user unit has no /run/current-system/sw/bin on PATH
 # shellcheck disable=SC2016  # expanded on the probed host, not here
-PROBE_CMD=${FLEET_PROBE_CMD:-'printf "rev=%s\n" "$(/run/current-system/sw/bin/nixos-version --configuration-revision 2>/dev/null)"; printf "built=%s\n" "$(stat -c %Y /nix/var/nix/profiles/system 2>/dev/null)"'}
+# temp=<millidegrees of thermal_zone0>, uv=<1 if the Pi's rpi_volt hwmon latched an undervoltage since its last read>; both stay empty where the sensor is absent
+PROBE_CMD=${FLEET_PROBE_CMD:-'printf "rev=%s\n" "$(/run/current-system/sw/bin/nixos-version --configuration-revision 2>/dev/null)"; printf "built=%s\n" "$(stat -c %Y /nix/var/nix/profiles/system 2>/dev/null)"; printf "temp=%s\n" "$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null)"; for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = rpi_volt ] && printf "uv=%s\n" "$(cat "$h/in0_lcrit_alarm" 2>/dev/null)"; done; true'}
 
 nix_name() { case $1 in desktop) echo swphil ;; surface) echo swsurface ;; retro) echo swretro ;; pi) echo swpi ;; *) echo "$1" ;; esac; }
 ts_name()  { case $1 in desktop) echo swphil ;; surface) echo swsurface ;; *) echo "$1" ;; esac; }
@@ -47,7 +48,7 @@ is_online() {
 }
 
 probe_host() {
-  local host=$1 raw="" rev="" built="" base age=null drift=null ahead=null
+  local host=$1 raw="" rev="" built="" temp="" uv="" base age=null drift=null ahead=null temp_c=null undervolt=null
   local up=false ssh_ok=false dirty=false
 
   if [[ "${SELF,,}" == "$(nix_name "$host")" ]]; then
@@ -69,6 +70,10 @@ probe_host() {
     built=$(sed -n '/^built=/{s///p;q}' <<<"$raw")
     [[ "$rev" == unknown || "$rev" == null ]] && rev=""
     if [[ "$built" =~ ^[0-9]+$ ]]; then age=$((NOW - 10#$built)); else built=""; fi
+    temp=$(sed -n '/^temp=/{s///p;q}' <<<"$raw")
+    uv=$(sed -n '/^uv=/{s///p;q}' <<<"$raw")
+    if [[ "$temp" =~ ^[0-9]+$ ]]; then temp_c=$((10#$temp / 1000)); fi
+    if [[ "$uv" == 1 ]]; then undervolt=true; elif [[ "$uv" == 0 ]]; then undervolt=false; fi
     base=$rev
     drift_paths "$host"
     if [[ "$rev" == *-dirty ]]; then dirty=true; base=${rev%-dirty}; fi
@@ -80,9 +85,10 @@ probe_host() {
 
   jq -n --arg host "$host" --argjson up "$up" --argjson ssh_ok "$ssh_ok" --arg rev "$rev" \
     --argjson dirty "$dirty" --argjson built_at "${built:-null}" --argjson age "$age" \
-    --argjson drift "$drift" --argjson ahead "$ahead" \
+    --argjson drift "$drift" --argjson ahead "$ahead" --argjson temp_c "$temp_c" --argjson undervolt "$undervolt" \
     '{host:$host, up:$up, ssh_ok:$ssh_ok, rev:(if $rev == "" then null else $rev end), dirty:$dirty,
-      built_at:$built_at, built_age_s:$age, drift:$drift, ahead:$ahead}'
+      built_at:$built_at, built_age_s:$age, drift:$drift, ahead:$ahead,
+      temp_c:$temp_c, undervolt:$undervolt}'
 }
 
 # global on purpose: an EXIT trap runs after main() returns, when a local would be unset (set -u)

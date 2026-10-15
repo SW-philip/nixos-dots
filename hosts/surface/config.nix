@@ -17,6 +17,7 @@ in
   # Imports
   ############################################################
   imports = [
+    ../../modules/nixfetch.nix
     ../../roles/base.nix
     ../../roles/secure-boot.nix
     ../../roles/niri.nix

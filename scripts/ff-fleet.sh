@@ -35,15 +35,20 @@ drift=$(jq -r '.drift // "null"' <<<"$row"); ahead=$(jq -r '.ahead // 0' <<<"$ro
 built=$(jq -r '.built_age_s // "null"' <<<"$row")
 when=""; if [[ "$built" != null ]]; then when=" · $(age "$built")"; fi
 short=${rev:0:8}
+temp=$(jq -r '.temp_c // "null"' <<<"$row"); uv=$(jq -r '.undervolt // false' <<<"$row")
+# health note appears only when it matters: hot (>=70C) or an undervoltage since the last probe
+health=""
+if [[ "$temp" != null ]] && (( temp >= 70 )); then health+=" ${WARN}${temp}°C${RS}"; fi
+if [[ "$uv" == true ]]; then health+=" ${BAD}undervolt${RS}"; fi
 
 if [[ "$up" != true ]]; then
   echo "$(dot "$BAD") ${BAD}down${RS}${stale}"
 elif [[ "$ssh_ok" != true ]]; then
   echo "$(dot "$WARN") ${WARN}up, ssh not answering${RS}${stale}"
 elif [[ -z "$rev" ]]; then
-  echo "$(dot "$WARN") ${WARN}unstamped${RS}${when}${stale}"
+  echo "$(dot "$WARN") ${WARN}unstamped${RS}${when}${health}${stale}"
 elif [[ "$drift" == null ]]; then
-  echo "$(dot "$WARN") ${short} ${WARN}unknown commit${RS}${when}${stale}"
+  echo "$(dot "$WARN") ${short} ${WARN}unknown commit${RS}${when}${health}${stale}"
 else
   color=$OK; notes=()
   if (( drift > 0 && ahead > 0 )); then
@@ -58,5 +63,5 @@ else
   fi
   label="in step"
   if (( ${#notes[@]} > 0 )); then label=$(printf '%s, ' "${notes[@]}"); label=${label%, }; fi
-  echo "$(dot "$color") ${short} ${color}${label}${RS}${when}${stale}"
+  echo "$(dot "$color") ${short} ${color}${label}${RS}${when}${health}${stale}"
 fi

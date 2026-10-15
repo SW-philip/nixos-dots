@@ -37,7 +37,18 @@ probe() {
   systemctl --user --failed --no-legend --plain 2>/dev/null | awk '{print "F\tuser\t" $1}' || true
 }
 
-if [[ "${1:-}" == probe ]]; then probe; exit 0; fi
+case "${1:-}" in
+  probe) probe; exit 0 ;;
+  -h|--help|help)
+    cat <<'USAGE'
+reaper           sweep every host (this one locally, the rest over ssh) -> ~/.cache/reaper.json
+reaper probe     print this host's findings as TSV, nothing else
+reaper --help    this text
+USAGE
+    exit 0 ;;
+  "") ;;
+  *) echo "reaper: unknown argument '$1' (try --help)" >&2; exit 2 ;;
+esac
 
 OUT=${REAPER_OUT:-${XDG_CACHE_HOME:-$HOME/.cache}/reaper.json}
 HOSTS=${REAPER_HOSTS:-"desktop surface retro pi"}

@@ -5,7 +5,7 @@ let
   scriptDir = "${config.home.homeDirectory}/.config/eww/scripts";
   connector = if isDesktop then "DP-2" else "eDP-1";
   scripts   = [ "context" "vitals" "storage" "boot" "snark"
-                "purity" "net" "bt" "power" "mug" "myln" "launcher-favs" ];
+                "purity" "net" "bt" "power" "mug" "myln" "launcher-favs" "sparkle-picks" ];
 
   # tablet/osk feeds: inotify on the Type Cover state file and squeekboard's
   # D-Bus signals, instead of a bash loop forking every 1 s / 0.5 s.
@@ -46,6 +46,35 @@ let
     exec ${pkgs.bash}/bin/bash ${./scripts/panel-step.sh} "$@"
   '';
 
+  tabletPath = lib.makeBinPath [
+    pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.jq pkgs.niri pkgs.wireplumber
+    pkgs.brightnessctl pkgs.networkmanager pkgs.bluez pkgs.power-profiles-daemon
+    pkgs.swaynotificationcenter pkgs.systemd pkgs.eww
+  ];
+  # sqlch itself comes from /run/current-system/sw/bin
+  tabletStateBin = pkgs.writeShellScriptBin "tablet-state" ''
+    export PATH="${tabletPath}:/run/current-system/sw/bin"
+    exec ${pkgs.bash}/bin/bash ${./scripts/tablet-state.sh} "$@"
+  '';
+  # tabletActBin replaces PATH, so waybar-sqlch's `env python3` shebang can't resolve; stdlib-only script
+  tabletSqlchStep = pkgs.writeShellScript "tablet-sqlch-step" ''
+    exec ${pkgs.python3}/bin/python3 ${../waybar/scripts/waybar-sqlch} "$@"
+  '';
+  tabletActBin = pkgs.writeShellScriptBin "tablet-act" ''
+    export PATH="${tabletPath}:/run/current-system/sw/bin"
+    export TABLET_EWW=${pkgs.eww}/bin/eww
+    export TABLET_TOGGLE_OSK=${nirScripts.toggleOsk}/bin/toggle-osk
+    export TABLET_SQLCH_STEP=${tabletSqlchStep}
+    export TABLET_LAUNCHER=${nirScripts.launcher}/bin/launcher
+    exec ${pkgs.bash}/bin/bash ${./scripts/tablet-act.sh} "$@"
+  '';
+  tabletGesturesBin = pkgs.writeShellScriptBin "tablet-gestures" ''
+    export PATH="${tabletPath}:/run/current-system/sw/bin"
+    export GESTURES_LISGD=${pkgs.lisgd}/bin/lisgd
+    export GESTURES_ACT=${tabletActBin}/bin/tablet-act
+    exec ${pkgs.bash}/bin/bash ${./scripts/tablet-gestures.sh} "$@"
+  '';
+
   # The stoic-quote cache is populated by home/waybar/stoic.nix's poll
   # timer (writes ~/.cache/waybar/stoic-quote.json); the ledger chip below
   # is just another reader of that same cache, same as waybar's custom
@@ -83,6 +112,8 @@ let
       --replace-fail 'EWW' '${pkgs.eww}/bin/eww' \
       --replace-fail 'TABLET_FEED' '${if isDesktop then "sleep infinity" else "${surfaceFeed} tablet"}' \
       --replace-fail 'OSK_FEED' '${if isDesktop then "sleep infinity" else "${surfaceFeed} osk"}' \
+      --replace-fail 'TABLET_STATE' '${if isDesktop then "true" else "${tabletStateBin}/bin/tablet-state"}' \
+      --replace-fail 'TABLET_ACT' '${if isDesktop then "true" else "${tabletActBin}/bin/tablet-act"}' \
       --replace-fail 'UNIREMOTE_TOGGLE' '${if isDesktop then "true" else sessionActionsForEww.uniremoteToggle}' \
       --replace-fail 'MOONLIGHT_TOGGLE' '${if isDesktop then "true" else sessionActionsForEww.moonlightToggle}' \
       --replace-fail 'LIX_LOGOUT_TOGGLE' '${pkgs.lix-logout}/bin/lix-logout-toggle' \
@@ -93,7 +124,8 @@ let
   '';
 in
 {
-  home.packages = [ pkgs.eww panelEdgeBin panelStepBin ];
+  home.packages = [ pkgs.eww panelEdgeBin panelStepBin ]
+    ++ lib.optionals (!isDesktop) [ tabletStateBin tabletActBin tabletGesturesBin nirScripts.tabletShell ];
 
   xdg.configFile = lib.mkMerge [
     { "eww/eww.yuck".source = yuck; }
@@ -157,6 +189,23 @@ in
     fi
   '';
 
+  # Edge swipes only exist while the Type Cover is detached: squeekboard.service
+  # runs exactly then, same binding as surface-osk-gesture in profiles/surface-tablet.nix.
+  systemd.user.services.tablet-gestures = lib.mkIf (!isDesktop) {
+    Unit = {
+      Description = "Touchscreen edge swipes for the tablet shell";
+      PartOf = [ "squeekboard.service" ];
+      After = [ "squeekboard.service" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${tabletGesturesBin}/bin/tablet-gestures";
+      Restart = "on-failure";
+      RestartSec = "3s";
+    };
+    Install.WantedBy = [ "squeekboard.service" ];
+  };
+
   systemd.user.services.eww = {
     Unit = {
       Description = "eww status window daemon";
@@ -198,6 +247,7 @@ in
         ${lib.optionalString isDesktop ''open_slot wing-tv status-tv "${wingEdgeTv}" "left right"''}
         open_slot ledger ledger "${ledgerEdge}" "top bottom"
         ${lib.optionalString isDesktop ''open_slot ledger-tv ledger-tv "${ledgerEdgeTv}" "top bottom"''}
+        ${lib.optionalString (!isDesktop) "${nirScripts.tabletShell}/bin/tablet-shell || true"}
       '';
       ExecReload = "${pkgs.eww}/bin/eww reload";
       Restart = "on-failure";

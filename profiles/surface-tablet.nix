@@ -27,6 +27,27 @@ in
   };
 
   ########################################
+  # Portrait: new tiled windows stack under the previous one (two per column)
+  # instead of opening as tall thin columns. Idle in landscape.
+  ########################################
+  systemd.user.services.niri-portrait-stack = {
+    Unit = {
+      Description = "Stack new windows two per column in portrait";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
+    };
+    Service = {
+      Type = "simple";
+      Environment = [ "PATH=/run/current-system/sw/bin" ];
+      ExecStart = "${pkgs.python3}/bin/python3 ${../scripts/niri-portrait-stack.py} eDP-1";
+      Restart = "always";
+      RestartSec = "2s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  ########################################
   # On-screen keyboard — started/stopped by surface-kbd-monitor.
   # Squeekboard shows itself on text-field focus (input-method-v2) while running.
   ########################################
@@ -116,13 +137,20 @@ in
         }
 
         update() {
-          if kbd_present; then
-            echo attached > "$STATE"
+          local want prev do_fade=0
+          if kbd_present; then want=attached; else want=detached; fi
+          prev=$(cat "$STATE" 2>/dev/null || true)
+          if [ "''${1:-}" = fade ] && [ "$prev" != "$want" ]; then do_fade=1; fi
+          if [ "$do_fade" = 1 ]; then ${s.tabletFade}/bin/tablet-fade out || true; fi
+          echo "$want" > "$STATE"
+          if [ "$want" = attached ]; then
             $SC --user stop squeekboard.service 2>/dev/null || true
           else
-            echo detached > "$STATE"
             $SC --user start squeekboard.service 2>/dev/null || true
           fi
+          ${s.surfaceScale}/bin/surface-scale || true
+          ${s.tabletShell}/bin/tablet-shell || true
+          if [ "$do_fade" = 1 ]; then ${s.tabletFade}/bin/tablet-fade in || true; fi
         }
 
         update
@@ -139,7 +167,7 @@ in
             ' \
           | while read -r _event; do
               sleep 0.3
-              update
+              update fade
             done
       '';
       Restart = "on-failure";

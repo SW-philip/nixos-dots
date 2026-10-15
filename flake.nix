@@ -18,17 +18,10 @@
     claude-code.url = "github:sadjow/claude-code-nix";
     claude-code.inputs.nixpkgs.follows = "nixpkgs";
     lix = {
-      # main-branch snapshot, tracking unreleased 2.96.0-dev (no 2.96 tag exists yet).
-      # Includes 81084c7fc, the curl >= 8.21 thread-wakeup fix for lix #1234
-      # (2.95.3 predates it and hangs flake fetches). Re-pin to a proper
-      # release tag once 2.95.4/2.96 ships officially.
-      #
-      # git+https, not the /archive/<rev>.tar.gz endpoint: git.lix.systems's
-      # Forgejo is back up, but its on-demand archive-tarball route still hangs.
-      # The git smart-HTTP protocol works and resolves to the same narHash
-      # (sha256-Ax+ETbOHatrUnnQqLEwFMAlb+MwJrIjN88c5gTSDRc8=), so lix does not
-      # rebuild. rev pinned so the module still sees lix.shortRev.
-      url = "git+https://git.lix.systems/lix-project/lix?ref=main&rev=f51148a75bd991fcf9545bb11a0626879795537c";
+      # 2.96.0 release tag. git+https, not the /archive/<rev>.tar.gz endpoint:
+      # git.lix.systems's on-demand archive-tarball route hangs, git smart-HTTP
+      # works. rev pinned so the module still sees lix.shortRev.
+      url = "git+https://git.lix.systems/lix-project/lix?ref=refs/tags/2.96.0&rev=f67b34faf17756bac7b30d7946f70d9bea92ae2d";
       flake = false;
     };
     lix-module = {
@@ -40,8 +33,8 @@
       url = "github:Morxemplum/posys-cursor-scalable";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
-    niri-session-manager.url = "github:MTeaHead/niri-session-manager";
-    niri-session-manager.inputs.nixpkgs.follows = "nixpkgs";
+    nirinit.url = "github:amaanq/nirinit";
+    nirinit.inputs.nixpkgs.follows = "nixpkgs";
     sqlch.url = "github:SW-philip/sqlch";
     sqlch.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -251,10 +244,9 @@
           lix-module.nixosModules.default
           lixNoCheck
           inputs.impermanence.nixosModules.impermanence
-          inputs.niri-session-manager.nixosModules.niri-session-manager
+          inputs.nirinit.nixosModules.nirinit
           ./hosts/surface/config.nix
           ./cachix.nix
-          ./modules/cachix-push.nix
           home-manager.nixosModules.home-manager
           hmBase
           hmPrepkoSurface
@@ -272,10 +264,9 @@
           lix-module.nixosModules.default
           lixNoCheck
           inputs.impermanence.nixosModules.impermanence
-          inputs.niri-session-manager.nixosModules.niri-session-manager
+          inputs.nirinit.nixosModules.nirinit
           ./hosts/desktop/config.nix
           ./cachix.nix
-          ./modules/cachix-push.nix
           ./modules/virt.nix
           lanzaboote.nixosModules.lanzaboote
           home-manager-unstable.nixosModules.home-manager

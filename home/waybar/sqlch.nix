@@ -13,7 +13,7 @@ in {
 
   config = lib.mkIf config.waybar.sqlch.enable {
     programs.waybar.settings.${bar}."custom/sqlch" = {
-      exec = "${sqlchBin} --stream";
+      exec = "${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/waybar/scripts/waybar-sparkle ${sqlchBin} --stream";
       # Self-ticking feed: clicks/scrolls must not respawn it, and
       # restart-interval brings it back after a palette-change exit.
       exec-on-event = false;

@@ -35,7 +35,7 @@ in
     home.packages = [ weatherScript radarScript radarCacheScript ];
 
     programs.waybar.settings.${bar}."custom/weather" = {
-      exec = "${weatherScript}/bin/waybar-weather";
+      exec = "${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/waybar/scripts/waybar-sparkle ${weatherScript}/bin/waybar-weather";
       on-click = "bash ${scriptsDir}/weather_toggle.sh";
       on-click-right = "${radarScript}/bin/waybar-weather-radar";
       return-type = "json";

@@ -4,6 +4,7 @@ let
 in
 {
   imports = [
+    ../../modules/nixfetch.nix
     "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
     ../../identities/prepko.nix
     ../../roles/ssh-known-hosts.nix
@@ -85,6 +86,10 @@ in
     extraGroups = lib.mkForce [ "wheel" ];
   };
   security.sudo.wheelNeedsPassword = false;
+
+  # No home-manager here, so no themed ff: stock fastfetch under the usual name.
+  environment.systemPackages = [ pkgs.fastfetch ];
+  environment.shellAliases.ff = "fastfetch";
 
   services.tailscale.enable = true;
   networking.firewall = {

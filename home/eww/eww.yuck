@@ -5,6 +5,7 @@
 (defvar ledger_hover_tv false)
 (defvar ledger_open false)
 (defvar wing_open false)
+(defvar fade_on false)
 
 (deflisten vitals  :initial "{}" `while :; do bash SCRIPTS/vitals.sh;  sleep 2;  done`)
 (deflisten storage :initial "{}" `while :; do bash SCRIPTS/storage.sh; sleep 60; done`)
@@ -17,15 +18,31 @@
 (deflisten power  :initial "{}" `while :; do bash SCRIPTS/power.sh;  sleep 30; done`)
 (deflisten mug    :initial "{}" `while :; do bash SCRIPTS/mug.sh;    sleep 20; done`)
 (deflisten myln   :initial "{}" `while :; do bash SCRIPTS/myln.sh;   sleep 30; done`)
+(deflisten spark :initial "[]" `bash SCRIPTS/sparkle-picks.sh`)
 (deflisten tablet :initial "false" `TABLET_FEED`)
 ;; true while squeekboard is on screen; the bottom ledger fades out of its way.
 (deflisten osk :initial "false" `OSK_FEED`)
-(deflisten launcher_rows :initial "[]" `while :; do bash SCRIPTS/launcher-favs.sh; sleep 30; done`)
+(deflisten launcher_rows :initial "[]" `last=; while :; do cur=$(bash SCRIPTS/launcher-favs.sh); [ "$cur" = "$last" ] || { echo "$cur"; last=$cur; }; sleep 3; done`)
+;; Tablet shell (surface, cover detached). tablet-shell swaps waybar for the
+;; strip; the sheet drops from under it.
+(deflisten tablet_state :initial "{}" `while :; do TABLET_STATE; sleep 3; done`)
+(defpoll clock_text :interval "10s" `date +'%-I:%M %p'`)
 
 ;; Reads the same ~/.cache/waybar/stoic-quote.json that
 ;; home/waybar/stoic.nix's poll timer writes -- this chip is just another
 ;; reader of that cache, same as the retired waybar custom module was.
 (deflisten stoic_quote :initial "{}" `while :; do QUOTE_CACHE_READ; sleep 10; done`)
+
+;; One coloured letter per pill. `spark` (scripts/sparkle-picks.sh) supplies a
+;; regex (k skipped letters + the pick) and a colour per slot `i`. eww's replace()
+;; takes its replacement literally, so there are no capture groups: the prefix,
+;; the letter and the rest are carved out with search()/replace() instead.
+;; Entities are escaped first because :markup parses the text.
+(defwidget spk [i text class halign]
+  (label :class class :halign halign
+         :markup {(arraylength(spark) > i && arraylength(search(replace(replace(replace(text, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), spark[i].re)) > 0)
+                  ? "${replace(search(replace(replace(replace(text, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), spark[i].re)[0], "[A-Za-z]$", "")}<span foreground='${spark[i].c}'>${search(search(replace(replace(replace(text, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), spark[i].re)[0], "[A-Za-z]$")[0]}</span>${replace(replace(replace(replace(text, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"), spark[i].re, "")}"
+                  : replace(replace(replace(text, "&", "&amp;"), "<", "&lt;"), ">", "&gt;")}))
 
 (defwidget sec [title]
   (label :class "hdr" :halign "start" :text title))
@@ -37,32 +54,32 @@
   (box :class "section" :orientation "vertical" :space-evenly false :spacing 4
     (sec :title "LEGENDARY")
     (box :class "readout-pill wide" :halign "start"
-      (label :class "row" :halign "start" :text "uptime ${boot.uptime_str ?: "?"}  ·  ${boot.kernel ?: "?"}"))
+      (spk :i 0 :class "row" :halign "start" :text "uptime ${boot.uptime_str ?: "?"}  ·  ${boot.kernel ?: "?"}"))
     (box :class "readout-pill wide" :halign "start"
-      (label :class "row" :halign "start"
+      (spk :i 1 :class "row" :halign "start"
              :text {(boot.rebuild_state ?: "?") == "unknown"
                     ? "rebuild age unknown"
                     : "rebuild ${boot.rebuild_age_h ?: 0}h ago (${boot.rebuild_state ?: "?"})"}))
     (box :class {(boot.gen_drift ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
-      (label :class {(boot.gen_drift ?: false) ? "row readout warn" : "row"} :halign "start"
+      (spk :i 2 :class {(boot.gen_drift ?: false) ? "row readout warn" : "row"} :halign "start"
              :text {(boot.gen_drift ?: false) ? "booted generation ≠ current" : "generation  ·  in sync"}))
     (box :class "readout-pill wide" :halign "start"
-      (label :class {(purity.pure ?: true) ? "row" : "row readout warn"} :halign "start"
+      (spk :i 3 :class {(purity.pure ?: true) ? "row" : "row readout warn"} :halign "start"
              :text {(purity.pure ?: true)
                     ? "wayland  ·  pure"
                     : "wayland  ·  ${purity.clients ?: 0} xwayland"}))
     (box :class {(myln.available ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
-      (label :class {(myln.count ?: 0) > 0 ? "row readout warn" : "row"} :halign "start"
+      (spk :i 4 :class {(myln.count ?: 0) > 0 ? "row readout warn" : "row"} :halign "start"
              :text {!(myln.available ?: false)
                     ? "myln  ·  n/a"
                     : "myln  ·  ${myln.count ?: 0} errors"}))
     (box :class {jq(boot, ".sleep_drain_pct != null") ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
-      (label :class "row" :halign "start"
+      (spk :i 5 :class "row" :halign "start"
              :text {jq(boot, ".sleep_drain_pct != null")
                     ? "sleep drain  ·  ${boot.sleep_drain_pct}% / ${boot.sleep_hours}h"
                     : "sleep drain  ·  no data"}))
     (box :class {(mug.available ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
-      (label :class "row" :halign "start"
+      (spk :i 6 :class "row" :halign "start"
              :text {(mug.available ?: false)
                     ? "mug  ·  ${mug.liquid_state}  ·  ${mug.temp_c}°C → ${mug.target_c}°C  ·  ${mug.battery_pct}%"
                     : "mug  ·  not connected"}))))
@@ -73,18 +90,18 @@
     (subsec :title "resources")
     (box :class "row" :space-evenly true
       (box :class "readout-pill stat-trio"
-        (label :class "readout" :halign "start" :text "cpu ${vitals.cpu_pct ?: 0}%"))
+        (spk :i 7 :class "readout" :halign "start" :text "cpu ${vitals.cpu_pct ?: 0}%"))
       (box :class "readout-pill stat-trio"
-        (label :class "readout" :halign "start" :text "mem ${vitals.mem_pct ?: 0}%"))
+        (spk :i 8 :class "readout" :halign "start" :text "mem ${vitals.mem_pct ?: 0}%"))
       (box :class "readout-pill stat-trio"
-        (label :class "readout" :halign "start" :text "load avg ${vitals.load1 ?: 0}")))
+        (spk :i 9 :class "readout" :halign "start" :text "load avg ${vitals.load1 ?: 0}")))
     (box :class "row" :space-evenly true
       (box :class "readout-pill stat-pair"
-        (label :class {(vitals.temp_cpu_c ?: 0) >= 85 ? "readout crit" : "readout"}
+        (spk :i 10 :class {(vitals.temp_cpu_c ?: 0) >= 85 ? "readout crit" : "readout"}
                :halign "start"
                :text "cpu temp ${vitals.temp_cpu_c ?: 0}°C"))
       (box :class "readout-pill stat-pair"
-        (label :class "readout" :halign "start" :text "peak temp ${vitals.temp_max_c ?: 0}°C")))
+        (spk :i 11 :class "readout" :halign "start" :text "peak temp ${vitals.temp_max_c ?: 0}°C")))
     (graph :class "spark" :thickness 2 :time-range "120s" :min 0 :max 100
            :value {vitals.cpu_pct ?: 0} :dynamic true)
     (subsec :title "storage")
@@ -92,10 +109,10 @@
       (box :orientation "vertical" :space-evenly false
         (box :class "readout-pill" :space-evenly true
           (label :class "row" :halign "start" :text {m.target})
-          (label :class "row" :halign "end"   :text "${m.used_gib}/${m.size_gib} GiB"))
+          (spk :i 12 :class "row" :halign "end"   :text "${m.used_gib}/${m.size_gib} GiB"))
         (progress :class {m.pct >= 90 ? "bar hot" : "bar"} :value {m.pct ?: 0})))
     (box :class "readout-pill" :halign "start"
-      (label :class "row" :halign "start"
+      (spk :i 13 :class "row" :halign "start"
              :text "generation ${storage.generation ?: "?"} (current) · ${storage.generation_total ?: "?"} kept"))))
 
 ;; bt/net/vpn are always-present single rows now -- never appear, disappear,
@@ -111,26 +128,26 @@
     (sec :title "COMMON")
     (box :class "readout-pill wide" :halign "start" :space-evenly true
       (label :class "row" :halign "start" :text "bt")
-      (label :class "row" :halign "end"
+      (spk :i 14 :class "row" :halign "end"
              :text {!jq(bt, "has(\"count\")") ? "loading…"
                   : (bt.count ?: 0) == 0 ? "no devices"
                   : (bt.count ?: 0) == 1 ? (bt.devices[0].name + (jq(bt.devices[0], ".battery != null") ? "  ·  ${bt.devices[0].battery}%" : ""))
                   : "${bt.count} devices"}))
     (box :class "readout-pill wide" :halign "start" :space-evenly true
       (label :class "row" :halign "start" :text "net")
-      (label :class "row" :halign "end"
+      (spk :i 15 :class "row" :halign "end"
              :text {!jq(net, "has(\"kind\")") ? "loading…"
                   : (net.kind ?: "none") == "wifi"  ? "${net.ssid} ${net.signal_pct}%"
                   : (net.kind ?: "none") == "wired" ? "wired"
                   : "offline"}))
     (box :class "readout-pill wide" :halign "start" :space-evenly true
       (label :class "row" :halign "start" :text "vpn")
-      (label :class "row" :halign "end"
+      (spk :i 16 :class "row" :halign "end"
              :text {!jq(net, "has(\"vpn\")") ? "loading…"
                   : (net.vpn ?: false) ? "${net.vpn_name ?: "on"}" : "off"}))
     (box :class "readout-pill wide" :halign "start" :space-evenly true :visible is_desktop
       (label :class "row" :halign "start" :text {(power.present ?: false) ? "battery" : "power"})
-      (label :class "row" :halign "end"
+      (spk :i 17 :class "row" :halign "end"
              :text {(power.present ?: false) ? "${power.pct}% (${power.state})" : "AC ∞"}))))
 
 ;; :height 600 is a floor (GTK size-request semantics, same as :width 410
@@ -158,13 +175,13 @@
 
 (defwidget ledger-content [?dock]
   (box :class "ledger-bar ${dock ?: ""}${tablet ? " tablet" : ""}" :orientation "horizontal" :space-evenly false :spacing 6
-    (button :class "chip" :onclick "EWW update ledger_open=false; LAUNCHER_BIN" :timeout "5s" "󰀻 Launcher")
-    (button :class "chip" :onclick "EWW update ledger_open=false; UNIREMOTE_TOGGLE" :timeout "5s" :visible {!is_desktop} "󰠲 Uniremote")
-    (button :class "chip" :onclick "EWW update ledger_open=false; MOONLIGHT_TOGGLE" :timeout "5s" :visible {!is_desktop} "󰊗 Moonlight")
+    (button :class "chip" :onclick "EWW update ledger_open=false; LAUNCHER_BIN" :timeout "5s" (spk :i 18 :class "" :halign "center" :text "󰀻 Launcher"))
+    (button :class "chip" :onclick "EWW update ledger_open=false; UNIREMOTE_TOGGLE" :timeout "5s" :visible {!is_desktop} (spk :i 19 :class "" :halign "center" :text "󰠲 Uniremote"))
+    (button :class "chip" :onclick "EWW update ledger_open=false; MOONLIGHT_TOGGLE" :timeout "5s" :visible {!is_desktop} (spk :i 20 :class "" :halign "center" :text "󰊗 Moonlight"))
     (button :class "chip" :onclick "EWW update ledger_open=false; QUOTE_REFRESH" :timeout "5s"
             :tooltip {(stoic_quote.tooltip ?: "") != "" ? stoic_quote.tooltip : "loading…"}
-      (label :text {(stoic_quote.text ?: "") != "" ? "${stoic_quote.text} Quote" : "Quote"}))
-    (button :class "chip" :onclick "EWW update ledger_open=false; LIX_LOGOUT_TOGGLE" :timeout "5s" "󰐻 Logout")))
+      (spk :i 22 :class "" :halign "center" :text {(stoic_quote.text ?: "") != "" ? "${stoic_quote.text} Quote" : "Quote"}))
+    (button :class "chip" :onclick "EWW update ledger_open=false; LIX_LOGOUT_TOGGLE" :timeout "5s" (spk :i 21 :class "" :halign "center" :text "󰐻 Logout"))))
 
 ;; One window, one eventbox. Two overlapping right-anchored windows can't both
 ;; receive pointer events, and a window mapped over another via `eww open` never
@@ -324,3 +341,80 @@
                      :halign "center" :valign "center"
                   (label :class "launcher-glyph" :text {tile.icon})
                   (label :class "launcher-label" :text {tile.label}))))))))))
+
+(defwidget ts-slider [glyph value action icon_action]
+  (box :class "ts-slider-row" :orientation "horizontal" :space-evenly false :spacing 14
+    (button :class "ts-slider-icon" :timeout "3s"
+            :onclick {icon_action != "" ? "TABLET_ACT ${icon_action}" : "true"}
+      glyph)
+    (scale :class "ts-slider" :hexpand true :min 0 :max 101 :value value :timeout "2s"
+           :onchange "TABLET_ACT ${action} {}")))
+
+(defwidget ts-toggle [label glyph on action]
+  (button :class {on ? "ts-toggle on" : "ts-toggle"} :timeout "5s" :onclick "TABLET_ACT ${action}"
+    (box :orientation "vertical" :space-evenly false :spacing 6 :halign "center" :valign "center"
+      (label :class "ts-glyph" :text glyph)
+      (label :class "ts-label" :text label))))
+
+;; The strip is the tablet-mode bar: exclusive zone, so windows sit below it.
+;; A tap anywhere on it toggles the sheet.
+(defwindow tablet-strip
+  :monitor 0
+  :geometry (geometry :anchor "top center" :width "100%" :height "56px")
+  :stacking "fg" :focusable false :exclusive true
+  (eventbox :onclick "TABLET_ACT sheet"
+    (box :class "tablet-strip" :orientation "horizontal" :space-evenly false :spacing 22
+      (label :class "ts-clock" :text clock_text)
+      (label :class "ts-ws" :text {tablet_state.ws ?: ""})
+      (box :hexpand true)
+      (label :class "ts-sqlch" :visible {tablet_state.sqlch.playing ?: false}
+             :limit-width 26 :text "󰎆 ${tablet_state.sqlch.text ?: ""}")
+      (label :class "ts-net"
+             :text {(net.kind ?: "none") == "wifi" ? "󰖩" : (net.kind ?: "none") == "wired" ? "󰈀" : "󰖪"})
+      (label :class "ts-bat" :text "${tablet_state.bat.pct ?: 0}%${(tablet_state.bat.state ?: "") == "Charging" ? " 󰂄" : ""}"))))
+
+(defwindow tablet-sheet
+  :monitor 0
+  :geometry (geometry :anchor "top center" :width "100%" :y "56px")
+  :stacking "overlay" :focusable false :exclusive false
+  (box :class "tablet-sheet" :orientation "vertical" :space-evenly false :spacing 20
+    (ts-slider :glyph {(tablet_state.muted ?: false) ? "󰝟" : "󰕾"} :value {tablet_state.vol ?: 0}
+               :icon_action "mute" :action "vol")
+    (ts-slider :glyph "󰃟" :value {tablet_state.bright ?: 0} :icon_action "" :action "bright")
+    (box :class "ts-grid" :orientation "horizontal" :space-evenly true :spacing 14
+      (ts-toggle :label "Wi-Fi" :glyph "󰖩" :on {tablet_state.wifi_on ?: false} :action "wifi")
+      (ts-toggle :label "Bluetooth" :glyph "󰂯" :on {tablet_state.bt_on ?: false} :action "bt")
+      (ts-toggle :label "Keyboard" :glyph "󰌓" :on osk :action "osk")
+      (ts-toggle :label "Rotate" :glyph "󰑵" :on {tablet_state.rotate_on ?: false} :action "rotate")
+      (ts-toggle :label "Quiet" :glyph "󰂛" :on {tablet_state.dnd_on ?: false} :action "dnd")
+      (ts-toggle :label "Alerts" :glyph "󰂚" :on false :action "notif"))
+    (box :class "ts-card" :orientation "horizontal" :space-evenly false :spacing 14
+      (label :class "ts-card-main" :hexpand true :halign "start"
+             :text "${tablet_state.bat.pct ?: 0}%  ·  ${tablet_state.bat.state ?: ""}  ·  ${tablet_state.bat.eta_text ?: ""}")
+      (button :class "ts-pill" :timeout "5s" :onclick "TABLET_ACT profile"
+        (label :text {tablet_state.profile ?: "—"})))
+    (box :class "ts-card" :orientation "horizontal" :space-evenly false :spacing 14
+      (button :class "ts-pill" :timeout "3s" :onclick "TABLET_ACT sqlch prev" "⏮")
+      (button :class "ts-pill" :timeout "5s" :onclick "TABLET_ACT sqlch toggle"
+        {(tablet_state.sqlch.paused ?: false) ? "▶" : "⏸"})
+      (button :class "ts-pill" :timeout "3s" :onclick "TABLET_ACT sqlch next" "⏭")
+      (label :class "ts-card-main" :hexpand true :halign "start" :limit-width 40
+             :text {(tablet_state.sqlch.playing ?: false) ? (tablet_state.sqlch.text ?: "") : "sqlch  ·  not playing"}))
+    (box :class "ts-grid" :orientation "horizontal" :space-evenly true :spacing 14
+      (ts-toggle :label "Suspend" :glyph "󰒲" :on false :action "suspend")
+      (button :class "ts-toggle" :timeout "5s" :onclick "TABLET_ACT sheet; LIX_LOGOUT_TOGGLE"
+        (box :orientation "vertical" :space-evenly false :spacing 6 :halign "center" :valign "center"
+          (label :class "ts-glyph" :text "󰐥")
+          (label :class "ts-label" :text "Power"))))))
+
+;; Tablet-mode switchover fade (home/niri/tablet-fade.sh), 300ms crossfade both
+;; directions. The size is fixed and larger than any logical screen (the largest
+;; is 1368 at scale 2.0): a "100%" window is resolved when opened, so it would
+;; stop covering the output once the scale changes underneath it. (fade_on is
+;; declared with the other vars at the top.)
+(defwindow tablet-fade
+  :monitor 0
+  :geometry (geometry :anchor "center" :width "1400px" :height "1400px")
+  :stacking "overlay" :focusable false :exclusive false
+  (revealer :transition "crossfade" :duration "300ms" :reveal fade_on
+    (box :class "tablet-fade-box" :hexpand true :vexpand true)))

@@ -1,0 +1,40 @@
+current: nothing to report, which is the best kind of report.
+current: everything matches. suspicious, but fine.
+current: in sync. the flake is as pleased as a flake gets.
+current: no drift, no dirt. enjoy it while it lasts.
+current: deployed, booted, accounted for.
+behind: five commits behind and thriving.
+behind: the repo has opinions this host has not heard yet.
+behind: a few commits ahead of you, in the sense of behind.
+behind: the future is on main, waiting politely.
+behind: still running yesterday's good ideas.
+ahead: this host knows something main does not.
+ahead: running commits main has yet to hear about.
+ahead: ahead of the fleet, and nobody asked it to be.
+ahead: the experiment has outrun the record.
+ahead: unshipped, but spiritually deployed.
+diverged: two histories, one machine. someone should talk.
+diverged: both sides have commits. neither is wrong yet.
+diverged: the branches have agreed to disagree.
+diverged: a fork in the road, reached from both directions.
+diverged: this will need a human and a quiet afternoon.
+reboot: the new kernel is installed and being very patient.
+reboot: restart pending. it will not ask twice, but it will think about it.
+reboot: the running kernel is a little out of date.
+reboot: one reboot and everything lines up.
+reboot: change is staged. the machine is waiting for a moment.
+offline: no answer. possibly asleep, possibly just quiet.
+offline: the host is out of reach, and so is its opinion.
+offline: last seen elsewhere.
+offline: nobody home. the lights may still be on.
+offline: ssh knocked politely and got nothing.
+stale: the data is old. the host may be fine, just unobserved.
+stale: last heard from a while ago. no news, so far.
+stale: the collector has been quiet lately.
+stale: this picture is a little dusty.
+stale: reading from an older page of the notebook.
+nodata: no data yet. the collector is still getting to know this host.
+nodata: nothing recorded, so nothing to judge.
+nodata: a blank page. a fine place to start.
+nodata: the cache is empty and unbothered.
+nodata: waiting on the first sample.

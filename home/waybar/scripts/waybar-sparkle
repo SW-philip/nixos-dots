@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+"""waybar-sparkle CMD [ARGS...] — run a waybar exec, recolor a couple of random
+letters of each JSON `text` with theme accents (see waybar_palette.sparkle)."""
+import json
+import os
+import signal
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from waybar_palette import Palette, sparkle  # noqa: E402
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 2:
+        print(__doc__, file=sys.stderr)
+        return 2
+    child = subprocess.Popen(argv[1:], stdout=subprocess.PIPE, text=True)
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(sig, lambda *_: child.terminate())
+    palette = Palette()
+    try:
+        for line in child.stdout:
+            try:
+                frame = json.loads(line)
+                frame["text"] = sparkle(frame["text"], palette.get())
+                line = json.dumps(frame, ensure_ascii=False) + "\n"
+            except (ValueError, KeyError, TypeError, OSError):
+                pass
+            sys.stdout.write(line)
+            sys.stdout.flush()
+    except BrokenPipeError:
+        child.terminate()
+    return child.wait()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

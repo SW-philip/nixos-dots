@@ -214,7 +214,6 @@
   ############################################################
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
-    sandbox = false;
     http-connections = 25;
     connect-timeout = 10;
     stalled-download-timeout = 90;
@@ -251,6 +250,9 @@
     "kernel.kptr_restrict" = 2;
     "kernel.dmesg_restrict" = 1;
     "kernel.unprivileged_bpf_disabled" = 1;
+    "kernel.kexec_load_disabled" = 1;
+    "fs.protected_fifos" = 2;
+    "fs.protected_regular" = 2;
     "net.ipv4.conf.all.accept_redirects" = 0;
     "net.ipv4.conf.default.accept_redirects" = 0;
     "net.ipv6.conf.all.accept_redirects" = 0;

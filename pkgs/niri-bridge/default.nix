@@ -13,7 +13,9 @@ rustPlatform.buildRustPackage rec {
   };
 
   cargoLock = {
-    lockFile = "${src}/Cargo.lock";
+    # Vendored copy: reading it from ${src} is import-from-derivation, which
+    # breaks `nix flake check --no-build`. Refresh on a version bump.
+    lockFile = ./Cargo.lock;
     # Only non-crates.io dependency: a pinned evdev fork carrying an
     # upstream fix for UI_SET_PHYS's pointer-sized ioctl payload (0.13.2
     # on crates.io returns EINVAL). See Cargo.toml's inline comment.

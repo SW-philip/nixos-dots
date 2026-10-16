@@ -1,5 +1,5 @@
 # Wires up the 'ask' and 'embed' tools as packages on each host.
-# SWphil gets CUDA. Everyone else gets CPU inference. Same interface.
+# SWphil gets Vulkan (cached build; CUDA recompiled from source on every bump). Everyone else gets CPU inference. Same interface.
 
 { config, lib, pkgs, ... }:
 
@@ -16,8 +16,8 @@ let
   # sqlite-vec gives vector similarity search on a plain .db file (loaded at runtime as .so)
   sqliteVec = pkgs.sqlite-vec;
 
-  llamaBin = if cfg.cudaSupport
-    then pkgs.llama-cpp.override { cudaSupport = true; }
+  llamaBin = if cfg.vulkanSupport
+    then pkgs.llama-cpp-vulkan
     else pkgs.llama-cpp;
 
   embeddingUrl = "http://127.0.0.1:${toString cfg.embeddingPort}/v1/embeddings";
@@ -75,7 +75,7 @@ in
       description = "myln daily LLM diagnosis";
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${diagnoseScript}/bin/myln-diagnose";
+        ExecStart = "${diagnoseScript}/bin/myln-diagnose yesterday";
         User = cfg.user;
       };
     };
@@ -106,7 +106,6 @@ in
           "--batch-size" (toString cfg.embeddingBatchSize)
           "--ubatch-size" (toString cfg.embeddingBatchSize)
           "-ngl" (toString cfg.embeddingGpuLayers)
-          "--log-disable"
         ] ++ lib.optionals (cfg.embeddingContextOverrideKey != "") [
           "--override-kv" "${cfg.embeddingContextOverrideKey}=int:${toString cfg.embeddingCtxSize}"
         ]);
@@ -115,28 +114,47 @@ in
       };
     };
 
-    # Persistent inference server so myln-diagnose avoids cold CUDA init in a terminal.
-    # Model loads once at boot (D-state during startup is fine); diagnose becomes a curl call.
+    # Inference loads on demand: the socket owns inferencePort and (re)starts the
+    # proxy, which Requires the real server. Once the proxy idles out nothing
+    # needs the server any more, so StopWhenUnneeded unloads it and frees ~4 GB
+    # of the 1660's 6 GB VRAM.
+    systemd.sockets.myln-inference = {
+      description = "myln inference endpoint (starts llama-server on demand)";
+      wantedBy = [ "sockets.target" ];
+      listenStreams = [ "127.0.0.1:${toString cfg.inferencePort}" ];
+      socketConfig.Service = "myln-inference-proxy.service";
+    };
+
+    systemd.services.myln-inference-proxy = {
+      description = "myln inference socket proxy";
+      requires = [ "myln-inference.service" ];
+      after = [ "myln-inference.service" ];
+      serviceConfig = {
+        ExecStart = "${pkgs.systemd}/lib/systemd/systemd-socket-proxyd --exit-idle-time=${cfg.inferenceIdleTime} 127.0.0.1:${toString cfg.inferenceBackendPort}";
+        PrivateTmp = true;
+      };
+    };
+
     systemd.services.myln-inference = {
       description = "llama-server inference endpoint (myln-diagnose)";
-      wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
       unitConfig = {
         ConditionPathExists = cfg.modelPath;
-        # Stop retrying after 3 failures in 60s — model not downloaded yet.
-        # Run: sudo systemctl reset-failed myln-inference && myln-pull && sudo systemctl start myln-inference
-        StartLimitIntervalSec = 60;
-        StartLimitBurst = 3;
+        StopWhenUnneeded = true;
       };
       serviceConfig = {
         ExecStart = lib.escapeShellArgs ([
           "${llamaBin}/bin/llama-server"
           "--model" cfg.modelPath
-          "--port" (toString cfg.inferencePort)
+          "--port" (toString cfg.inferenceBackendPort)
           "--ctx-size" (toString cfg.ctxSize)
           "-ngl" (toString cfg.gpuLayers)
-          "--log-disable"
         ]);
+        # llama-server doesn't sd_notify, and /health is 503 while the model
+        # loads; block start-up until it is ready so the proxy never sees a
+        # refused connection.
+        ExecStartPost = "${pkgs.curl}/bin/curl -sf --retry 120 --retry-delay 1 --retry-connrefused --retry-all-errors -o /dev/null http://127.0.0.1:${toString cfg.inferenceBackendPort}/health";
+        TimeoutStartSec = 180;
         Restart = "on-failure";
         RestartSec = "5s";
       };

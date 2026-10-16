@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Evaluate every host before main reaches GitHub. ship.sh already does this and sets
+# SHIP_CHECKED=1; this catches a hand-typed `git push origin main`. Pushes to the pi
+# (tree-sync's wip/autosave pushes) and to any branch other than main are not checked.
+[[ "$1" == origin ]] || exit 0
+[[ "${SHIP_CHECKED:-}" == 1 ]] && exit 0
+pushing_main=0
+while read -r _ local_sha remote_ref _; do
+  [[ "$remote_ref" == refs/heads/main && "$local_sha" != 0000000000000000000000000000000000000000 ]] && pushing_main=1
+done
+[[ "$pushing_main" == 1 ]] || exit 0
+top=$(git rev-parse --show-toplevel)
+[[ -x "$top/scripts/check-hosts.sh" ]] || exit 0
+rc=0; "$top/scripts/check-hosts.sh" || rc=$?
+if [[ "$rc" -eq 3 ]]; then
+  [[ "${SHIP_UNCHECKED:-}" == 1 ]] && { echo "pre-push: pushing main unchecked (SHIP_UNCHECKED=1)" >&2; exit 0; }
+  echo "pre-push: hosts were NOT evaluated here (surface skips it) — push from desktop, or SHIP_UNCHECKED=1 after evaluating by hand" >&2
+  exit 1
+fi
+exit "$rc"

@@ -108,7 +108,8 @@ INDEXABLE_EXTENSIONS = {
 }
 
 
-SKIP_DIRS = {".git", "result", "__pycache__", ".cache", ".mozilla", ".pki", "chromium", "BraveSoftware", "secrets"}
+SKIP_DIRS = {".git", "result", "__pycache__", ".cache", ".mozilla", ".pki", "chromium", "BraveSoftware", "secrets",
+             "claude-archive", ".claude", ".claude-shared", "themes"}
 
 # Large data/asset files that add noise without semantic value
 SKIP_FILENAMES = {"teamcolors.json", "teamcolors-full.json", "boot_profile.html", "flake.lock", "sqlch.json"}
@@ -269,7 +270,7 @@ def main():
     parser.add_argument("--db", required=True, help="Path to vector DB")
     parser.add_argument("--ext", required=True, help="Path to sqlite-vec extension .so")
     parser.add_argument("--paths", nargs="+", required=True, help="Files/dirs to index")
-    parser.add_argument("--embed-url", default="http://127.0.0.1:8766/v1/embeddings",
+    parser.add_argument("--embed-url", default="http://127.0.0.1:8768/v1/embeddings",
                         help="llama-server embeddings endpoint")
     parser.add_argument("--workers", type=int, default=4,
                         help="Concurrent embedding requests (match server --parallel slots)")
@@ -307,6 +308,33 @@ def main():
         for i, chunk in enumerate(chunk_file(text, filepath, args.chunk_size, args.overlap)):
             work.append((str(filepath), i, chunk))
 
+    # Skip embedding for chunks whose content hash is already stored; embedding
+    # is the expensive step, so the check has to happen before it.
+    known = {
+        (src, idx): h
+        for src, idx, h in conn.execute("SELECT source, chunk_idx, hash FROM docs")
+    }
+    todo = [
+        item for item in work
+        if known.get((item[0], item[1])) != hashlib.sha256(item[2].encode()).hexdigest()[:16]
+    ]
+
+    # Drop rows for chunks that no longer exist (deleted files, shrunk files),
+    # but only within the paths being indexed.
+    roots = tuple(str(Path(p).expanduser().resolve()) for p in args.paths)
+    live = {(src, idx) for src, idx, _ in work}
+    stale = [
+        key for key in known
+        if key[0].startswith(roots) and key not in live
+    ]
+    for src, idx in stale:
+        row = conn.execute(
+            "SELECT id FROM docs WHERE source = ? AND chunk_idx = ?", (src, idx)
+        ).fetchone()
+        conn.execute("DELETE FROM doc_vectors WHERE id = ?", (row[0],))
+        conn.execute("DELETE FROM docs WHERE id = ?", (row[0],))
+    print(f"{len(work)} chunks: {len(todo)} to embed, {len(work) - len(todo)} unchanged, {len(stale)} stale removed")
+
     def embed_one(item):
         source, i, chunk = item
         if use_server:
@@ -320,8 +348,8 @@ def main():
     total_chunks = 0
     workers = args.workers if use_server else 1
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(embed_one, item): item for item in work}
-        for fut in tqdm(as_completed(futures), total=len(work), desc="Indexing"):
+        futures = {pool.submit(embed_one, item): item for item in todo}
+        for fut in tqdm(as_completed(futures), total=len(todo), desc="Indexing"):
             source, i, chunk, embedding = fut.result()
             upsert_chunk(conn, source, i, chunk, embedding)
             total_chunks += 1
@@ -330,7 +358,7 @@ def main():
 
     conn.commit()
     conn.close()
-    print(f"\nIndexed {total_chunks} chunks from {len(files)} files → {args.db}")
+    print(f"\nEmbedded {total_chunks} chunks from {len(files)} files → {args.db}")
 
 
 if __name__ == "__main__":

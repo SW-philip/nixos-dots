@@ -131,13 +131,8 @@ in
   boot.kernel.sysctl = {
     "vm.swappiness" = 100;
     "vm.page-cluster" = 0;
-
-    # ptrace_scope, dmesg/kptr restrict and unprivileged-bpf are already tight;
     # rp_filter is left loose on purpose (tailscale and wireguard route
-    # asymmetrically).
-    "kernel.kexec_load_disabled" = 1;
-    "fs.protected_fifos" = 2;
-    "fs.protected_regular" = 2;
+    # asymmetrically); the rest of the hardening sysctls live in roles/base.nix.
   };
 
   # No modem here; NetworkManager pulls ModemManager in by default.

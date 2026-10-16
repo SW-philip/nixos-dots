@@ -10,6 +10,14 @@ in
 {
   home.packages = [ treeSync ];
 
+  # Hooks live in the tree so every host gets the same ones; core.hooksPath is
+  # per-clone config, so it is set here rather than in git itself.
+  home.activation.treeSyncHooks = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -d "$HOME/nixos/.git" ]; then
+      run ${pkgs.git}/bin/git -C "$HOME/nixos" config core.hooksPath scripts/git-hooks
+    fi
+  '';
+
   systemd.user.services.tree-sync = {
     Unit.Description = "Autosave and fast-forward ~/nixos through the pi git hub";
     Service = {

@@ -246,4 +246,54 @@ rc=0; out=$(ts hostA "$T/A" auto 2>&1) || rc=$?
 assert_eq "dirty auto exits 0" "0" "$rc"
 assert_eq "dirty auto stderr has no unbound variable" "0" "$(grep -c 'unbound variable' <<<"$out")"
 
+echo "== rebase: diverged commits, clean tree =="
+fresh
+echo a > "$T/A/a.txt"; git -C "$T/A" add -A; git -C "$T/A" commit -qm a; ts hostA "$T/A" save >/dev/null
+echo b > "$T/B/b.txt"; git -C "$T/B" add -A; git -C "$T/B" commit -qm b
+ts hostB "$T/B" pull >/dev/null 2>&1
+rc=0; ts hostB "$T/B" rebase >/dev/null 2>&1 || rc=$?
+assert_eq "rebase exits 0" "0" "$rc"
+assert_ok "B has A's commit" test -f "$T/B/a.txt"
+assert_ok "B keeps its own commit" test -f "$T/B/b.txt"
+assert_eq "history is linear (no merge commits)" "0" "$(git -C "$T/B" rev-list --merges HEAD | wc -l)"
+ts hostB "$T/B" save >/dev/null 2>&1
+assert_eq "hub wip now equals B" "$(git -C "$T/B" rev-parse HEAD)" "$(git -C "$HUB" rev-parse wip)"
+
+echo "== rebase: behind with unsaved work =="
+fresh
+echo a > "$T/A/a.txt"; git -C "$T/A" add -A; git -C "$T/A" commit -qm a; ts hostA "$T/A" save >/dev/null
+echo unsaved > "$T/B/u.txt"; echo edit >> "$T/B/flake.nix"
+ts hostB "$T/B" rebase >/dev/null 2>&1
+assert_ok "B got A's commit" test -f "$T/B/a.txt"
+assert_eq "unsaved untracked file survives" "unsaved" "$(cat "$T/B/u.txt")"
+assert_eq "unsaved edit survives" "1" "$(grep -c '^edit$' "$T/B/flake.nix")"
+assert_eq "stash list is empty after a clean pop" "0" "$(git -C "$T/B" stash list | wc -l)"
+
+echo "== rebase: conflicting commits leave everything untouched =="
+fresh
+echo A > "$T/A/flake.nix"; git -C "$T/A" commit -qam a; ts hostA "$T/A" save >/dev/null
+echo B > "$T/B/flake.nix"; git -C "$T/B" commit -qam b
+echo mine > "$T/B/u.txt"
+before=$(git -C "$T/B" rev-parse HEAD)
+rc=0; ts hostB "$T/B" rebase >/dev/null 2>&1 || rc=$?
+assert_eq "conflict exits 2" "2" "$rc"
+assert_eq "HEAD unchanged" "$before" "$(git -C "$T/B" rev-parse HEAD)"
+assert_eq "no rebase in progress" "0" "$(ls -d "$T/B/.git/rebase-merge" "$T/B/.git/rebase-apply" 2>/dev/null | wc -l)"
+assert_eq "unsaved file restored" "mine" "$(cat "$T/B/u.txt")"
+assert_eq "no stash left behind" "0" "$(git -C "$T/B" stash list | wc -l)"
+
+echo "== guard =="
+fresh
+echo a > "$T/A/a.txt"; git -C "$T/A" add -A; git -C "$T/A" commit -qm a; ts hostA "$T/A" save >/dev/null
+assert_ok "guard passes before B has fetched" bash -c "cd '$T/B' && TREE_SYNC_ROOT='$T/B' '$SCRIPT' guard"
+ts hostB "$T/B" pull >/dev/null 2>&1   # clean tree: fast-forwards, so B is no longer behind
+assert_ok "guard passes when up to date" bash -c "cd '$T/B' && TREE_SYNC_ROOT='$T/B' '$SCRIPT' guard"
+echo c > "$T/A/c.txt"; git -C "$T/A" add -A; git -C "$T/A" commit -qm c; ts hostA "$T/A" save >/dev/null
+echo dirty > "$T/B/u.txt"
+ts hostB "$T/B" pull >/dev/null 2>&1   # dirty tree: fetches but cannot fast-forward
+assert_fail "guard blocks when behind the last-fetched hub" bash -c "cd '$T/B' && TREE_SYNC_ROOT='$T/B' '$SCRIPT' guard"
+assert_ok "TREE_SYNC_GUARD=0 bypasses" bash -c "cd '$T/B' && TREE_SYNC_GUARD=0 TREE_SYNC_ROOT='$T/B' '$SCRIPT' guard"
+git -C "$T/B" checkout -q -b side
+assert_ok "guard ignores other branches" bash -c "cd '$T/B' && TREE_SYNC_ROOT='$T/B' '$SCRIPT' guard"
+
 exit "$fail"

@@ -67,7 +67,7 @@ The `config_context` snapshot is intentional: your config changes. Storing what 
 ## Dependencies
 
 - `sqlite-vec` extension (`.so` / `.dylib`) — path will be a nix store hash; resolve at runtime or pin in a derivation
-- `llama-cpp` running a local embedding model on `http://127.0.0.1:8766/v1/embeddings`
+- `llama-cpp` running a local embedding model on `http://127.0.0.1:8768/v1/embeddings`
 - `requests`, `tqdm` (Python)
 - `nix` CLI (for `nix derivation show` in `map_store.py`)
 - `git` CLI (for diff capture in `fail_log.py`)
@@ -82,7 +82,7 @@ python embed.py --db vectors.db --ext vec0.so --paths ~/nixos ~/.config
 nrs  # alias wraps nix build .#nixosConfigurations.SWphil
 
 # 3. Query config
-python retrieve.py --db vectors.db --ext vec0.so --query "how is ghostty configured" --embed-url http://127.0.0.1:8766/v1/embeddings
+python retrieve.py --db vectors.db --ext vec0.so --query "how is ghostty configured" --embed-url http://127.0.0.1:8768/v1/embeddings
 
 # 4. Query past failures
 python fail_log.py --db vectors.db --ext vec0.so --query "$(cat /var/lib/myln/last-stderr)"

@@ -21,7 +21,7 @@
   ############################################################
   # Boot (lanzaboote via roles/secure-boot.nix) + LUKS (TPM2 auto-unlock; enrolled by hand, see plan Task 4)
   ############################################################
-  environment.systemPackages = [ pkgs.sbctl pkgs.fastfetch ];
+  environment.systemPackages = [ pkgs.sbctl pkgs.fastfetch pkgs.ghostty.terminfo ];
   environment.shellAliases.ff = "fastfetch";
 
   # A headless box can't sit at a passphrase prompt. The crypttab option is

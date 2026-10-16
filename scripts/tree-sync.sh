@@ -5,6 +5,8 @@
 #   save              autosave unsaved work to refs/autosave/<host>, push wip
 #   pull              fast-forward wip (clean tree only), list other hosts' unsaved work
 #   restore <host>    stage <host>'s autosaved work into this tree
+#   rebase            replay local wip commits (and unsaved work) over the hub's wip
+#   guard             exit 1 if wip is behind the last-fetched hub wip (git pre-commit hook)
 #   assets            pull gitignored files (wallpapers...) from $TREE_SYNC_ASSETS_FROM
 #   auto              pull, save, assets (what the timer runs)
 #   status            local view only, no network
@@ -134,6 +136,48 @@ restore_tree() {
   say "restored $h's unsaved work, staged: review with git diff --cached"
 }
 
+# Replays local commits over the hub's wip; unsaved work rides along in a stash. Any
+# conflict puts everything back as it was, so a failed rebase never costs work.
+rebase_tree() {
+  local theirs="refs/remotes/$REMOTE/$BRANCH" stashed=0
+  [[ "$(git -C "$ROOT" branch --show-current)" == "$BRANCH" ]] || { warn "not on $BRANCH"; return 1; }
+  fetch_hub
+  git -C "$ROOT" rev-parse -q --verify "$theirs" >/dev/null || { warn "$REMOTE has no $BRANCH"; return 1; }
+  if git -C "$ROOT" merge-base --is-ancestor "$theirs" HEAD; then
+    say "$BRANCH already contains $REMOTE/$BRANCH"
+    return 0
+  fi
+  if ! is_clean "$ROOT"; then
+    git -C "$ROOT" stash push -u -q -m "tree-sync rebase" || { warn "could not stash unsaved work"; return 1; }
+    stashed=1
+  fi
+  if ! git -C "$ROOT" rebase -q "$theirs" >/dev/null 2>&1; then
+    git -C "$ROOT" rebase --abort
+    [[ "$stashed" -eq 1 ]] && git -C "$ROOT" stash pop -q
+    warn "rebase onto $REMOTE/$BRANCH conflicts; nothing was changed. Resolve by hand: git rebase $theirs"
+    return 2
+  fi
+  if [[ "$stashed" -eq 1 ]] && ! git -C "$ROOT" stash pop -q; then
+    warn "rebased, but unsaved work conflicts with $REMOTE/$BRANCH: markers are in the tree, original work is still in 'git stash list'"
+    return 2
+  fi
+  say "rebased $BRANCH onto $(git -C "$ROOT" rev-parse --short "$theirs")"
+}
+
+# Uses the ref the timer last fetched, never the network, so a commit costs nothing
+# extra and works offline. TREE_SYNC_GUARD=0 (or --no-verify) skips it.
+cmd_guard() {
+  local top theirs
+  [[ "${TREE_SYNC_GUARD:-1}" == 0 ]] && return 0
+  top=$(git rev-parse --show-toplevel) || return 0
+  [[ "$(git -C "$top" branch --show-current)" == "$BRANCH" ]] || return 0
+  theirs="refs/remotes/$REMOTE/$BRANCH"
+  git -C "$top" rev-parse -q --verify "$theirs" >/dev/null || return 0
+  git -C "$top" merge-base --is-ancestor "$theirs" HEAD && return 0
+  warn "$BRANCH is behind $REMOTE (another host committed); a commit here would diverge. Run: tree-sync rebase"
+  return 1
+}
+
 cmd_status() {
   local ahead behind ref
   say "tree: $ROOT on $(git -C "$ROOT" branch --show-current), $(git -C "$ROOT" status --porcelain | wc -l) changed path(s)"
@@ -201,11 +245,13 @@ main() {
   local cmd=${1:-} rc=0
   [[ $# -gt 0 ]] && shift
   [[ "$cmd" == status ]] && { cmd_status; return 0; }
+  [[ "$cmd" == guard ]] && { cmd_guard; return; }
   exec 9>"$LOCK"
   flock -n 9 || { say "already running"; return 0; }
   case "$cmd" in
     save)    hub_up || return 0; save_tree; sync_cs ;;
     pull)    hub_up || return 0; pull_tree || rc=$?; sync_cs || rc=$?; return "$rc" ;;
+    rebase)  hub_up || return 0; rebase_tree || rc=$?; sync_cs || true; return "$rc" ;;
     restore) if hub_up; then fetch_hub; fi; restore_tree "${1:?usage: tree-sync restore <host>}" ;;
     assets)  cmd_assets ;;
     auto)    hub_up || return 0
@@ -214,7 +260,7 @@ main() {
              save_tree || warn "autosave failed (hub dropped mid-run?)"
              sync_cs || true
              cmd_assets ;;
-    *) echo "usage: tree-sync {save|pull|restore <host>|assets|auto|status}" >&2; return 64 ;;
+    *) echo "usage: tree-sync {save|pull|rebase|restore <host>|assets|auto|status|guard}" >&2; return 64 ;;
   esac
 }
 main "$@"

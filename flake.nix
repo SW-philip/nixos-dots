@@ -231,6 +231,7 @@
       desktop = self.nixosConfigurations.desktop.config.system.build.toplevel;
       retro   = self.nixosConfigurations.retro.config.system.build.toplevel;
     };
+    checks.aarch64-linux.pi = self.nixosConfigurations.pi.config.system.build.toplevel;
     nixosConfigurations = {
       surface = nixpkgs.lib.nixosSystem {
         inherit system;

@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }:
 let
-  artDir = "/home/prepko/.local/share/retro-tiles/art";
+  artDir = "/home/${config.myConfig.user}/.local/share/retro-tiles/art";
   tileSystems = builtins.filter (s: s.tile or false)
     (import ../hosts/retro-systems.nix { inherit pkgs; });
   # KMS capture grabs the first enabled output and floods "Couldn't get drm

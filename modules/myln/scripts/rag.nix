@@ -23,12 +23,13 @@ in
       exit 1
     fi
 
-    # Talk to the persistent myln-inference server (module.nix) rather than loading
-    # our own copy of the model — it already holds the model on the GPU, and a second
+    # Talk to the myln-inference server (module.nix, started on demand by the socket
+    # on first connect, hence the long health wait) rather than loading
+    # our own copy of the model — it holds the model on the GPU, and a second
     # llama-completion process requesting -ngl ${toString cfg.gpuLayers} on top of that
     # blows out VRAM (cudaMalloc failed: out of memory).
-    if ! ${pkgs.curl}/bin/curl -sf --max-time 2 "http://127.0.0.1:${toString cfg.inferencePort}/health" > /dev/null 2>&1; then
-      echo "myln-inference.service is not up — start it first: sudo systemctl start myln-inference" >&2
+    if ! ${pkgs.curl}/bin/curl -sf --max-time 120 "http://127.0.0.1:${toString cfg.inferencePort}/health" > /dev/null 2>&1; then
+      echo "myln-inference did not come up — check: systemctl status myln-inference" >&2
       exit 1
     fi
 
@@ -53,6 +54,7 @@ in
         ],
         max_tokens: $n,
         temperature: $t,
+        chat_template_kwargs: {enable_thinking: false},
         stop: ["</s>", "<|end|>", "<|endoftext|>"]
       }')
 

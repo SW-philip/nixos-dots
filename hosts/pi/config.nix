@@ -62,11 +62,13 @@ in
 
   systemd.services.git-maintain = {
     path = [ pkgs.git ];
-    serviceConfig = {
+    serviceConfig = (import ../../lib/sandbox.nix) // {
       Type = "oneshot";
       User = "git";
       Nice = 19;
       IOSchedulingClass = "idle";
+      ReadWritePaths = [ "/srv/git" ];
+      UMask = "0077";
     };
     startAt = "weekly";
     script = ''
@@ -88,7 +90,7 @@ in
   security.sudo.wheelNeedsPassword = false;
 
   # No home-manager here, so no themed ff: stock fastfetch under the usual name.
-  environment.systemPackages = [ pkgs.fastfetch ];
+  environment.systemPackages = [ pkgs.fastfetch pkgs.ghostty.terminfo ];
   environment.shellAliases.ff = "fastfetch";
 
   services.tailscale.enable = true;

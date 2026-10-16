@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Refuse a commit on wip while the hub's wip is ahead (see `tree-sync guard`).
+command -v tree-sync >/dev/null || exit 0
+exec tree-sync guard

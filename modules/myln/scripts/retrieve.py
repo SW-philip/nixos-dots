@@ -14,6 +14,7 @@ import sqlite3
 import hashlib
 import struct
 import math
+import re
 import sys
 import os
 from pathlib import Path
@@ -47,6 +48,33 @@ def get_vector_dim(conn: sqlite3.Connection) -> int:
         return 384
     # packed floats: 4 bytes each
     return len(row[0]) // 4
+
+
+MAX_BOOST_FILES = 3
+MAX_FILES_PER_TOKEN = 4
+
+
+def filename_matches(conn: sqlite3.Connection, query: str) -> list[str]:
+    """Indexed files whose basename contains a distinctive query token.
+
+    Embedding search ranks by meaning, so a query naming a file ("niri-workspace
+    tooltip") can miss the file's own script. A token only counts if it is
+    specific: 5+ chars or hyphenated, and matching at most a few basenames.
+    """
+    tokens = {
+        t for t in re.findall(r"[a-z0-9][a-z0-9._-]*[a-z0-9]", query.lower())
+        if len(t) >= 5 or "-" in t
+    }
+    sources = [r[0] for r in conn.execute("SELECT DISTINCT source FROM docs")]
+    scored: dict[str, int] = {}
+    for tok in tokens:
+        hits = [s for s in sources if tok in os.path.basename(s).lower()]
+        if not hits or len(hits) > MAX_FILES_PER_TOKEN:
+            continue
+        for s in hits:
+            scored[s] = max(scored.get(s, 0), len(tok))
+    ranked = sorted(scored, key=lambda s: (-scored[s], s))
+    return ranked[:MAX_BOOST_FILES]
 
 
 def retrieve(
@@ -98,7 +126,37 @@ def retrieve(
         (packed, top_k),
     ).fetchall()
 
+    # Pin the best chunk of each name-matched file, displacing the weakest
+    # vector hits so the total (and the prompt size) stays at top_k.
+    boosted = []
+    words = {w for w in re.findall(r"[a-z0-9_]{4,}", query.lower())}
+    for src in filename_matches(conn, query):
+        cands = conn.execute(
+            """
+            SELECT d.source, d.chunk_idx, d.content,
+                   vec_distance_cosine(v.embedding, ?) AS distance
+            FROM doc_vectors v JOIN docs d ON d.id = v.id
+            WHERE d.source = ?
+            """,
+            (packed, src),
+        ).fetchall()
+        if cands:
+            # Literal query words beat embedding distance inside a file: the
+            # tooltip logic and the file's tail can embed alike, but only one
+            # of them contains the word "tooltip". Words already in the
+            # filename are skipped; they appear in most chunks and don't discriminate.
+            name = os.path.basename(src).lower()
+            terms = [w for w in words if w not in name]
+            boosted.append(min(
+                cands,
+                key=lambda r: (-sum(w in r[2].lower() for w in terms), r[3]),
+            ))
+
     conn.close()
+
+    seen = {(b[0], b[1]) for b in boosted}
+    merged = boosted + [r for r in rows if (r[0], r[1]) not in seen]
+    merged = merged[:top_k]
 
     return [
         {
@@ -107,7 +165,7 @@ def retrieve(
             "content": row[2],
             "distance": row[3],
         }
-        for row in rows
+        for row in merged
     ]
 
 

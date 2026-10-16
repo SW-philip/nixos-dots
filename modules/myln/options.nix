@@ -4,10 +4,10 @@
   options.myln = {
     enable = lib.mkEnableOption "myln — NixOS-native RAG assistant";
 
-    cudaSupport = lib.mkOption {
+    vulkanSupport = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = "Enable CUDA acceleration (SWphil only)";
+      description = "Use the Vulkan llama.cpp build (binary-cached, unlike CUDA which compiles locally).";
     };
 
     modelPath = lib.mkOption {
@@ -18,8 +18,8 @@
 
     modelUrl = lib.mkOption {
       type = lib.types.str;
-      # Phi-3 Mini 4K Q4 — 2.2GB, fits in 6GB VRAM with room for context
-      default = "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf";
+      # Qwen3 4B Q4_K_M — 2.5GB, fits in 6GB VRAM with room for context
+      default = "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf";
       description = "URL for myln-pull to fetch the model";
     };
 
@@ -96,12 +96,12 @@
     gpuLayers = lib.mkOption {
       type = lib.types.int;
       default = 0;
-      description = "Layers to offload to GPU. Set to 999 to offload all (with cudaSupport).";
+      description = "Layers to offload to GPU. Set to 999 to offload all (with vulkanSupport).";
     };
 
     embeddingPort = lib.mkOption {
       type = lib.types.int;
-      default = 8766;
+      default = 8768;
       description = "Port for the llama-server embedding endpoint.";
     };
 
@@ -153,7 +153,19 @@
     inferencePort = lib.mkOption {
       type = lib.types.int;
       default = 8767;
-      description = "Port for the persistent llama-server inference endpoint used by myln-diagnose.";
+      description = "Port clients use for inference. A systemd socket listens here and starts the server on demand.";
+    };
+
+    inferenceBackendPort = lib.mkOption {
+      type = lib.types.int;
+      default = 8769;
+      description = "Port the on-demand llama-server actually binds; the socket proxies inferencePort to it.";
+    };
+
+    inferenceIdleTime = lib.mkOption {
+      type = lib.types.str;
+      default = "5min";
+      description = "Idle time after which the inference server unloads and frees its VRAM.";
     };
 
     logPriority = lib.mkOption {
@@ -180,6 +192,37 @@
       default = [];
       description = "Extended regex patterns applied to 'unit message' lines after unit filtering. Lines matching any pattern are dropped.";
       example = [ "systemd: Failed to.*scope.*: No such process" ];
+    };
+
+    knownIssues = lib.mkOption {
+      type = lib.types.listOf (lib.types.submodule {
+        options = {
+          pattern = lib.mkOption {
+            type = lib.types.str;
+            description = "Python regex searched against the normalized 'unit message' line (PIDs, store hashes and numbers of 4+ digits are already replaced).";
+          };
+          verdict = lib.mkOption {
+            type = lib.types.enum [ "action" "watch" "benign" ];
+            description = "action: needs doing; watch: only matters if it keeps happening or something visibly breaks; benign: expected.";
+          };
+          note = lib.mkOption {
+            type = lib.types.str;
+            description = "What it means and what to do, shown in the report instead of asking the model.";
+          };
+          clearedBy = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "Python regex on 'unit: message'. If the journal has a matching line after the rule's last match, the report shows it as resolved.";
+          };
+        };
+      });
+      default = [];
+      description = ''
+        Errors diagnosed without the model. Matched lines appear under "Known issues"
+        in the report and are not sent to the LLM; first matching rule wins. Extra rules
+        can be added without a rebuild in <storePath>/known-issues.tsv
+        (pattern, verdict, note separated by tabs).
+      '';
     };
 
     diagnosisMaxTokens = lib.mkOption {

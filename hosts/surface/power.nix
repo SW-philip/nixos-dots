@@ -1,5 +1,8 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
+let
+  drainDir = "/home/${config.myConfig.user}/.cache/sleep-drain";
+in
 {
   environment.systemPackages = [ pkgs.powertop ];
 
@@ -96,7 +99,7 @@
   environment.etc."systemd/system-sleep/sleep-drain" = {
     mode = "0755";
     source = pkgs.writeShellScript "sleep-drain-hook" ''
-      ${pkgs.coreutils}/bin/mkdir -p /home/prepko/.cache/sleep-drain
+      ${pkgs.coreutils}/bin/mkdir -p ${drainDir}
       energy="$(${pkgs.coreutils}/bin/cat /sys/class/power_supply/BAT1/energy_now 2>/dev/null || echo 0)"
       now="$(${pkgs.coreutils}/bin/date +%s)"
       s0ix="$(${pkgs.coreutils}/bin/cat /sys/kernel/debug/pmc_core/slp_s0_residency_usec 2>/dev/null || echo -1)"
@@ -114,19 +117,19 @@
           suspects="''${suspects:+$suspects; }$prod"
         done
         printf '%s\n%s\n%s\n%s\n%s\n' "$energy" "$now" "$s0ix" "$suspects" "$ac" \
-          > /home/prepko/.cache/sleep-drain/pre
+          > ${drainDir}/pre
         # Phase 3: snapshot wake counters for the post hook to diff.
         # Line 1 = kernel wakeup_count; lines 2+ = "<source>\t<active_count>".
         {
           ${pkgs.coreutils}/bin/cat /sys/power/wakeup_count 2>/dev/null || echo 0
           ${pkgs.gawk}/bin/awk 'NR>1{print $1"\t"$2}' /sys/kernel/debug/wakeup_sources 2>/dev/null
-        } > /home/prepko/.cache/sleep-drain/wake-pre
+        } > ${drainDir}/wake-pre
       elif [ "$1" = post ]; then
         wake_count=-1
         top_source=""
-        if [ -f /home/prepko/.cache/sleep-drain/wake-pre ]; then
+        if [ -f ${drainDir}/wake-pre ]; then
           wc_post="$(${pkgs.coreutils}/bin/cat /sys/power/wakeup_count 2>/dev/null || echo 0)"
-          wc_pre="$(${pkgs.coreutils}/bin/head -1 /home/prepko/.cache/sleep-drain/wake-pre)"
+          wc_pre="$(${pkgs.coreutils}/bin/head -1 ${drainDir}/wake-pre)"
           wake_count=$(( wc_post - wc_pre ))
           [ "$wake_count" -lt 0 ] && wake_count=0
           top_source="$(${pkgs.gawk}/bin/awk '
@@ -134,19 +137,19 @@
             FNR==1 { next }
             { d=$2-pre[$1]; if (d>max){max=d; src=$1} }
             END { if (max>0) print src }
-          ' /home/prepko/.cache/sleep-drain/wake-pre /sys/kernel/debug/wakeup_sources 2>/dev/null)"
+          ' ${drainDir}/wake-pre /sys/kernel/debug/wakeup_sources 2>/dev/null)"
         fi
         printf '%s\n%s\n%s\n%s\n%s\n' "$energy" "$now" "$s0ix" "$wake_count" "$top_source" \
-          > /home/prepko/.cache/sleep-drain/post
+          > ${drainDir}/post
 
         # history.log: post overwrites on every cycle, so a flapping burst
         # (suspend/resume repeating within seconds) clobbers its own evidence
         # before anyone can look at it. Append one line per cycle instead.
-        pre_time="$(${pkgs.gnused}/bin/sed -n 2p /home/prepko/.cache/sleep-drain/pre 2>/dev/null || echo "$now")"
-        pre_suspects="$(${pkgs.gnused}/bin/sed -n 4p /home/prepko/.cache/sleep-drain/pre 2>/dev/null)"
+        pre_time="$(${pkgs.gnused}/bin/sed -n 2p ${drainDir}/pre 2>/dev/null || echo "$now")"
+        pre_suspects="$(${pkgs.gnused}/bin/sed -n 4p ${drainDir}/pre 2>/dev/null)"
         duration=$(( now - pre_time ))
         # Share of the sleep the SoC spent in S0ix (slp_s0_residency_usec delta).
-        pre_s0ix="$(${pkgs.gnused}/bin/sed -n 3p /home/prepko/.cache/sleep-drain/pre 2>/dev/null)"
+        pre_s0ix="$(${pkgs.gnused}/bin/sed -n 3p ${drainDir}/pre 2>/dev/null)"
         s0ix_pct=n/a
         if [ "$s0ix" -ge 0 ] && [ "''${pre_s0ix:--1}" -ge 0 ] && [ "$duration" -gt 0 ]; then
           s0ix_pct="$(${pkgs.gawk}/bin/awk -v d=$(( s0ix - pre_s0ix )) -v t="$duration" 'BEGIN{printf "%d%%", d/(t*10000)}')"
@@ -155,20 +158,20 @@
           printf '%s\tduration=%ss\ts0ix=%s\twake_count=%s\ttop_source=%s\tsuspects=%s\n' \
             "$(${pkgs.coreutils}/bin/date -d "@$now" -Iseconds)" \
             "$duration" "$s0ix_pct" "$wake_count" "''${top_source:-none}" "''${pre_suspects:-none}"
-        } >> /home/prepko/.cache/sleep-drain/history.log
+        } >> ${drainDir}/history.log
         # drain.log feeds the eww wing. A sleep only counts as a drain sample if
         # AC was absent at both ends; charging masks (or inverts) the delta.
-        pre_energy="$(${pkgs.gnused}/bin/sed -n 1p /home/prepko/.cache/sleep-drain/pre 2>/dev/null || echo 0)"
-        pre_ac="$(${pkgs.gnused}/bin/sed -n 5p /home/prepko/.cache/sleep-drain/pre 2>/dev/null || echo 1)"
+        pre_energy="$(${pkgs.gnused}/bin/sed -n 1p ${drainDir}/pre 2>/dev/null || echo 0)"
+        pre_ac="$(${pkgs.gnused}/bin/sed -n 5p ${drainDir}/pre 2>/dev/null || echo 1)"
         printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$now" "$duration" "$pre_energy" "$energy" "$pre_ac" "$ac" \
-          >> /home/prepko/.cache/sleep-drain/drain.log
-        ${pkgs.coreutils}/bin/tail -n 500 /home/prepko/.cache/sleep-drain/drain.log \
-          > /home/prepko/.cache/sleep-drain/drain.log.tmp \
-          && ${pkgs.coreutils}/bin/mv /home/prepko/.cache/sleep-drain/drain.log.tmp /home/prepko/.cache/sleep-drain/drain.log
+          >> ${drainDir}/drain.log
+        ${pkgs.coreutils}/bin/tail -n 500 ${drainDir}/drain.log \
+          > ${drainDir}/drain.log.tmp \
+          && ${pkgs.coreutils}/bin/mv ${drainDir}/drain.log.tmp ${drainDir}/drain.log
         # Cap growth — keep the most recent 2000 cycles.
-        ${pkgs.coreutils}/bin/tail -n 2000 /home/prepko/.cache/sleep-drain/history.log \
-          > /home/prepko/.cache/sleep-drain/history.log.tmp \
-          && ${pkgs.coreutils}/bin/mv /home/prepko/.cache/sleep-drain/history.log.tmp /home/prepko/.cache/sleep-drain/history.log
+        ${pkgs.coreutils}/bin/tail -n 2000 ${drainDir}/history.log \
+          > ${drainDir}/history.log.tmp \
+          && ${pkgs.coreutils}/bin/mv ${drainDir}/history.log.tmp ${drainDir}/history.log
       fi
     '';
   };

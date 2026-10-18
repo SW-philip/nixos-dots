@@ -41,6 +41,9 @@
     shell = lib.mkForce pkgs.bash;
     extraGroups = lib.mkForce [ "wheel" "networkmanager" ];
   };
+  # Passwordless on purpose: remote deploys (nixos-rebuild --sudo over ssh) can't prompt, and
+  # scoping NOPASSWD to deploy commands buys nothing since nix-env/systemd-run/switch-to-configuration
+  # are root-equivalent. A wrong rule would lock out deploys.
   security.sudo.wheelNeedsPassword = false;
 
   # No password, no keys: only ever autologged-in by cage.

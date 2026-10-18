@@ -77,6 +77,7 @@
   programs.fzf.historyWidget.command = "";
 
   home.packages = with pkgs; [
+    orch
     wayland-utils
     ydotool
     vulkan-tools

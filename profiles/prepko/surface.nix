@@ -24,9 +24,11 @@ in
     ../../home/sync-status.nix
     ../../home/pass-through.nix
     ../../home/quivr.nix
+    ../../home/go-librespot.nix
     ../../home/on.nix
     ../../home/shared-apps
     ../../home/network-notify.nix
+    ../../home/autobrightness.nix
   ];
 
   ########################################

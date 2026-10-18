@@ -457,16 +457,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1791488589,
-        "narHash": "sha256-mJtPANXxy5Jpnqlw3ZgnMK8EZEM0PrCNO6kEv4QI0RA=",
+        "lastModified": 1792295953,
+        "narHash": "sha256-UqEwghLzWj29Krr9Hd+i7FaVGogLo7OCmgyob3c127I=",
         "owner": "SW-philip",
-        "repo": "sqlch",
-        "rev": "cdeec7e0f50aed5bf9cdb4556179b4f51a3e5c76",
+        "repo": "sqlch-sources-dev",
+        "rev": "6e2fd4942150ec896bc594afc8a4da765125e0b7",
         "type": "github"
       },
       "original": {
         "owner": "SW-philip",
-        "repo": "sqlch",
+        "repo": "sqlch-sources-dev",
         "type": "github"
       }
     },

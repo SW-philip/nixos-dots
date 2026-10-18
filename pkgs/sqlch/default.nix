@@ -1,15 +1,10 @@
-{ lib, pkgs, python3Packages, fetchFromGitHub }:
+{ lib, pkgs, python3Packages, src }:
 
 python3Packages.buildPythonApplication {
   pname = "sqlch";
   version = "0.2.0";
 
-  src = fetchFromGitHub {
-    owner = "SW-philip";
-    repo  = "sqlch";
-    rev   = "cdeec7e0f50aed5bf9cdb4556179b4f51a3e5c76";
-    sha256 = "sha256-mJtPANXxy5Jpnqlw3ZgnMK8EZEM0PrCNO6kEv4QI0RA=";
-  };
+  inherit src;
 
   pyproject = true;
 

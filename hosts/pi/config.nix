@@ -87,6 +87,9 @@ in
     shell = lib.mkForce pkgs.bash;
     extraGroups = lib.mkForce [ "wheel" ];
   };
+  # Passwordless on purpose: remote deploys (nixos-rebuild --sudo over ssh) can't prompt, and
+  # scoping NOPASSWD to deploy commands buys nothing since nix-env/systemd-run/switch-to-configuration
+  # are root-equivalent. A wrong rule would lock out deploys.
   security.sudo.wheelNeedsPassword = false;
 
   # No home-manager here, so no themed ff: stock fastfetch under the usual name.

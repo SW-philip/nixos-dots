@@ -35,7 +35,7 @@
     };
     nirinit.url = "github:amaanq/nirinit";
     nirinit.inputs.nixpkgs.follows = "nixpkgs";
-    sqlch.url = "github:SW-philip/sqlch";
+    sqlch.url = "github:SW-philip/sqlch-sources-dev";
     sqlch.inputs.nixpkgs.follows = "nixpkgs";
 
   };
@@ -109,8 +109,9 @@
   in
   {
     overlays.default = final: prev: {
-      sqlch                  = prev.callPackage ./pkgs/sqlch { };
+      sqlch                  = prev.callPackage ./pkgs/sqlch { src = inputs.sqlch; };
       uniremote              = prev.callPackage ./pkgs/uniremote { };
+      orch                   = prev.callPackage ./pkgs/orch { };
       pandora                = prev.callPackage ./pkgs/pandora { };
       python-ember-mug       = prev.callPackage ./pkgs/python-ember-mug { };
       plymouth-silent-splash = prev.callPackage ./pkgs/plymouth-silent-splash { };

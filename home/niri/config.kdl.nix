@@ -218,6 +218,17 @@ window-rule {
     default-column-width { fixed 720; }
     default-window-height { fixed 560; }
 }
+// sqlch video source: mpv opens with --wayland-app-id=sqlch-video. Floating,
+// roomy 16:9; border and shadow come from the global palette rules.
+// niri has no always-on-top: floating windows sit above tiled ones, and
+// open-focused raises it above other floating windows when it appears.
+window-rule {
+    match app-id="sqlch-video"
+    open-floating true
+    open-focused true
+    default-column-width { fixed 960; }
+    default-window-height { fixed 540; }
+}
 window-rule {
     match app-id="com.prepko.uniremote"
     open-floating true

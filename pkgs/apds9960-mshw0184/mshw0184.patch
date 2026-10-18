@@ -1,0 +1,89 @@
+--- a/drivers/iio/light/apds9960.c
++++ b/drivers/iio/light/apds9960.c
+@@ -358,12 +358,16 @@
+ 	return 0;
+ }
+ 
+-/* integration time in us */
++/*
++ * integration time in us. The MSHW0184 (Surface) part is not a stock
++ * APDS9960: ATIME counts up (time = (ATIME + 1) * 2.78 ms), the reverse of
++ * the APDS9960's (256 - ATIME).
++ */
+ static const int apds9960_int_time[][2] = {
+-	{ 28000, 246},
+-	{100000, 219},
+-	{200000, 182},
+-	{700000,   0}
++	{ 28000,   9},
++	{100000,  35},
++	{200000,  71},
++	{700000, 251}
+ };
+ 
+ /* gain mapping */
+@@ -463,8 +467,9 @@
+ 	for (idx = 0; idx < ARRAY_SIZE(apds9960_als_gain_map); idx++) {
+ 		if (apds9960_als_gain_map[idx] == val) {
+ 			mutex_lock(&data->lock);
++			/* MSHW0184 keeps ALS gain in CONFIG_2 (0x90), not CONTROL */
+ 			ret = regmap_update_bits(data->regmap,
+-					APDS9960_REG_CONTROL,
++					APDS9960_REG_CONFIG_2,
+ 					APDS9960_REG_CONTROL_AGAIN_MASK, idx);
+ 			if (!ret)
+ 				data->als_gain = idx;
+@@ -968,8 +973,16 @@
+ {
+ 	int ret;
+ 
+-	/* Default IT for ALS of 28 ms */
+-	ret = apds9960_set_it_time(data, 28000);
++	/*
++	 * Room light reads ~0 at the stock 1x gain / short integration; the
++	 * Windows driver auto-ranges up from here. Start at the most
++	 * sensitive setting.
++	 */
++	ret = apds9960_set_it_time(data, 700000);
++	if (ret)
++		return ret;
++
++	ret = apds9960_set_als_gain(data, 64);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -988,8 +1001,8 @@
+ 	if (ret)
+ 		return ret;
+ 
+-	/* Enable proximity sensor for polling */
+-	ret = regmap_field_write(data->reg_enable_pxs, 1);
++	/* The Windows driver never enables proximity; leave the IR LED off */
++	ret = regmap_field_write(data->reg_enable_pxs, 0);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -1165,16 +1178,9 @@
+ };
+ MODULE_DEVICE_TABLE(acpi, apds9960_acpi_match);
+ 
+-static const struct of_device_id apds9960_of_match[] = {
+-	{ .compatible = "avago,apds9960" },
+-	{ }
+-};
+-MODULE_DEVICE_TABLE(of, apds9960_of_match);
+-
+ static struct i2c_driver apds9960_driver = {
+ 	.driver = {
+ 		.name	= APDS9960_DRV_NAME,
+-		.of_match_table = apds9960_of_match,
+ 		.pm	= &apds9960_pm_ops,
+ 		.acpi_match_table = apds9960_acpi_match,
+ 	},
+@@ -1185,5 +1191,5 @@
+ module_i2c_driver(apds9960_driver);
+ 
+ MODULE_AUTHOR("Matt Ranostay <matt.ranostay@konsulko.com>");
+-MODULE_DESCRIPTION("APDS9960 Gesture/RGB/ALS/Proximity sensor");
++MODULE_DESCRIPTION("APDS9960-style ALS for the Surface MSHW0184 (gain in 0x90, ATIME inverted)");
+ MODULE_LICENSE("GPL");

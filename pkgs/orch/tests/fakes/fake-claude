@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+import json, os, sys, time
+
+VERDICT = {"verdict": "approve", "summary": "fine", "findings": []}
+stdin = sys.stdin.read()
+with open(os.environ["FAKE_RECORD"], "w") as f:
+    json.dump({"argv": sys.argv[1:], "stdin": stdin, "pid": os.getpid(),
+               "env": dict(os.environ)}, f)
+mode = os.environ.get("FAKE_MODE", "plain")
+if mode == "plain":
+    print(json.dumps({"result": "done"}))
+elif mode == "review-structured":
+    print(json.dumps({"result": "ok", "structured_output": VERDICT}))
+elif mode == "review-text":
+    print(json.dumps({"result": "prose\n```json\n" + json.dumps(VERDICT) + "\n```"}))
+elif mode == "badjson":
+    print("not json")
+elif mode == "fail":
+    print("boom")
+    sys.exit(3)
+elif mode == "hang":
+    time.sleep(60)

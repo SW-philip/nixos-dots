@@ -42,6 +42,7 @@ in
     ./features.nix
     ./msmtp.nix
     ./power.nix
+    ./als.nix
     ./gpu-intel.nix
     ./impermanence.nix
     ./services.nix

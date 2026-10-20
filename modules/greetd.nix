@@ -25,7 +25,7 @@
       tuigreetLaunch = pkgs.writeShellScript "tuigreet-launch" ''
         theme=$(cat /run/tuigreet-theme 2>/dev/null)
         if [ -z "$theme" ]; then
-          theme="background=#232136;border=#c4a7e7;text=#e0def4;prompt=#9ccfd8;time=#f6c177;action=#ea9a97;button=#eb6f92;container=#2a273f;input=#e0def4"
+          theme="${import ../lib/tuigreet-theme.nix (import ../themes/Dark/indigo-rose/palette-indigo-rose.nix)}"
         fi
         exec ${pkgs.tuigreet}/bin/tuigreet \
           --time \
@@ -47,14 +47,14 @@
       # The Surface panel is HiDPI but cage outputs are always scale 1 (GDK_SCALE
       # only supersamples, it doesn't enlarge). So pass a real UI multiplier that
       # scales the greeter's logical sizes. Desktop stays 1x.
-      uiScale = if config.networking.hostName == "SWsurface" then "2" else "1";
+      uiScale = if config.myConfig.hiDpi then "2" else "1";
       # --scale sizes the nix mark + cursor; the pills/text/power cluster gets its
       # own smaller multiplier (--field-scale) so the fields aren't oversized next to it.
-      fieldScale = if config.networking.hostName == "SWsurface" then "1.5" else "1";
+      fieldScale = if config.myConfig.hiDpi then "1.5" else "1";
       # cage outputs are scale 1, so the pointer stays at the ~24px default while the
       # rest of the greeter is scaled up — tiny on the HiDPI Surface panel. Enlarge it
       # to track uiScale (XCURSOR_SIZE is what wlroots reads for the seat cursor).
-      cursorSize = if config.networking.hostName == "SWsurface" then "64" else "32";
+      cursorSize = if config.myConfig.hiDpi then "64" else "32";
       # XCURSOR_SIZE alone does nothing without a real Xcursor theme on XCURSOR_PATH —
       # otherwise wlroots draws its fixed-size built-in pointer (the "tiny cursor").
       # Point the greeter at the same posys theme the niri session uses; the theme
@@ -63,7 +63,7 @@
       # Surface is battery-bound, so its greeter suspends after 5 min idle;
       # desktop stays awake. The greeter session is active on seat0, so
       # polkit's allow_active grants systemctl suspend with no auth prompt.
-      suspendIdle = lib.optionalString (config.networking.hostName == "SWsurface")
+      suspendIdle = lib.optionalString config.myConfig.onBattery
         "timeout 300 '${pkgs.systemd}/bin/systemctl suspend' ";
       # cage has no idle management of its own, so blank the login screen via
       # swayidle (idle-notify) + wlopm (real DPMS, cuts the backlight). Greeter

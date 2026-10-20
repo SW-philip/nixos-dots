@@ -56,7 +56,10 @@ SELF=${REAPER_SELF:-$(uname -n)}
 SSH_TIMEOUT=${REAPER_SSH_TIMEOUT:-5}
 SELF_PATH=$(readlink -f "$0")
 
-nix_name() { case $1 in desktop) echo swphil ;; surface) echo swsurface ;; retro) echo swretro ;; pi) echo swpi ;; *) echo "$1" ;; esac; }
+FLEET_JSON=${FLEET_JSON:-/etc/fleet.json}
+[[ -r $FLEET_JSON ]] || FLEET_JSON=$(dirname "$0")/../hosts/inventory.json
+fleet_field() { jq -r --arg h "$1" --arg f "$2" '.[$h][$f] // $h' "$FLEET_JSON"; }
+nix_name() { fleet_field "$1" ts; }
 
 findings_json() { # TSV on stdin -> {zombies,stuck,dstate,failed}
   jq -Rn '

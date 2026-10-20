@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   threshold = 20;
   batteryCheckScript = pkgs.writeShellApplication {
@@ -68,11 +68,8 @@ let
 in
 {
   systemd.user.services.bluetooth-battery-notify = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "Notify when a connected Bluetooth device's battery is low";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
     };
     Service = {
       Type = "oneshot";

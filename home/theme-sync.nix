@@ -1,6 +1,6 @@
 { config, pkgs, ... }:
 let
-  peer = if config.myConfig.isDesktop then "surface" else "desktop";
+  peer = config.myConfig.peer;
   themeSync = pkgs.writeShellApplication {
     name = "theme-sync";
     runtimeInputs = with pkgs; [ openssh coreutils ];
@@ -27,8 +27,11 @@ in
   systemd.user.timers.theme-sync = {
     # Only ticks while niri-bridge runs: the two hosts' themes only need to
     # match when one keyboard is driving both. BindsTo stops the timer with it.
+    # Default deps add Before=timers.target, which with After=niri-bridge (itself
+    # after basic.target) is an ordering cycle systemd breaks at shutdown.
     Unit = {
       Description = "theme-sync timer";
+      DefaultDependencies = false;
       BindsTo = [ "niri-bridge.service" ];
       After = [ "niri-bridge.service" ];
     };

@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   lowPct = 20;
   criticalPct = 10;
@@ -48,11 +48,8 @@ let
 in
 {
   systemd.user.services.battery-low-notify = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "Notify when laptop battery is low";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
     };
     Service = {
       Type = "oneshot";

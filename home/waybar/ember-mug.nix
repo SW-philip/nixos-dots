@@ -1,6 +1,5 @@
 { config, pkgs, lib, ... }:
 let
-  isDesktop = config.myConfig.isDesktop;
   scriptsDir = "${config.home.homeDirectory}/.config/waybar/scripts";
   mugMac = "00:00:00:00:00:01";
 
@@ -29,18 +28,16 @@ in
 {
   options.waybar.emberMug.enable = lib.mkEnableOption "Ember mug poll service/timer";
 
-  config = lib.mkIf (config.waybar.emberMug.enable && !isDesktop) {
+  config = lib.mkIf (config.waybar.emberMug.enable && config.myConfig.onBattery) {
     home.packages = [ pollScript ];
 
     # Same shape as home/waybar/weather.nix's radar-cache: a oneshot poll
     # driven by a periodic timer, keeping the actual BLE connect off waybar's
     # own poll path entirely.
     systemd.user.services.ember-mug-poll = {
-      Unit = {
+      Unit = config.lib.niri.unit { wayland = true; } {
         Description = "Poll Ember mug status into cache";
-        After = [ "graphical-session.target" "bluetooth.service" ];
-        PartOf = [ "graphical-session.target" ];
-        ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
+        After = [ "bluetooth.service" ];
       };
       Service = {
         Type = "oneshot";

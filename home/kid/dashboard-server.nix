@@ -2,9 +2,8 @@
 let
   moon = import ../../themes/Dark/indigo-rose/palette-indigo-rose.nix;
 
-  # Arbitrary unused high port, loopback-only — nothing outside this account
-  # needs to reach it.
-  port = 47823;
+  # Loopback-only — nothing outside this account needs to reach it.
+  port = (import ../../hosts/ports.nix).kid-dashboard;
 
   # Reuse the eggclock waybar module's script unchanged — same hatch,
   # rarity, and lore logic, same ~/.cache/eggclock state files. Only the
@@ -177,11 +176,8 @@ let
 in
 {
   systemd.user.services.kid-dashboard-server = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Kid's kiosk backend (dashboard page, app launcher, eggclock)";
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
     };
     Install.WantedBy = [ "graphical-session.target" ];
     Service = {
@@ -197,12 +193,10 @@ in
   # stranded until logout/login. Restart=always respawns it immediately no
   # matter what closes it.
   systemd.user.services.kid-dashboard = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Kid's dashboard home screen (epiphany kiosk)";
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
-      After = [ "graphical-session.target" "kid-dashboard-server.service" ];
+      After = [ "kid-dashboard-server.service" ];
       Requires = [ "kid-dashboard-server.service" ];
-      PartOf = [ "graphical-session.target" ];
     };
     Install.WantedBy = [ "graphical-session.target" ];
     Service = {

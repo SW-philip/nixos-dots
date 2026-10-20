@@ -11,6 +11,7 @@
     ../../home/tree-sync.nix
     ../../home/theme-sync.nix
     ../../home/fleet-status.nix
+    ../../home/goodnight.nix
     ../../home/nixfetch.nix
     ../../home/pi-git-mirror.nix
     ../../home/flake-check.nix
@@ -18,6 +19,7 @@
     ../../home/sync-status.nix
     ../../home/pass-through.nix
     ../../home/quivr.nix
+    ../../home/go-librespot.nix
     ../../home/on.nix
     ../../home/shared-apps
     ../../home/pegasus
@@ -53,11 +55,8 @@
   # what pam_gnome_keyring does on a normal password login, just with an
   # empty token instead of a real one.
   systemd.user.services.gnome-keyring-unlock = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Unlock the (blank-password) login keyring for greetd's autologin session";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
     };
     Service = {
       Type = "oneshot";

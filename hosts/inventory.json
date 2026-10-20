@@ -1,0 +1,22 @@
+{
+  "desktop": {
+    "nick": "SWphil",
+    "ts": "swphil",
+    "ip": "100.64.0.1"
+  },
+  "surface": {
+    "nick": "SWsurface",
+    "ts": "swsurface",
+    "ip": "100.64.0.2"
+  },
+  "retro": {
+    "nick": "SWretro",
+    "ts": "swretro",
+    "ip": "100.64.0.3"
+  },
+  "pi": {
+    "nick": "SWpi",
+    "ts": "swpi",
+    "ip": "100.64.0.4"
+  }
+}

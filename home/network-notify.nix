@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   networkCheckScript = pkgs.writeShellApplication {
     name = "network-notify";
@@ -52,11 +52,8 @@ let
 in
 {
   systemd.user.services.network-notify = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "Notify when a saved WiFi network comes back into range";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
     };
     Service = {
       Type = "oneshot";

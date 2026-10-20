@@ -173,13 +173,13 @@ let
       update-command = "systemctl --user is-active --quiet niri-bridge.service && echo true || echo false";
     }
   ]
-  ++ lib.optional (!config.myConfig.isDesktop) {
+  ++ lib.optional config.myConfig.hasTouch {
     label = "󰔃  Auto-Rotate";
     type = "toggle";
     command = "systemctl --user is-active --quiet niri-rotation.service && systemctl --user stop niri-rotation.service || systemctl --user start niri-rotation.service";
     update-command = "systemctl --user is-active --quiet niri-rotation.service && echo true || echo false";
   }
-  ++ lib.optional (!config.myConfig.isDesktop) {
+  ++ lib.optional config.myConfig.hasTouch {
     label = "󰌓  On-Screen Keyboard";
     type = "toggle";
     command = "${s.toggleOsk}/bin/toggle-osk";
@@ -266,7 +266,7 @@ let
       "fit-to-screen": true,
       "control-center-width": 360,
       "notification-window-width": 300,
-      "keyboard-shortcuts": ${lib.boolToString config.myConfig.isDesktop},
+      "keyboard-shortcuts": ${lib.boolToString (!config.myConfig.hasTouch)},
       "image-visibility": "when-available",
       "transition-time": 100,
       "hide-on-clear": true,
@@ -277,7 +277,7 @@ let
       "notification-visibility": {},
       "widgets": ${builtins.toJSON (
         [ "title" "notifications" "label#hdr-audio" "volume" ]
-        ++ lib.optional (!config.myConfig.isDesktop) "backlight"
+        ++ lib.optional config.myConfig.hasBacklight "backlight"
         ++ [
           "label#hdr-connectivity" "buttons-grid#connectivity"
           "label#hdr-system" "buttons-grid#system"
@@ -385,8 +385,6 @@ let
   # ── Per-theme derivations — generated from allThemes ─────────────────────
   themeConfigs = lib.mapAttrs (slug: t:
     let
-      subtleBorder      = if t.isLight then "#0000000a" else "#ffffff0a";
-      faintBorder       = if t.isLight then "#00000006" else "#ffffff06";
       wallpaperFallback = if t.isLight then "${home}/Images/rothkos_dawn_tall.png"
                           else "${home}/Images/rothkos_moon_tall.png";
       # wallpaper-*.png files are gitignored so builtins.readDir never sees them;
@@ -407,7 +405,7 @@ let
           "${t.palette.PIANO}" "${t.palette.SEVENTH}" "${t.palette.FORTE}" "${t.palette.ROOT}" \
           "${t.palette.STAFF}" "${t.palette.WING}" "${t.palette.STAFF_A_DROP}" > $out
       '';
-      niriKdl        = pkgs.writeText "niri-config-${slug}.kdl"         (import ./config.kdl.nix { p = t.palette; inherit l; cursorSize = if config.myConfig.isDesktop then 24 else 48; isDesktop = config.myConfig.isDesktop; toggleOskBin = "${s.toggleOsk}/bin/toggle-osk"; launcherBin = "${s.launcher}/bin/launcher"; inherit sidebarToggleBin lockScreenBin; });
+      niriKdl        = pkgs.writeText "niri-config-${slug}.kdl"         (import ./config.kdl.nix { p = t.palette; inherit l; cursorSize = if config.myConfig.hiDpi then 48 else 24; isDesktop = config.myConfig.isDesktop; hasTouch = config.myConfig.hasTouch; toggleOskBin = "${s.toggleOsk}/bin/toggle-osk"; launcherBin = "${s.launcher}/bin/launcher"; inherit sidebarToggleBin lockScreenBin; });
       waybarCss      = pkgs.writeText "waybar-style-${slug}.css"        (import ../waybar/style.nix { p = t.palette; inherit l; });
       waybarSh       = pkgs.writeText "waybar-palette-${slug}.sh"       t.shContent;
       nemoCss        = pkgs.writeText "nemo-gtk3-${slug}.css"           (import ../nemo/gtk3.css.nix t.palette);
@@ -454,18 +452,7 @@ let
       animation {}
     '';
 
-  mkTuigreetTheme = p:
-    lib.concatStringsSep ";" [
-      "background=${p.HALL}"
-      "container=${p.STAGE}"
-      "border=${p.ROOT}"
-      "text=${p.SCORE}"
-      "prompt=${p.FIFTH}"
-      "time=${p.PIANO}"
-      "action=${p.SOTTO}"
-      "button=${p.FORTE}"
-      "input=${p.SCORE}"
-    ];
+  mkTuigreetTheme = import ../../lib/tuigreet-theme.nix;
 
   # Where each per-theme rendered file lands, relative to $HOME. A new
   # deployable file is one entry here plus its themeConfigs key; drmis needs

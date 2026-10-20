@@ -2,12 +2,15 @@
 let
   user = config.myConfig.user;
   home = "/home/${user}";
-  self = if config.networking.hostName == "SWphil" then "desktop" else "surface";
+  inventory = import ../hosts/inventory.nix;
+  ports = import ../hosts/ports.nix;
+  self = if config.networking.hostName == inventory.desktop.nick then "desktop" else "surface";
 
-  peers = {
-    desktop = { name = "SWphil"; id = "4I2JNFZ-TV7TPBL-TGK7EQS-IXO2T76-OGJXBEI-WPPQ446-JLRMHIP-KTDKJQZ"; ip = "100.64.0.1"; };
-    surface = { name = "SWsurface"; id = "MKDT6NZ-QZUGSFS-7TUSEXT-NHXU7KO-RBN2ZEQ-R6YOENF-WFG6XTR-XCPL2QP"; ip = "100.64.0.2"; };
+  ids = {
+    desktop = "4I2JNFZ-TV7TPBL-TGK7EQS-IXO2T76-OGJXBEI-WPPQ446-JLRMHIP-KTDKJQZ";
+    surface = "MKDT6NZ-QZUGSFS-7TUSEXT-NHXU7KO-RBN2ZEQ-R6YOENF-WFG6XTR-XCPL2QP";
   };
+  peers = lib.mapAttrs (n: id: { name = inventory.${n}.nick; inherit id; inherit (inventory.${n}) ip; }) ids;
   others = lib.filterAttrs (n: _: n != self) peers;
 
   folders = [ "Documents" "Projects" ];
@@ -51,9 +54,9 @@ in
         relaysEnabled = false;
         natEnabled = false;
         urAccepted = -1;
-        listenAddresses = [ "tcp://0.0.0.0:22000" ];
+        listenAddresses = [ "tcp://0.0.0.0:${toString ports.syncthing-sync}" ];
       };
-      devices = lib.mapAttrs (_: p: { id = p.id; name = p.name; addresses = [ "tcp://${p.ip}:22000" ]; }) others;
+      devices = lib.mapAttrs (_: p: { id = p.id; name = p.name; addresses = [ "tcp://${p.ip}:${toString ports.syncthing-sync}" ]; }) others;
       folders = lib.genAttrs folders (n: {
         path = "${home}/${n}";
         devices = lib.attrNames others;

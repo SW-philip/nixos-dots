@@ -1,7 +1,4 @@
 { pkgs, ... }:
-let
-  emu = import ../../pkgs/emulator-overrides.nix { inherit pkgs; };
-in
 {
   # Emulator + Pegasus library setup for prepko's niri session on desktop
   # (home/pegasus). Split out from home/pegasus itself so it can still be
@@ -13,12 +10,10 @@ in
 
     # Standalone emulators
     dolphin-emu
-    # pcsx2/rpcs3 ffmpeg_7 pin — shared with hosts/desktop/config.nix's
-    # Pegasus launch commands via pkgs/emulator-overrides.nix so the two
-    # can't drift. See that file for the why.
-    emu.pcsx2
+    # pcsx2/rpcs3 carry the ffmpeg_7 pin from overlays/emulator-ffmpeg7.nix.
+    pcsx2
     ppsspp
-    emu.rpcs3
+    rpcs3
     cemu
     xemu
     azahar

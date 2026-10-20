@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-_DRMIS = Path(__file__).resolve().parents[1] / "home" / "niri" / "drmis.py"
+_DRMIS = Path(__file__).resolve().parents[2] / "home" / "niri" / "drmis.py"
 _spec = importlib.util.spec_from_file_location("drmis", _DRMIS)
 drmis = importlib.util.module_from_spec(_spec)
 sys.modules["drmis"] = drmis

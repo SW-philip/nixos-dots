@@ -1,5 +1,8 @@
 { config, lib, ... }:
 
+let
+  ports = import ../../hosts/ports.nix;
+in
 {
   options.myln = {
     enable = lib.mkEnableOption "myln — NixOS-native RAG assistant";
@@ -101,7 +104,7 @@
 
     embeddingPort = lib.mkOption {
       type = lib.types.int;
-      default = 8768;
+      default = ports.myln-embedding;
       description = "Port for the llama-server embedding endpoint.";
     };
 
@@ -152,13 +155,13 @@
 
     inferencePort = lib.mkOption {
       type = lib.types.int;
-      default = 8767;
+      default = ports.myln-inference;
       description = "Port clients use for inference. A systemd socket listens here and starts the server on demand.";
     };
 
     inferenceBackendPort = lib.mkOption {
       type = lib.types.int;
-      default = 8769;
+      default = ports.myln-inference-backend;
       description = "Port the on-demand llama-server actually binds; the socket proxies inferencePort to it.";
     };
 
@@ -270,6 +273,16 @@
       type = lib.types.str;
       default = "/home/${config.myConfig.user}/nixos";
       description = "Path to the nixos flake git repo used by fail_log for commit tracking.";
+    };
+
+    issuesFile = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.myln.gitDir}/ISSUES.md";
+      description = ''
+        Hand-written known issues, read by myln-diagnose at run time (no rebuild).
+        Rule lines are "- `<regex>` <action|watch|benign>: <note>", optionally followed
+        by an indented "cleared by `<regex>`"; everything else is prose.
+      '';
     };
   };
 }

@@ -33,7 +33,7 @@ let
   # "══╡ "(4) + icon(1 cell) + "  "(2) + label + " ╞"(2) = 9 + len(label).
   rule = icon: label: "╠══╡ ${icon}  ${label} ╞${bar (boxW - 9 - (builtins.stringLength label))}╣";
   # Title: "╔<dl>═ prepko@<host> ═<dr>╗" centred to inner width boxW.
-  titleHost = if isD then "SWphil" else "SWsurface";
+  titleHost = config.myConfig.nick;
   titleTxt  = "prepko@${titleHost}";
   titlePad  = boxW - 2 - (builtins.stringLength titleTxt);
   titleFmt  = "╔${bar (titlePad / 2)} {1}@{2} ${bar (titlePad - titlePad / 2)}╗";

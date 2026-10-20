@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 let
   # Sets each connected PS4/PS5 controller's lightbar to a themed color and
   # keeps the same physical controller on the same color across reconnects.
@@ -115,11 +115,8 @@ in
   home.packages = [ colorScript ];
 
   systemd.user.services.ps-controller-colors = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Color connected PS4/PS5 controller lightbars from the active theme palette";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
     };
     Service = {
       ExecStart = "${watchScript}/bin/ps-controller-colors-watch";

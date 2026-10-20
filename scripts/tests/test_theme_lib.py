@@ -7,13 +7,14 @@ import sys
 
 # auto-theme.py imports `theme_lib`; when loaded outside `uv run scripts/auto-theme.py`
 # (which puts scripts/ on sys.path[0]), the test must add scripts/ itself.
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 sys.modules.setdefault("requests", MagicMock())
 
 from theme_lib.palette import derive_full_palette
 from theme_lib.musical import to_musical
 
-_spec = importlib.util.spec_from_file_location("auto_theme", "scripts/auto-theme.py")
+_spec = importlib.util.spec_from_file_location(
+    "auto_theme", str(Path(__file__).resolve().parents[1] / "auto-theme.py"))
 auto_theme = importlib.util.module_from_spec(_spec)
 sys.modules["auto_theme"] = auto_theme
 _spec.loader.exec_module(auto_theme)
@@ -231,7 +232,7 @@ class TestGoldenInvariant(unittest.TestCase):
     }
 
     def test_musical_output_matches_golden(self):
-        golden = json.loads((Path(__file__).resolve().parent / "golden_palettes.json").read_text())
+        golden = json.loads((Path(__file__).resolve().parents[1] / "golden_palettes.json").read_text())
         for name, seeds in self.SEED_INPUTS.items():
             got = to_musical(derive_full_palette(dict(seeds)))
             self.assertEqual(got, golden[name], f"musical output drifted for {name}")

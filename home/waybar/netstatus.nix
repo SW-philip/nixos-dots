@@ -1,7 +1,5 @@
 { config, pkgs, lib, ... }:
 let
-  isDesktop = config.myConfig.isDesktop;
-
   netstatusScript = pkgs.writeShellScriptBin "netstatus" ''
     exec ${pkgs.bash}/bin/bash ${config.home.homeDirectory}/.config/waybar/scripts/netstatus.sh "$@"
   '';
@@ -47,11 +45,8 @@ in {
     home.packages = [ netstatusScript wifimenuScript wifiRescanScript cachePollScript cacheReadScript ];
 
     systemd.user.services.quantum-wifi-rescan = {
-      Unit = {
+      Unit = config.lib.niri.unit { wayland = true; } {
         Description = "Refresh NetworkManager WiFi scan cache";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-        ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
       };
       Service = {
         Type = "oneshot";
@@ -63,7 +58,7 @@ in {
       Unit.Description = "Periodic WiFi rescan to keep the menu list fresh";
       Timer = {
         OnBootSec = "1min";
-        OnUnitActiveSec = if isDesktop then "3min" else "10min";
+        OnUnitActiveSec = if config.myConfig.onBattery then "10min" else "3min";
         AccuracySec = "1min";
         Persistent = true;
       };
@@ -71,11 +66,8 @@ in {
     };
 
     systemd.user.services."waybar-${cacheName}-poll" = {
-      Unit = {
+      Unit = config.lib.niri.unit { wayland = true; } {
         Description = "Poll network status into cache for waybar";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-        ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
       };
       Service = {
         Type = "oneshot";
@@ -94,15 +86,6 @@ in {
       Install.WantedBy = [ "timers.target" ];
     };
 
-    programs.waybar.settings = lib.mkMerge [
-      (lib.mkIf isDesktop {
-        leftBar."custom/network"  = topMod;
-        rightBar."custom/network" = topMod;
-        tvTopBar."custom/network" = topMod;
-      })
-      (lib.mkIf (!isDesktop) {
-        surfaceTopBar."custom/network" = topMod;
-      })
-    ];
+    programs.waybar.settings = lib.genAttrs config.waybar.allBars (_: { "custom/network" = topMod; });
   };
 }

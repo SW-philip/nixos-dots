@@ -1,10 +1,9 @@
 { config, pkgs, lib, ... }:
 let
   scriptsDir = "${config.home.homeDirectory}/.config/waybar/scripts";
-  isDesktop = config.myConfig.isDesktop;
 
   bar = if config.waybar.barName != "" then config.waybar.barName
-        else if isDesktop then "rightBar" else "surfaceTopBar";
+        else config.waybar.secondaryBar;
 
   python = pkgs.python3.withPackages (ps: with ps; [ requests ]);
 
@@ -45,16 +44,14 @@ in
     }
     # Surface's 3-finger tap = middle-click compositor-wide (see
     # home/niri/config.kdl.nix), so location-choice moves to double-click there.
-    // (if isDesktop
-        then { on-click-middle = "env BUTTON=3 ${weatherScript}/bin/waybar-weather"; }
-        else { on-double-click-middle = "env BUTTON=3 ${weatherScript}/bin/waybar-weather"; });
+    // (if config.myConfig.hasTouch
+        then { on-double-click-middle = "env BUTTON=3 ${weatherScript}/bin/waybar-weather"; }
+        else { on-click-middle = "env BUTTON=3 ${weatherScript}/bin/waybar-weather"; });
 
     systemd.user.services.radar-cache = {
-      Unit = {
+      Unit = config.lib.niri.unit { wayland = true; } {
         Description = "Pre-cache weather radar frames";
-        After = [ "network-online.target" "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-        ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
+        After = [ "network-online.target" ];
       };
       Service = {
         Type = "oneshot";

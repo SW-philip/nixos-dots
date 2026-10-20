@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 let
   autobrightness = pkgs.writeShellApplication {
     name = "autobrightness";
@@ -9,11 +9,8 @@ in
 {
   # Tunables (curve, hold time, ...) are AB_* env vars with defaults in the script.
   systemd.user.services.autobrightness = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Ambient-light auto brightness (fixed curve, no learning)";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
     };
     Service = {
       ExecStart = "${autobrightness}/bin/autobrightness";

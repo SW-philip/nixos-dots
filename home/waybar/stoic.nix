@@ -37,11 +37,9 @@ in
     home.packages = [ quoteScript cachePollScript cacheReadScript ];
 
     systemd.user.services."waybar-${cacheName}-poll" = {
-      Unit = {
+      Unit = config.lib.niri.unit { wayland = true; } {
         Description = "Poll a fresh Stoic quote into cache for waybar";
-        After = [ "network-online.target" "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-        ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
+        After = [ "network-online.target" ];
       };
       Service = {
         Type = "oneshot";

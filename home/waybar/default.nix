@@ -233,11 +233,8 @@ in
   };
 
   systemd.user.services.waybar-orient = lib.mkIf (!isDesktop) {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Switch waybar layout on screen rotation";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
     };
     Service = {
       Type = "simple";

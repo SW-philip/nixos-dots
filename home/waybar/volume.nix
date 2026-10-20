@@ -1,8 +1,7 @@
 { config, pkgs, lib, ... }:
 let
-  isDesktop = config.myConfig.isDesktop;
   bar = if config.waybar.barName != "" then config.waybar.barName
-        else if isDesktop then "leftBar" else "surfaceTopBar";
+        else config.waybar.primaryBar;
 
   volScript = pkgs.writeShellScriptBin "volume" ''
     export PATH="${lib.makeBinPath [ pkgs.pipewire pkgs.wireplumber pkgs.systemd ]}:$PATH"
@@ -26,8 +25,8 @@ in {
     }
     # Surface's 3-finger tap = middle-click compositor-wide (see
     # home/niri/config.kdl.nix), so pavucontrol moves to double-click there.
-    // (if isDesktop
-        then { on-click-middle = "${pkgs.pavucontrol}/bin/pavucontrol"; }
-        else { on-double-click-middle = "${pkgs.pavucontrol}/bin/pavucontrol"; });
+    // (if config.myConfig.hasTouch
+        then { on-double-click-middle = "${pkgs.pavucontrol}/bin/pavucontrol"; }
+        else { on-click-middle = "${pkgs.pavucontrol}/bin/pavucontrol"; });
   };
 }

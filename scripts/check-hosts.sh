@@ -3,6 +3,9 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
+# Cheap and eval-free, so it also runs on surface before the skip below.
+scripts/palette-lint.sh
+
 # Surface is 8 GB: evaluating two full configs there risks the oomd reaping the shell.
 if hostname | grep -qi surface; then
   echo "check-hosts: SKIPPED on surface (8 GB) — nothing was evaluated; run it on desktop" >&2

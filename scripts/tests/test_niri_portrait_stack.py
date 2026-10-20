@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Standalone tests for the portrait window-stacking decision.
-Run: python3 scripts/test_niri_portrait_stack.py"""
+Run: python3 scripts/tests/test_niri_portrait_stack.py"""
 import importlib.util
 import unittest
 from pathlib import Path
 
 _spec = importlib.util.spec_from_file_location(
-    "niri_portrait_stack", Path(__file__).with_name("niri-portrait-stack.py"))
+    "niri_portrait_stack", Path(__file__).resolve().parents[1] / "niri-portrait-stack.py")
 s = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(s)
 

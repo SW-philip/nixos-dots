@@ -34,6 +34,51 @@ let
     nrsWrapScript failLogScript;
 
   embeddingModel = if cfg.embeddingModelPath != "" then cfg.embeddingModelPath else cfg.modelPath;
+
+  # The servers only read a world-readable model and talk on loopback, so they
+  # run as a throwaway user instead of root.
+  sandbox = {
+    DynamicUser = true;
+    ProtectSystem = "strict";
+    ProtectHome = true;
+    PrivateTmp = true;
+    PrivateUsers = true;
+    NoNewPrivileges = true;
+    CapabilityBoundingSet = "";
+    ProtectKernelTunables = true;
+    ProtectKernelModules = true;
+    ProtectKernelLogs = true;
+    ProtectControlGroups = true;
+    ProtectClock = true;
+    ProtectHostname = true;
+    ProtectProc = "invisible";
+    RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+    RestrictNamespaces = true;
+    RestrictRealtime = true;
+    RestrictSUIDSGID = true;
+    LockPersonality = true;
+    SystemCallArchitectures = "native";
+    SystemCallFilter = [ "@system-service" "~@privileged" ];
+    IPAddressAllow = "localhost";
+    IPAddressDeny = "any";
+    UMask = "0077";
+  };
+
+  # Vulkan on the NVIDIA driver opens the render node and the /dev/nvidia*
+  # nodes, and writes a shader cache (it went to /root/.nv while this ran as root).
+  gpuSandbox = name: sandbox // {
+    DevicePolicy = "closed";
+    DeviceAllow = [
+      "char-drm rw"
+      "/dev/nvidiactl rw"
+      "/dev/nvidia0 rw"
+      "/dev/nvidia-modeset rw"
+      "/dev/nvidia-uvm rw"
+      "/dev/nvidia-uvm-tools rw"
+    ];
+    CacheDirectory = name;
+    Environment = [ "XDG_CACHE_HOME=%C/${name}" "__GL_SHADER_DISK_CACHE_PATH=%C/${name}" ];
+  };
 in
 {
   imports = [ ./options.nix ];
@@ -111,7 +156,7 @@ in
         ]);
         Restart = "on-failure";
         RestartSec = "5s";
-      };
+      } // gpuSandbox "myln-embeddings";
     };
 
     # Inference loads on demand: the socket owns inferencePort and (re)starts the
@@ -131,8 +176,7 @@ in
       after = [ "myln-inference.service" ];
       serviceConfig = {
         ExecStart = "${pkgs.systemd}/lib/systemd/systemd-socket-proxyd --exit-idle-time=${cfg.inferenceIdleTime} 127.0.0.1:${toString cfg.inferenceBackendPort}";
-        PrivateTmp = true;
-      };
+      } // sandbox // { PrivateDevices = true; };
     };
 
     systemd.services.myln-inference = {
@@ -157,7 +201,7 @@ in
         TimeoutStartSec = 180;
         Restart = "on-failure";
         RestartSec = "5s";
-      };
+      } // gpuSandbox "myln-inference";
     };
   };
 }

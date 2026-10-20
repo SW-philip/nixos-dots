@@ -1,7 +1,5 @@
 { config, pkgs, lib, ... }:
 let
-  isDesktop = config.myConfig.isDesktop;
-
   # gdbus = event source, busctl = one GetManagedObjects per change (see
   # scripts/bluetooth_status.py).
   bluetoothScript = pkgs.writeShellScriptBin "quantum-bluetooth" ''
@@ -48,15 +46,6 @@ in {
   config = lib.mkIf config.waybar.bluetooth.enable {
     home.packages = [ bluetoothScript btmenuScript bttoggleScript btClassifyScript ];
 
-    programs.waybar.settings = lib.mkMerge [
-      (lib.mkIf isDesktop {
-        leftBar."custom/bluetooth"  = topMod;
-        rightBar."custom/bluetooth" = topMod;
-        tvTopBar."custom/bluetooth" = topMod;
-      })
-      (lib.mkIf (!isDesktop) {
-        surfaceTopBar."custom/bluetooth" = topMod;
-      })
-    ];
+    programs.waybar.settings = lib.genAttrs config.waybar.allBars (_: { "custom/bluetooth" = topMod; });
   };
 }

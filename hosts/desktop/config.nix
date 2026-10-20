@@ -10,6 +10,8 @@ in
   ############################################################
   imports = [
     ../../modules/nixfetch.nix
+    ../../modules/health-root.nix
+    ../../roles/goodnight-activate.nix
     ../../roles/base.nix
     ../../roles/secure-boot.nix
     ../../roles/niri.nix

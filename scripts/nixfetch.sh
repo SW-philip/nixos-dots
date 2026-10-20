@@ -22,7 +22,10 @@ SELF=${NIXFETCH_SELF:-$(uname -n)}
 # numbers within +-1e15 only, floored (jq prints from ~1e17 as 1e+NN, which bash arithmetic rejects; 1e15 is a safe margin); anything else drops out so arithmetic never sees junk
 JQ_INT='def int: if type == "number" and . > -1e15 and . < 1e15 then floor else empty end; '
 
-nix_name() { case $1 in desktop) echo SWphil ;; surface) echo SWsurface ;; retro) echo SWretro ;; pi) echo SWpi ;; *) echo "$1" ;; esac; }
+FLEET_JSON=${FLEET_JSON:-/etc/fleet.json}
+[[ -r $FLEET_JSON ]] || FLEET_JSON=$(dirname "$0")/../hosts/inventory.json
+fleet_field() { jq -r --arg h "$1" --arg f "$2" '.[$h][$f] // $h' "$FLEET_JSON"; }
+nix_name() { fleet_field "$1" nick; }
 self_host() { local h; for h in $HOSTS; do [[ "${SELF,,}" == "$(nix_name "$h" | tr '[:upper:]' '[:lower:]')" ]] && { echo "$h"; return; }; done; echo "${HOSTS%% *}"; }
 
 target="" all=0 fast=0 full_imports=0

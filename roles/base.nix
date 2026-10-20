@@ -1,6 +1,9 @@
 { config, pkgs, lib, options, ... }:
+let
+  ports = import ../hosts/ports.nix;
+in
 {
-  imports = [ ../cachix.nix ];
+  imports = [ ../cachix.nix ../modules/host-options.nix ];
 
   options.myConfig.user = lib.mkOption {
     type        = lib.types.str;
@@ -13,6 +16,9 @@
   # Documentation
   ############################################################
   documentation.doc.enable = false;
+
+  # Fleet name map for scripts (scripts/fleet-status.sh, reaper, nixfetch, quivr).
+  environment.etc."fleet.json".source = ../hosts/inventory.json;
 
   time.timeZone = "America/New_York";
 
@@ -104,7 +110,7 @@
   };
   networking.firewall = {
     enable = true;
-    allowedTCPPorts = [ 22 ];
+    allowedTCPPorts = [ ports.ssh ];
   };
 
   ############################################################
@@ -212,6 +218,9 @@
   ############################################################
   # Nix hygiene
   ############################################################
+  # The "usual lecture" is tracked in /var/db/sudo, which a wiped root forgets every boot.
+  security.sudo.extraConfig = "Defaults lecture = never";
+
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     http-connections = 25;
@@ -229,17 +238,23 @@
 
   services.avahi.enable = false;
 
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
-    persistent = true;
-  };
   nix.optimise.automatic = true;
 
   programs.nh = {
     enable = true;
     flake  = "/home/${config.myConfig.user}/nixos";
+    # Replaces nix.gc (the two assert against each other). Not persistent:
+    # laptops are usually off at the weekly slot and a catch-up GC at boot
+    # costs minutes of I/O.
+    clean = {
+      enable = true;
+      dates = "weekly";
+      extraArgs = "--keep 5 --keep-since 14d";
+    };
+  };
+  systemd.timers.nh-clean.timerConfig = {
+    Persistent = lib.mkForce false;
+    RandomizedDelaySec = "1h";
   };
 
   # No blanket NOPASSWD: sudo asks for the password (nh prompts through

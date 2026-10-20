@@ -191,6 +191,44 @@ def _swap_mode(station_id: str, has_track: bool) -> str:
             pass
     return state.get("mode", "name")
 
+def _fmt_time(seconds) -> str:
+    try:
+        s = int(seconds)
+    except (TypeError, ValueError):
+        return ""
+    if s < 0:
+        return ""
+    h, rem = divmod(s, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+def _item_payload(resp: dict, item: dict, paused: bool) -> dict:
+    """Non-radio playback (jellyfin, youtube, spotify, local): the daemon sends
+    title/artist/album on the item, plus position/duration beside it."""
+    title = item.get("title") or "Unknown"
+    artist = item.get("artist")
+    line = f"{artist} — {title}" if artist else title
+    icon = ICON_PAUSED if paused else ICON_PLAYING
+    rows = [f"<span foreground='{SCORE}'>{html.escape(line)}</span>"]
+    if item.get("album"):
+        rows.append(f"<span foreground='{ROOT}'>{html.escape(item['album'])}</span>")
+    meta = []
+    if item.get("source"):
+        meta.append(str(item["source"]).title())
+    duration = _fmt_time(resp.get("duration"))
+    if duration:
+        meta.append(f"{_fmt_time(resp.get('position')) or '0:00'} / {duration}")
+    if meta:
+        rows.append(f"<span foreground='{REST}'>{html.escape('  |  '.join(meta))}</span>")
+    rows.append("")
+    rows.append(f"<span foreground='{REST}'>Click: sqlch GUI  |  Right-click: menu</span>")
+    label = line if len(line) <= 60 else line[:59] + "…"
+    return {
+        "text": f"{ICON_PREV} {icon} {html.escape(label)} {ICON_NEXT}",
+        "tooltip": "\n".join(rows),
+        "class": "paused" if paused else "playing",
+    }
+
 def status_payload() -> dict:
     resp = daemon_send({"cmd": "status"})
     if not resp or not resp.get("ok"):
@@ -202,6 +240,9 @@ def status_payload() -> dict:
 
     status = resp.get("status", "")
     current = resp.get("current")
+
+    if current and isinstance(current, dict) and current.get("type") == "item":
+        return _item_payload(resp, current.get("item") or {}, "paused" in status.lower())
 
     if current and isinstance(current, dict):
         item = current.get("item", {})

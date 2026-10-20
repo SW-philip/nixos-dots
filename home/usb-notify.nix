@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   usbNotifyScript = pkgs.writeShellApplication {
     name = "usb-notify";
@@ -46,11 +46,8 @@ let
 in
 {
   systemd.user.services.usb-notify = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "Notify on USB device plug/unplug";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
     };
     Service = {
       ExecStart = "${usbNotifyScript}/bin/usb-notify";

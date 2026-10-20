@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 let
   openrgb = "${pkgs.openrgb-with-all-plugins}/bin/openrgb";
 
@@ -88,11 +88,8 @@ in
   home.packages = [ rgb-reactive ];
 
   systemd.user.services.rgb-reactive = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Hardware-reactive RAM RGB";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
     };
     Service = {
       Type = "oneshot";

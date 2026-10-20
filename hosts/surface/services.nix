@@ -50,8 +50,7 @@ in
     }];
   };
 
-  services.fstrim = {
-    enable = true;
-    interval = "weekly";
-  };
+  # btrfs mounts with discard=async (kernel default), so a weekly fstrim only
+  # re-trims what's already been discarded and takes ~10 min after boot catch-up.
+  services.fstrim.enable = false;
 }

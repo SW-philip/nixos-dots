@@ -21,7 +21,7 @@ render() {
       t = { family = \"Custom\"; inherit slug dir; palette = import \"\${dir}/\${nixName}\"; };
     in import $ROOT/home/fastfetch/config.nix {
       inherit t pkgs;
-      config = { myConfig.isDesktop = true; home.homeDirectory = \"/home/prepko\"; };
+      config = { myConfig = { isDesktop = true; nick = \"SWphil\"; }; home.homeDirectory = \"/home/prepko\"; };
       ssh = $1;
     }"
 }

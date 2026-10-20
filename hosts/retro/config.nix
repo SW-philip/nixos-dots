@@ -9,6 +9,8 @@
     ../../roles/secure-boot.nix
     ../../roles/wifi-home.nix
     inputs.sops-nix.nixosModules.sops
+    ../../roles/nix-hygiene.nix
+    ../../roles/goodnight-activate.nix
     ../../roles/ssh-known-hosts.nix
   ];
 
@@ -52,21 +54,8 @@
     extraGroups = [ "audio" "video" "input" ];
   };
 
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
-  };
   nix.optimise.automatic = true;
   services.fstrim.enable = true;
-  documentation.enable = false;
-  environment.defaultPackages = [ ];
-
-  nix.settings = {
-    allowed-users = [ "prepko" ];
-    # nixos-rebuild --build-host copies unsigned closures from desktop.
-    trusted-users = [ "root" "prepko" ];
-  };
 
   ############################################################
   # Network
@@ -124,7 +113,6 @@
     esac
   '';
   services.thermald.enable = true;
-  zramSwap.enable = true;
   # roles/secure-boot.nix keeps 10 signed UKIs on the ESP; this box needs 3.
   boot.loader.systemd-boot.configurationLimit = lib.mkForce 3;
 

@@ -1,6 +1,5 @@
 { config, pkgs, lib, ... }:
 let
-  isDesktop = config.myConfig.isDesktop;
 
   # Starting the oneshot blocks until the probe finishes; the signal then re-runs the module.
   # Last line on purpose: nothing after a signal to waybar is guaranteed to run.
@@ -32,9 +31,6 @@ in {
   config = lib.mkIf config.waybar.fleet.enable {
     home.packages = [ refreshScript toggleScript ];
 
-    programs.waybar.settings = lib.mkMerge [
-      (lib.mkIf isDesktop { leftBar."custom/fleet" = mod; })
-      (lib.mkIf (!isDesktop) { surfaceTopBar."custom/fleet" = mod; })
-    ];
+    programs.waybar.settings.${config.waybar.primaryBar}."custom/fleet" = mod;
   };
 }

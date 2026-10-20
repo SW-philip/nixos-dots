@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """quivr: live per-host stats over ssh. Design: docs/superpowers/specs/2026-10-06-quivr-design.md
 and 2026-10-06-quivr-detail-design.md"""
+import json
 import os
 import select
 import shutil
@@ -21,7 +22,19 @@ DETAIL = os.environ.get("QUIVR_DETAIL", os.path.join(HERE, "quivr-detail.sh"))
 SSH = os.environ.get("QUIVR_SSH", "ssh")
 PALETTE = os.environ.get("QUIVR_PALETTE", os.path.expanduser("~/.config/waybar/palette.sh"))
 STALE_S = 4
-LOCAL_NAMES = {"swphil": "desktop", "swsurface": "surface", "swretro": "retro", "swpi": "pi"}
+
+
+def _fleet():
+    for p in (os.environ.get("FLEET_JSON", "/etc/fleet.json"), os.path.join(HERE, "..", "hosts", "inventory.json")):
+        try:
+            with open(p) as fh:
+                return json.load(fh)
+        except OSError:
+            pass
+    return {}
+
+
+LOCAL_NAMES = {h["ts"]: name for name, h in _fleet().items()}
 # first of btop/htop/top the host has; no single quotes so it survives ssh's remote shell
 TOP_SCRIPT = "for t in btop htop top; do command -v $t >/dev/null 2>&1 && exec $t; done; echo no top found; sleep 2"
 

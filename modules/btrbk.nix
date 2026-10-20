@@ -53,6 +53,9 @@ in
   # and btrbk would send into it, so the unit must require the mount.
   systemd.services.btrbk-daily = {
     unitConfig.RequiresMountsFor = "/mnt/backup";
+    # The 03:30 offset doesn't help after a boot: both persistent timers catch
+    # up at once and daily lost the lock race. Queue it behind hourly instead.
+    after = [ "btrbk-hourly.service" ];
     # Page cache from the multi-GB send is charged to this cgroup (17 GB peak seen).
     serviceConfig.MemoryHigh = "4G";
     serviceConfig.CPUWeight = 20;

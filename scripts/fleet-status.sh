@@ -18,8 +18,11 @@ NOW=${FLEET_NOW:-$(date +%s)}
 # temp=<millidegrees of thermal_zone0>, uv=<1 if the Pi's rpi_volt hwmon latched an undervoltage since its last read>; both stay empty where the sensor is absent
 PROBE_CMD=${FLEET_PROBE_CMD:-'printf "rev=%s\n" "$(/run/current-system/sw/bin/nixos-version --configuration-revision 2>/dev/null)"; printf "built=%s\n" "$(stat -c %Y /nix/var/nix/profiles/system 2>/dev/null)"; printf "temp=%s\n" "$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null)"; for h in /sys/class/hwmon/hwmon*; do [ "$(cat "$h/name" 2>/dev/null)" = rpi_volt ] && printf "uv=%s\n" "$(cat "$h/in0_lcrit_alarm" 2>/dev/null)"; done; true'}
 
-nix_name() { case $1 in desktop) echo swphil ;; surface) echo swsurface ;; retro) echo swretro ;; pi) echo swpi ;; *) echo "$1" ;; esac; }
-ts_name()  { case $1 in desktop) echo swphil ;; surface) echo swsurface ;; *) echo "$1" ;; esac; }
+FLEET_JSON=${FLEET_JSON:-/etc/fleet.json}
+[[ -r $FLEET_JSON ]] || FLEET_JSON=$(dirname "$0")/../hosts/inventory.json
+fleet_field() { jq -r --arg h "$1" --arg f "$2" '.[$h][$f] // $h' "$FLEET_JSON"; }
+nix_name() { fleet_field "$1" ts; }
+ts_name()  { echo "$1"; }
 
 ts_json=$(timeout 10 tailscale status --json 2>/dev/null) || ts_json='{}'
 ts_ok=0; jq -e '.Self and .BackendState == "Running"' <<<"$ts_json" >/dev/null 2>&1 && ts_ok=1

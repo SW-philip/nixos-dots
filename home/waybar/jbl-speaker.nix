@@ -1,6 +1,5 @@
 { config, pkgs, lib, ... }:
 let
-  isDesktop = config.myConfig.isDesktop;
   scriptsDir = "${config.home.homeDirectory}/.config/waybar/scripts";
   cfg = config.waybar.jblSpeaker;
 
@@ -50,15 +49,13 @@ in
   # scan + GATT session, so every poll glitches the speaker's audio (and used to
   # bounce the link into a reconnect loop). Surface polls without trouble.
   # bt-device-probe.sh tolerates the missing `jbl-speaker-poll` binary.
-  config = lib.mkIf (cfg.enable && !isDesktop) {
+  config = lib.mkIf (cfg.enable && config.myConfig.onBattery) {
     home.packages = [ pollScript ];
 
     systemd.user.services.jbl-speaker-poll = {
-      Unit = {
+      Unit = config.lib.niri.unit { wayland = true; } {
         Description = "Poll JBL speaker battery into cache for waybar";
-        After = [ "graphical-session.target" "bluetooth.service" ];
-        PartOf = [ "graphical-session.target" ];
-        ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
+        After = [ "bluetooth.service" ];
       };
       Service = {
         Type = "oneshot";

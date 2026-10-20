@@ -2,7 +2,7 @@ import importlib.util
 import pathlib
 
 spec = importlib.util.spec_from_file_location(
-    "osk_focus_policy", pathlib.Path(__file__).with_name("osk-focus-policy.py"))
+    "osk_focus_policy", pathlib.Path(__file__).resolve().parents[1] / "osk-focus-policy.py")
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 

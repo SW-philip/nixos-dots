@@ -183,5 +183,96 @@ class TestCmdWingStatusCoverPath(unittest.TestCase):
         self.assertIsNone(payload["cover_path_blurred"])
 
 
+def _item_resp(item, status="♫ JELLYFIN", position=None, duration=None):
+    resp = {"ok": True, "status": status,
+            "current": {"type": "item", "item": item}}
+    if position is not None:
+        resp["position"] = position
+    if duration is not None:
+        resp["duration"] = duration
+    return resp
+
+
+TRACK = {"source": "jellyfin", "id": "t1", "title": "Song", "artist": "Band",
+         "album": "Record", "duration": 200, "kind": "track"}
+
+
+class TestStatusPayloadItems(unittest.TestCase):
+    """Non-radio sources (jellyfin, youtube, spotify, local) report
+    current={"type": "item", ...} with title/artist/album, not name/url."""
+
+    def payload(self, resp):
+        with mock.patch.object(waybar_sqlch, "daemon_send", return_value=resp), \
+             mock.patch.object(waybar_sqlch, "current_track",
+                               side_effect=AssertionError("ICY must not be read for items")):
+            return waybar_sqlch.status_payload()
+
+    def test_artist_and_title_show_in_the_bar(self):
+        p = self.payload(_item_resp(TRACK))
+        self.assertIn("Band — Song", p["text"])
+        self.assertNotIn("Unknown", p["text"])
+        self.assertEqual(p["class"], "playing")
+
+    def test_title_alone_when_there_is_no_artist(self):
+        video = {"source": "youtube", "id": "v", "title": "A Video", "kind": "video"}
+        p = self.payload(_item_resp(video))
+        self.assertIn("A Video", p["text"])
+        self.assertNotIn("—", p["text"])
+
+    def test_tooltip_has_album_source_and_progress(self):
+        p = self.payload(_item_resp(TRACK, position=75, duration=200))
+        for expected in ("Band — Song", "Record", "Jellyfin", "1:15 / 3:20"):
+            self.assertIn(expected, p["tooltip"])
+
+    def test_no_progress_without_a_duration(self):
+        live = {"source": "youtube", "id": "v", "title": "Stream", "kind": "video"}
+        p = self.payload(_item_resp(live, position=5))
+        self.assertNotIn(" / ", p["tooltip"])
+        self.assertIn("Youtube", p["tooltip"])
+
+    def test_hour_long_durations_use_h_mm_ss(self):
+        p = self.payload(_item_resp(TRACK, position=3725, duration=7325))
+        self.assertIn("1:02:05 / 2:02:05", p["tooltip"])
+
+    def test_paused_item(self):
+        p = self.payload(_item_resp(TRACK, status="paused"))
+        self.assertEqual(p["class"], "paused")
+        self.assertIn(waybar_sqlch.ICON_PAUSED, p["text"])
+
+    def test_missing_title_falls_back_to_unknown(self):
+        p = self.payload(_item_resp({"source": "local", "id": "x"}))
+        self.assertIn("Unknown", p["text"])
+
+    def test_markup_in_metadata_is_escaped(self):
+        nasty = {**TRACK, "title": "A & B <i>", "artist": "X<Y", "album": "<b>"}
+        p = self.payload(_item_resp(nasty))
+        self.assertNotIn("<i>", p["text"])
+        self.assertIn("A &amp; B &lt;i&gt;", p["text"])
+        self.assertIn("&lt;b&gt;", p["tooltip"])
+
+    def test_long_label_is_truncated(self):
+        long = {**TRACK, "title": "T" * 120}
+        label = self.payload(_item_resp(long))["text"]
+        self.assertIn("…", label)
+        self.assertLess(len(label), 90)
+
+    def test_station_playback_is_unchanged(self):
+        resp = {"ok": True, "status": "♫ KEXP",
+                "current": {"type": "station",
+                            "item": {"name": "KEXP", "id": "kexp", "url": "http://x"}}}
+        with mock.patch.object(waybar_sqlch, "daemon_send", return_value=resp), \
+             mock.patch.object(waybar_sqlch, "current_track", return_value=("Art", "Trk")), \
+             mock.patch.object(waybar_sqlch, "enrich_lookup", return_value=None), \
+             mock.patch.object(waybar_sqlch, "_swap_mode", return_value="name"):
+            p = waybar_sqlch.status_payload()
+        self.assertIn("KEXP", p["text"])
+        self.assertIn("Art — Trk", p["tooltip"])
+        self.assertIn("Plays:", p["tooltip"])
+
+    def test_idle_and_daemon_down_are_unchanged(self):
+        self.assertEqual(self.payload(None)["class"], "inactive")
+        self.assertEqual(self.payload({"ok": True, "current": None})["class"], "idle")
+
+
 if __name__ == "__main__":
     unittest.main()

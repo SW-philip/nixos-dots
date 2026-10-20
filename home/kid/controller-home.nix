@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 let
   watcher = pkgs.writeTextFile {
     name = "kid-controller-home-watch";
@@ -57,20 +57,8 @@ let
 in
 {
   systemd.user.services.kid-controller-home = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Watch PS4 controller Home button, return to dashboard";
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
-      # WantedBy alone only pulls this unit in when graphical-session.target
-      # starts; it doesn't order it after the target. Without After/PartOf,
-      # systemd dispatches it in the same transaction as the target — often
-      # a full second before niri.service (Before=graphical-session.target,
-      # Type=notify) actually goes ready, so ConditionEnvironment sees no
-      # XDG_CURRENT_DESKTOP yet and permanently skips (unmet conditions
-      # aren't retried). Confirmed via journalctl: the skip landed right
-      # after graphical-session-pre.target, a full second before niri
-      # started. Mirrors waybar.service/kanshi.service's own units.
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
     };
     Install.WantedBy = [ "graphical-session.target" ];
     Service = {

@@ -1,9 +1,10 @@
 # IPTV stack (m3u file server + EPG/playlist updaters). Off while the sources
-# are unstable — set `iptv.enable = true` to bring it back. Port 8765 is opened
+# are unstable — set `iptv.enable = true` to bring it back. The iptv-serve port (hosts/ports.nix) is opened
 # by hosts/desktop/services.nix when this is on.
 { config, pkgs, lib, ... }:
 let
   sandbox = import ../../lib/sandbox.nix;
+  ports = import ../ports.nix;
   netOnly = [ "AF_INET" "AF_INET6" ];
 in
 {
@@ -22,7 +23,7 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
       serviceConfig = {
-        ExecStart = "${pkgs.python3}/bin/python3 -m http.server 8765 --directory /srv/live";
+        ExecStart = "${pkgs.python3}/bin/python3 -m http.server ${toString ports.iptv-serve} --directory /srv/live";
         Restart = "on-failure";
         RestartSec = "2s";
         User = "prepko";

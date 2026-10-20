@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "make-splotch-bg.py"
+_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "make-splotch-bg.py"
 _spec = importlib.util.spec_from_file_location("make_splotch_bg", _SCRIPT)
 splotch = importlib.util.module_from_spec(_spec)
 sys.modules["make_splotch_bg"] = splotch

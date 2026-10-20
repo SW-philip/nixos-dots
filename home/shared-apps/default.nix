@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.myConfig.apps;
-  self = if config.myConfig.isDesktop then "desktop" else "surface";
+  self = config.myConfig.self;
 
   appLaunch = pkgs.writeShellApplication {
     name = "app-launch";

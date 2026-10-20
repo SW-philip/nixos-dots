@@ -9,11 +9,8 @@
   # symlink here would fight that. See the design spec's "Configuration,
   # identity, persistence" section.
   systemd.user.services.niri-bridge = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "NiriBridge keyboard and pointer sharing";
-      ConditionEnvironment = [ "XDG_CURRENT_DESKTOP=niri" ];
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
       StartLimitIntervalSec = 60;
       StartLimitBurst = 3;
     };

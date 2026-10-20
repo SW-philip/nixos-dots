@@ -15,7 +15,11 @@
   boot.extraModulePackages = [ ];
   # No native USB-C port; this driver probes a non-existent CCG controller and
   # logs i2c_transfer errors on every boot.
-  boot.blacklistedKernelModules = [ "ucsi_ccg" ];
+  # acpi_tad registers ahead of rtc_cmos as rtc0, so the kernel sets the system
+  # clock from it — and the Z390 firmware's TAD sometimes reads a placeholder
+  # 2019-10-10 10:10:10. Every timer then schedules in 2019 and they all fire at
+  # once when NTP jumps the clock forward. rtc_cmos reads the right time.
+  boot.blacklistedKernelModules = [ "ucsi_ccg" "acpi_tad" ];
 
   ############################################################
   # LUKS

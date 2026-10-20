@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Tests for theme_lib.variant. Run: python3 scripts/test_variant.py"""
+"""Tests for theme_lib.variant. Run: python3 scripts/tests/test_variant.py"""
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from theme_lib.colormath import _hex_to_hsl
 from theme_lib import variant

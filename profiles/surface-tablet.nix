@@ -1,8 +1,10 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 let
   s = import ../home/niri/scripts.nix { inherit pkgs lib; };
 in
 {
+  imports = [ ../home/niri-service.nix ];
+
   ########################################
   # Surface tablet user services — shared by Phil's and Kid's profiles.
   # Auto-rotation, on-screen keyboard, and the Type Cover detach monitor.
@@ -31,11 +33,8 @@ in
   # instead of opening as tall thin columns. Idle in landscape.
   ########################################
   systemd.user.services.niri-portrait-stack = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Stack new windows two per column in portrait";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
     };
     Service = {
       Type = "simple";

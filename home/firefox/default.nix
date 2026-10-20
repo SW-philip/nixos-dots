@@ -6,14 +6,14 @@ let
   # 30 s. A heavy Firefox tab session is the usual thing that trips it. These
   # prefs bound what Firefox keeps resident so it stops being that trigger.
   # The desktop has the headroom to not care; only apply on the Surface.
-  lowMem = !config.myConfig.isDesktop;
+  lowMem = config.myConfig.lowMemory;
 in
 {
   programs.firefox = {
     enable = true;
     configPath = ".mozilla/firefox";
     # Autoconfig script needs privileged APIs, which the default sandbox withholds.
-    package = lib.mkIf (!config.myConfig.isDesktop) (pkgs.firefox.override {
+    package = lib.mkIf config.myConfig.hasTouch (pkgs.firefox.override {
       extraAutoConfig = ''pref("general.config.sandbox_enabled", false);'';
       extraPrefsFiles = [ (pkgs.writeText "tablet-ua.js" (builtins.readFile ./tablet-ua.js)) ];
     });

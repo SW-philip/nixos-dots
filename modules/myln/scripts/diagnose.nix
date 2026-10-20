@@ -49,7 +49,7 @@ in
 
       # Known issues are answered from the table; only the rest goes to the model.
       ${pythonEnv}/bin/python3 ${../scripts/triage.py} split \
-        --lines "$NORM" --table ${knownFile} --table "${cfg.storePath}/known-issues.tsv" \
+        --lines "$NORM" --table ${knownFile} --table "${cfg.storePath}/known-issues.tsv" --table "${cfg.issuesFile}" \
         --since "$DATE 00:00:00" --known-out "$KNOWN" --rest-out "$REST"
 
       if [[ -s "$KNOWN" ]]; then

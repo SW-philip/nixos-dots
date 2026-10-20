@@ -13,8 +13,19 @@ echo -e "${BOLD}${BLUE}=========================================${NC}\n"
 
 # --- 1. TIME ANALYSIS ---
 echo -e "${BOLD}[1/5] Analyzing Startup Timings...${NC}"
-TIME_DATA=$(systemd-analyze time 2>/dev/null || echo "Startup finished in 0s (firmware) + 0s (loader) + 0s (kernel) + 0s (initrd) + 0s (userspace) = 0s")
-echo "$TIME_DATA"
+# systemd only stamps FinishTimestamp the first time its job queue drains, so
+# catch-up timers (fstrim, nh-clean) that fire right after boot hold it at 0
+# until they exit. Grading the zeros would hand out A+ for a boot that hasn't
+# finished — report it as pending instead.
+BOOT_PENDING=0
+if ! TIME_DATA=$(systemd-analyze time 2>/dev/null); then
+    BOOT_PENDING=1
+    echo -e "${YELLOW}Boot not finished yet — systemd is still running jobs:${NC}"
+    systemctl list-jobs --no-pager --no-legend | awk '{print "  " $2 " (" $4 ")"}'
+    echo -e "${YELLOW}Timing grades skipped; re-run once these exit.${NC}"
+else
+    echo "$TIME_DATA"
+fi
 
 # Enhanced regex parsing to correctly convert text like "1min 31.283s" into raw milliseconds
 parse_to_ms() {
@@ -35,10 +46,18 @@ parse_to_ms() {
 LOADER_MS=$(parse_to_ms "$TIME_DATA" "loader")
 INITRD_MS=$(parse_to_ms "$TIME_DATA" "initrd")
 USER_MS=$(parse_to_ms "$TIME_DATA" "userspace")
+# "userspace" runs until the last unit settles, so catch-up timers (nix-gc,
+# fstrim) inflate it. Grade the time to graphical.target instead.
+GRAPHICAL_S=$(systemd-analyze critical-chain graphical.target 2>/dev/null | grep -oP "graphical.target @\K[0-9.]+(?=s)" | head -n1)
+[ -n "$GRAPHICAL_S" ] && USER_MS=$(awk -v s="$GRAPHICAL_S" 'BEGIN {print s * 1000}')
 
 # --- 2. CRITICAL CHAIN ---
 echo -e "\n${BOLD}[2/5] Fetching Critical Chain Target...${NC}"
-systemd-analyze critical-chain | head -n 12
+if [ "$BOOT_PENDING" -eq 1 ]; then
+    echo -e "${BLUE}Skipped (boot not finished).${NC}"
+else
+    systemd-analyze critical-chain | head -n 12
+fi
 
 # --- 3. BLAME ANALYSIS ---
 echo -e "\n${BOLD}[3/5] Pinpointing Top Execution Bottlenecks...${NC}"
@@ -53,12 +72,14 @@ SEC_DATA=$(systemd-analyze security --no-pager 2>/dev/null)
 # root-only build/recovery tooling — rather than a lack of hardening effort.
 # A real desktop always carries ~25 of these; scoring against a 0 baseline
 # that assumes they're all fixable grades against a system that can't exist.
-export STRUCTURAL_EXEMPT='^(serial-)?getty@|^rescue\.service$|^emergency\.service$|^actkbd@|^rpcbind\.service$|^rpc-|^nix-daemon\.service$|^greetd\.service$|^udisks2\.service$|^tailscaled\.service$|^sshd\.service$|^smartd\.service$|^reload-systemd-vconsole-setup\.service$|^iptsd@|^user@[0-9]+\.service$|^systemd-rfkill\.service$|^systemd-ask-password-(wall|console)\.service$|^NetworkManager\.service$|^dbus-broker\.service$|^iio-sensor-proxy\.service$'
+export STRUCTURAL_EXEMPT='^(serial-)?getty@|^rescue\.service$|^emergency\.service$|^actkbd@|^rpcbind\.service$|^rpc-|^nix-daemon(@.+)?\.service$|^greetd\.service$|^udisks2\.service$|^tailscaled\.service$|^sshd\.service$|^smartd\.service$|^reload-systemd-vconsole-setup\.service$|^iptsd@|^user@[0-9]+\.service$|^systemd-rfkill\.service$|^systemd-ask-password-(wall|console)\.service$|^NetworkManager\.service$|^dbus-broker\.service$|^iio-sensor-proxy\.service$'
 # Feature daemons and early-boot plumbing whose sandboxing was deliberately
 # skipped (libvirt/samba/nfs need broad host access to do their job; plymouth
-# needs DRM+tty at boot and a black screen there is not worth a lower score).
+# needs DRM+tty at boot and a black screen there is not worth a lower score;
+# nix-optimise rewrites /nix/store, NM-dispatcher runs root hook scripts, and
+# nvidia-persistenced holds the driver open — all upstream units).
 # Reported on their own line rather than hidden, and kept out of the average.
-export ACCEPTED_RISK='^virt[a-z]*d\.service$|^libvirt(d|-guests)\.service$|^samba-|^nfs-|^nfsdcld\.service$|^plymouth-|^systemd-ask-password-plymouth\.service$'
+export ACCEPTED_RISK='^virt[a-z]*d\.service$|^libvirt(d|-guests)\.service$|^samba-|^nfs-|^nfsdcld\.service$|^plymouth-|^systemd-ask-password-plymouth\.service$|^nix-optimise\.service$|^NetworkManager-dispatcher\.service$|^nvidia-persistenced\.service$'
 # Passed via ENVIRON, not -v: gawk's -v assignment runs C-style escape
 # processing on the value first, which mangles the \. sequences above.
 
@@ -99,15 +120,20 @@ fi
 # --- 5. GENERATING VISUAL PLOT ---
 echo -e "\n${BOLD}[5/5] Generating Boot Profile Vector Timeline...${NC}"
 PLOT_PATH="$(dirname "$0")/boot_profile.html"
-systemd-analyze plot > "$PLOT_PATH" 2>/dev/null
-echo -e "${GREEN}✓ Graphical boot timeline saved to: ${PLOT_PATH}${NC}"
+if [ "$BOOT_PENDING" -eq 0 ] && systemd-analyze plot > "$PLOT_PATH" 2>/dev/null; then
+    echo -e "${GREEN}✓ Graphical boot timeline saved to: ${PLOT_PATH}${NC}"
+else
+    echo -e "${BLUE}Skipped (boot not finished).${NC}"
+fi
 
 # --- SCORECARD ---
 echo -e "\n${BOLD}${BLUE}=========================================${NC}"
 echo -e "${BOLD}${BLUE}             SYSTEM SCORECARD            ${NC}"
 echo -e "${BOLD}${BLUE}=========================================${NC}"
 
-if [ -z "$LOADER_MS" ]; then
+if [ "$BOOT_PENDING" -eq 1 ]; then
+    echo -e "Boot Timing:   ${BLUE}PENDING (boot not finished — re-run shortly)${NC}"
+elif [ -z "$LOADER_MS" ]; then
     echo -e "Loader Phase:  ${BLUE}N/A (Skipped/EFI Boot)${NC}"
 else
     # Measured Boot (lanzaboote UKI + TPM2) has systemd-stub extend several
@@ -131,7 +157,9 @@ else
 fi
 
 # Strict check for 90s systemd device timeouts
-if [ -z "$INITRD_MS" ]; then
+if [ "$BOOT_PENDING" -eq 1 ]; then
+    :
+elif [ -z "$INITRD_MS" ]; then
     echo -e "Initrd Phase:  ${BLUE}N/A (No Ramdisk)${NC}"
 elif [ "$(awk -v i="$INITRD_MS" 'BEGIN {print (i >= 89000)?1:0}')" -eq 1 ]; then
     echo -e "Initrd Phase:  ${RED}F  (CRITICAL HARDWARE TIMEOUT — Check ESP/Device UUIDs)${NC}"
@@ -156,11 +184,13 @@ else
     fi
 fi
 
-if [ -z "$USER_MS" ]; then
+if [ "$BOOT_PENDING" -eq 1 ]; then
+    :
+elif [ -z "$USER_MS" ]; then
     echo -e "Userspace:     ${BLUE}N/A${NC}"
 elif [ "$USER_MS" -lt 2000 ]; then echo -e "Userspace:     ${GREEN}A+ (Fast Service Handoff)${NC}"
 elif [ "$USER_MS" -lt 5000 ]; then echo -e "Userspace:     ${GREEN}A  (Crisp Service Handoff)${NC}"
-else echo -e "Userspace:     ${YELLOW}B  (Serialized Service Bottleneck)${NC}"; fi
+else echo -e "Userspace:     ${YELLOW}B  (Slow Path To graphical.target)${NC}"; fi
 
 if [ "$(awk -v a="$AVG_EXPOSURE" 'BEGIN {print (a < 2.5)?1:0}')" -eq 1 ]; then
     echo -e "Security:      ${GREEN}A+ (Actionable Services Fully Hardened)${NC}"

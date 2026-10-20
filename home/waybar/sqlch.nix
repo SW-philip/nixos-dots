@@ -1,7 +1,6 @@
 { config, lib, pkgs, ... }:
 let
-  isDesktop = config.myConfig.isDesktop;
-  bar = if isDesktop then "leftBar" else "surfaceTopBar";
+  bar = config.waybar.primaryBar;
 
   # Single files, not the whole scripts dir: interpolating ./scripts would make
   # every unrelated script edit change this module's config and restart waybar.

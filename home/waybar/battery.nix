@@ -11,7 +11,7 @@ in
 {
   options.waybar.battery.enable = lib.mkEnableOption "battery module";
 
-  config = lib.mkIf (config.waybar.battery.enable && !config.myConfig.isDesktop) {
+  config = lib.mkIf (config.waybar.battery.enable && config.myConfig.onBattery) {
     home.packages = [ batteryScript ];
 
     programs.waybar.settings.surfaceTopBar."custom/battery" = {

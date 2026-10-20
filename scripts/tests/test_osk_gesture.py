@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Standalone tests for the three-finger-tap detector.
-Run: python3 scripts/test_osk_gesture.py"""
+Run: python3 scripts/tests/test_osk_gesture.py"""
 import importlib.util
 import unittest
 from pathlib import Path
 
 _spec = importlib.util.spec_from_file_location(
-    "osk_gesture", Path(__file__).with_name("osk-gesture.py"))
+    "osk_gesture", Path(__file__).resolve().parents[1] / "osk-gesture.py")
 g = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(g)
 

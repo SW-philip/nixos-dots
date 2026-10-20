@@ -1,9 +1,8 @@
 { config, pkgs, lib, ... }:
 
 let
-  isDesktop = config.myConfig.isDesktop;
   bar = if config.waybar.barName != "" then config.waybar.barName
-        else if isDesktop then "rightBar" else "surfaceTopBar";
+        else config.waybar.secondaryBar;
 
   clockScript = pkgs.writeShellScriptBin "quantum-clock" ''
     exec ${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/waybar/scripts/quantum_clock.py "$@"

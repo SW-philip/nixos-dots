@@ -63,11 +63,8 @@ let
 in
 {
   systemd.user.services.bluetooth-idle-notify = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "Notify (never power off) when Bluetooth sits idle";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
     };
     Service = {
       ExecStart = "${idleNotifyScript}/bin/bluetooth-idle-notify";

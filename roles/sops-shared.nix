@@ -13,4 +13,13 @@
     sopsFile = ../secrets/shared.yaml;
     owner    = config.myConfig.user;
   };
+  # sqlch's podcasts source reads this at /run/secrets/podcastindex_env.
+  # Add it first: `sops secrets/shared.yaml`, an env-style block like spotify_env:
+  #   podcastindex_env: |
+  #     PODCASTINDEX_API_KEY=...
+  #     PODCASTINDEX_API_SECRET=...
+  sops.secrets.podcastindex_env = {
+    sopsFile = ../secrets/shared.yaml;
+    owner    = config.myConfig.user;
+  };
 }

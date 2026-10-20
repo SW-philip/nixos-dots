@@ -9,7 +9,10 @@ SELF=${NIXFETCH_SELF:-$(uname -n)}
 SRC=${NIXFETCH_SRC:-/var/lib/nixfetch/host.json}
 SSH_TIMEOUT=${NIXFETCH_SSH_TIMEOUT:-5}
 
-nix_name() { case $1 in desktop) echo swphil ;; surface) echo swsurface ;; retro) echo swretro ;; pi) echo swpi ;; *) echo "$1" ;; esac; }
+FLEET_JSON=${FLEET_JSON:-/etc/fleet.json}
+[[ -r $FLEET_JSON ]] || FLEET_JSON=$(dirname "$0")/../hosts/inventory.json
+fleet_field() { jq -r --arg h "$1" --arg f "$2" '.[$h][$f] // $h' "$FLEET_JSON"; }
+nix_name() { fleet_field "$1" ts; }
 
 mkdir -p "$CACHE"
 for host in $HOSTS; do

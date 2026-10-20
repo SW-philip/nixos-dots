@@ -1,28 +1,14 @@
 { lib, ... }:
 let
   tailnet = "example.ts.net";
-  fleet = {
-    desktop = {
-      ts = "swphil";
-      ip = "100.64.0.1";
-      key = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
-    };
-    surface = {
-      ts = "swsurface";
-      ip = "100.64.0.2";
-      key = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
-    };
-    retro = {
-      ts = "swretro";
-      ip = "100.64.0.3";
-      key = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
-    };
-    pi = {
-      ts = "swpi";
-      ip = "100.64.0.4";
-      key = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
-    };
+  inventory = import ../hosts/inventory.nix;
+  keys = {
+    desktop = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
+    surface = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
+    retro = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
+    pi = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
   };
+  fleet = lib.mapAttrs (n: key: inventory.${n} // { inherit key; }) keys;
 in
 {
   # System-wide, so it covers every user and root: /root and ~/.ssh are wiped

@@ -4,7 +4,7 @@
 # wlr-gamma-control) and restores as soon as focus leaves. Surface-only:
 # gamma is per-output, so on the two-monitor desktop it would tint both.
 # Tune TEMP_K / BRIGHTNESS below; `systemctl --user stop reader-warmth` to disable.
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 let
   readerWarmth = pkgs.writeShellApplication {
     name = "reader-warmth";
@@ -43,11 +43,8 @@ in
   home.packages = [ readerWarmth ];
 
   systemd.user.services.reader-warmth = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Warm the screen while KOReader is focused";
-      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
     };
     Service = {
       ExecStart = "${readerWarmth}/bin/reader-warmth";

@@ -12,6 +12,10 @@ Table format, one rule per line, tab-separated, '#' comments:
 First matching rule wins. Input lines may carry a "(xN) " repeat prefix.
 A rule with a cleared-by regex is shown as resolved when the journal has a
 line matching it after the rule's last match (e.g. a later successful switch).
+
+A table ending in .md is a hand-written ISSUES.md instead; every other line is prose:
+    - `<python regex>` <action|watch|benign>: <note>
+      cleared by `<regex>`            (optional, on the next line)
 """
 
 import argparse
@@ -24,6 +28,8 @@ ORDER = {"action": 0, "watch": 1, "benign": 2}
 RESOLVED = 3
 JOURNAL_LINE = re.compile(r"^(\d+)\.\d+ \S+ ([^\[:\s]+)(?:\[\d+\])?: (.*)$")
 COUNT = re.compile(r"^\(x(\d+)\) ")
+MD_RULE = re.compile(r"^[-*] `(.+)` +(action|watch|benign):? *(.*)$")
+MD_CLEARED = re.compile(r"^\s+cleared by `(.+)`\s*$")
 CHECK_PATH = re.compile(r"(?<![\w/])(/[\w@%+=:,.\-/*]+)")
 
 
@@ -34,6 +40,8 @@ def load_rules(paths):
             lines = open(path, encoding="utf-8").read().splitlines()
         except FileNotFoundError:
             continue
+        if path.endswith(".md"):
+            lines = md_to_tsv(lines)
         for n, line in enumerate(lines, 1):
             if not line.strip() or line.lstrip().startswith("#"):
                 continue
@@ -48,6 +56,21 @@ def load_rules(paths):
             except re.error as e:
                 print(f"{path}:{n}: skipped, bad regex ({e})", file=sys.stderr)
     return rules
+
+
+def md_to_tsv(lines):
+    """Rewrite ISSUES.md rule bullets as table lines, prose as blanks (keeps line numbers)."""
+    out = []
+    for line in lines:
+        m, c = MD_RULE.match(line), MD_CLEARED.match(line)
+        if m:
+            out.append("\t".join(m.groups()))
+        elif c and out and out[-1].count("\t") == 2:
+            out[-1] += "\t" + c.group(1)
+            out.append("")
+        else:
+            out.append("")
+    return out
 
 
 def split(args):

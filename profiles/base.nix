@@ -7,12 +7,14 @@ let
     build setuptools wheel pyyaml
   ]);
 
+  ports = import ../hosts/ports.nix;
+
   sqlchHttpBridge = pkgs.writeScript "sqlch-http-bridge" ''
     #!${pkgs.python3}/bin/python3
     import json, os, socket
     from http.server import BaseHTTPRequestHandler, HTTPServer
 
-    PORT = 8766  # NOT 8765 — that's iptv-serve (hosts/desktop/services.nix); bind-collides on desktop
+    PORT = ${toString ports.sqlch-http-bridge}
     SOCK = os.path.join(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"), "sqlch", "control.sock")
 
     def sqlch(msg):
@@ -128,6 +130,7 @@ in
 {
   imports = [
     ../modules/home-options.nix
+    ../home/niri-service.nix
     ../home/waybar
     ../home/niri/swaync
     ../home/eww
@@ -267,7 +270,9 @@ in
       Service = {
         ExecStart = "${pkgs.bash}/bin/bash -c 'set -a; . /run/secrets/spotify_env; set +a; exec ${pkgs.sqlch}/bin/sqlch daemon'";
         Restart = "on-failure";
-        MemoryMax = "300M";
+        # mpv children (video + ytdl cache) live in this cgroup; 300M OOM-killed
+        # the whole unit, window and all, as soon as a video source started.
+        MemoryMax = "2G";
         MemorySwapMax = "0";
         Environment = "MALLOC_ARENA_MAX=2";
       };
@@ -580,8 +585,8 @@ in
       listener = [
         {
           timeout = 240;
-          on-timeout = if config.myConfig.isDesktop then "${ddcDim} dim" else "${pkgs.brightnessctl}/bin/brightnessctl -s s 10%";
-          on-resume = if config.myConfig.isDesktop then "${ddcDim} restore" else "${pkgs.brightnessctl}/bin/brightnessctl -r";
+          on-timeout = if config.myConfig.hasBacklight then "${pkgs.brightnessctl}/bin/brightnessctl -s s 10%" else "${ddcDim} dim";
+          on-resume = if config.myConfig.hasBacklight then "${pkgs.brightnessctl}/bin/brightnessctl -r" else "${ddcDim} restore";
         }
       ] ++ lib.optionals (!config.myConfig.isDesktop) [
         {

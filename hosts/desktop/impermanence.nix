@@ -19,12 +19,27 @@
       "/var/lib/OpenRGB"
       "/var/lib/deluge"
       "/var/lib/myln"
+      "/var/lib/libvirt"
+      # nfsdcld client records: without them surface's NFSv4 reclaim after a
+      # reboot fails and it drops its locks.
+      "/var/lib/nfs"
+      "/var/lib/power-profiles-daemon"
+      "/var/lib/lastlog"
+      "/var/lib/btrfs"
+      "/var/lib/systemd/coredump"
+      "/var/lib/systemd/pstore"
       "/var/cache/jellyfin"
       "/var/cache/tuigreet"
       "/var/log"
+      # `sudo nixos-rebuild --target-host` ssh's as root.
+      { directory = "/root/.ssh"; mode = "0700"; }
     ];
 
-    files = [];
+    files = [
+      "/etc/adjtime"
+      # systemd-creds host key: anything encrypted against it is unreadable once it changes.
+      "/var/lib/systemd/credential.secret"
+    ];
   };
 
   environment.etc."machine-id" = {

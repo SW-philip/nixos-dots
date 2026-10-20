@@ -9,6 +9,9 @@
 #   FORCE=1             skip the live-work guards
 #   ALLOW_DIRTY=1       deploy a tree with uncommitted changes
 #   DEPLOY_TIMEOUT=n    seconds to wait for a detached switch (default 1200)
+#   NONINTERACTIVE=1    never prompt: every host (surface too, from anywhere) is activated
+#                       through `sudo -n goodnight-activate` (roles/goodnight-activate.nix).
+#                       A live Sunshine stream exits 4 instead of 1 so the caller can retry.
 #
 # Never `nixos-rebuild test` here: reverting it orphans ROOT_ITEM refs on the
 # impermanence roots. The safety net is the build-everything-first phase.
@@ -34,16 +37,18 @@ for h in pi retro desktop surface; do
   if [[ ${#hosts[@]} -eq 0 ]] || [[ " ${hosts[*]} " == *" $h "* ]]; then order+=("$h"); fi
 done
 
+ni=${NONINTERACTIVE:-0}
 here="$(hostname)"
-case "${here,,}" in
-  *surface*) me=surface ;;
-  *swphil*|desktop) me=desktop ;;
-  *) me="$here" ;;
-esac
+FLEET_JSON=${FLEET_JSON:-/etc/fleet.json}
+[[ -r $FLEET_JSON ]] || FLEET_JSON=$(dirname "$0")/../hosts/inventory.json
+# short flake name for a nickname (SWphil) or Tailscale label (swphil); empty if unknown
+fleet_self() { jq -r --arg n "${1,,}" 'to_entries[] | select(.key == $n or (.value.nick | ascii_downcase) == $n) | .key' "$FLEET_JSON" | head -n1; }
+me=$(fleet_self "$here")
+me=${me:-$here}
 
 # The surface step activates locally; anywhere else it would put surface's
 # closure on the wrong machine (it once dropped desktop to emergency mode).
-if [[ $build_only -eq 0 && " ${order[*]} " == *" surface "* && "$me" != surface ]]; then
+if [[ $build_only -eq 0 && $ni -eq 0 && " ${order[*]} " == *" surface "* && "$me" != surface ]]; then
   die "surface is switched locally — run this on surface, or name hosts explicitly (pi retro desktop)"
 fi
 
@@ -54,7 +59,9 @@ host_run() { # host cmd — run on a host, locally if it is this one
 }
 # Same, but with a tty so sudo can prompt (desktop has no NOPASSWD, roles/base.nix).
 host_run_tty() { # host cmd
-  if [[ "$1" == "$me" ]]; then bash -c "$2"; else ssh -t "prepko@$1" "$2"; fi
+  if [[ "$1" == "$me" ]]; then bash -c "$2"
+  elif [[ $ni -eq 1 ]]; then ssh -o BatchMode=yes "prepko@$1" "$2"
+  else ssh -t "prepko@$1" "$2"; fi
 }
 on_desktop() { host_run desktop "$1"; }
 
@@ -82,7 +89,8 @@ if [[ "${FORCE:-}" != 1 ]]; then
   pgrep -x nixos-rebuild >/dev/null && die "a nixos-rebuild is already running here"
   pgrep -x nh >/dev/null && die "nh is already running here"
   if stream_live; then
-    die "a Sunshine stream is live on desktop (FORCE=1 to override)"
+    echo "deploy-all: a Sunshine stream is live on desktop (FORCE=1 to override)" >&2
+    exit $(( ni == 1 ? 4 : 1 ))
   fi
 fi
 echo "ok"
@@ -143,7 +151,7 @@ poll_unit() { # host unit invocation-id
     fi
     case "$as" in
       activating) ;;
-      active) [[ "$ss" == exited ]] && { host_run "$host" "sudo systemctl stop $unit" || true; return 0; } ;;
+      active) [[ "$ss" == exited ]] && { host_run "$host" "sudo -n systemctl stop $unit" 2>/dev/null || true; return 0; } ;;
       failed) return 1 ;;
       inactive) [[ "$res" == success ]] && return 0; return 1 ;;
     esac
@@ -156,16 +164,22 @@ poll_unit() { # host unit invocation-id
 # poll instead.
 switch_detached() { # host path
   local host=$1 unit="deploy-switch-$1" st inv=""
+  [[ $ni -eq 0 ]] || unit=goodnight-switch
   st="$(host_run "$host" "systemctl show -p ActiveState -p SubState $unit")" || return 1
   if grep -qE '^(ActiveState=activating|SubState=running)$' <<<"$st"; then
     echo "deploy-all: $unit is still running on $host — a previous switch is in flight" >&2
     return 1
   fi
-  host_run_tty "$host" "sudo systemctl stop $unit 2>/dev/null; sudo systemctl reset-failed $unit 2>/dev/null; \
-    sudo systemd-run --quiet --unit=$unit --property=RemainAfterExit=yes \
-    --setenv=HOME=/root --setenv=PATH=/run/current-system/sw/bin \
-    --setenv=LOCALE_ARCHIVE=/run/current-system/sw/lib/locale/locale-archive \
-    sh -c '$(activate_cmd "$2")'" || return 1
+  if [[ $ni -eq 1 ]]; then
+    host_run "$host" "sudo -n /run/current-system/sw/bin/goodnight-activate '$2'" || {
+      echo "deploy-all: $host refused the activation (is goodnight-activate deployed there?)" >&2; return 1; }
+  else
+    host_run_tty "$host" "sudo systemctl stop $unit 2>/dev/null; sudo systemctl reset-failed $unit 2>/dev/null; \
+      sudo systemd-run --quiet --unit=$unit --property=RemainAfterExit=yes \
+      --setenv=HOME=/root --setenv=PATH=/run/current-system/sw/bin \
+      --setenv=LOCALE_ARCHIVE=/run/current-system/sw/lib/locale/locale-archive \
+      sh -c '$(activate_cmd "$2")'" || return 1
+  fi
   for _ in 1 2 3 4 5; do
     inv="$(host_run "$host" "systemctl show -p InvocationID --value $unit" 2>/dev/null)" && [[ -n "$inv" ]] && break
     sleep 1
@@ -182,7 +196,8 @@ switch_host() { # host
       switch_detached "$1" "$p" ;;
     surface)
       copy_closure surface "$p"
-      sudo bash -c "$(activate_cmd "$p")" ;;
+      if [[ $ni -eq 1 || "$me" != surface ]]; then switch_detached surface "$p"
+      else sudo bash -c "$(activate_cmd "$p")"; fi ;;
   esac
 }
 

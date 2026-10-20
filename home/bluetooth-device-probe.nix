@@ -67,11 +67,8 @@ let
 in
 {
   systemd.user.services.bluetooth-device-probe = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "Probe newly connected Bluetooth devices for available info";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
     };
     Service = {
       Environment = [

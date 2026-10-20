@@ -7,6 +7,8 @@ in
     ../../modules/nixfetch.nix
     "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
     ../../identities/prepko.nix
+    ../../roles/nix-hygiene.nix
+    ../../roles/goodnight-activate.nix
     ../../roles/ssh-known-hosts.nix
     ../../roles/wifi-home.nix
     inputs.sops-nix.nixosModules.sops
@@ -23,12 +25,10 @@ in
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
 
   # 1 GB of RAM and a microSD: swap in RAM, logs in RAM.
-  zramSwap.enable = true;
   services.journald.extraConfig = ''
     Storage=volatile
     RuntimeMaxUse=32M
   '';
-  documentation.enable = false;
   services.udisks2.enable = false;
   boot.loader.timeout = 1;
   # bcm2835_wdt caps at ~15s; a wedged headless Pi would otherwise stay down.
@@ -40,18 +40,10 @@ in
   nix.settings = {
     min-free = 256 * 1024 * 1024;
     max-free = 1024 * 1024 * 1024;
-    # nixos-rebuild --build-host copies unsigned closures from desktop.
-    trusted-users = [ "root" "prepko" ];
-    allowed-users = [ "prepko" ];
   };
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 7d";
-  };
+  nix.gc.options = "--delete-older-than 7d";
   nix.daemonCPUSchedPolicy = "idle";
   nix.daemonIOSchedClass = "idle";
-  environment.defaultPackages = [ ];
   boot.tmp.cleanOnBoot = true;
   boot.loader.generic-extlinux-compatible.configurationLimit = 3;
 

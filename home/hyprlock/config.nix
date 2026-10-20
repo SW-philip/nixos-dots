@@ -3,7 +3,7 @@
 let
   h    = col: lib.removePrefix "#" col;
   home = config.home.homeDirectory;
-  sc   = if config.myConfig.isDesktop then 1 else 2;
+  sc   = if config.myConfig.hiDpi then 2 else 1;
   px   = n: toString (n * sc);
 
   # Vertical layout — mark → clock → date as one cluster centred on the screen,
@@ -31,8 +31,8 @@ let
   # Scrim: a full-bleed band darkening the mid zone so the mark + clock + date
   # stay legible on busy / same-value wallpapers (the flat pass dropped their
   # text-shadows). HALL is the palette ground-floor fill — FORTE/REST over it is
-  # a palette-guaranteed contrast pair, so no per-theme tuning; on a HALL=#000000
-  # theme it degrades to a plain 55%-black darkening, still the right read.
+  # a palette-guaranteed contrast pair, so no per-theme tuning; on a pure-black
+  # HALL theme it degrades to a plain 55%-black darkening, still the right read.
   # quantum-clock's lock face is a WORD clock ("twenty-five past eleven"), so no
   # fitted width can frame it — hence full-bleed. Centred on the same midpoint as
   # the cluster (valign=center), so it tracks the text on any display.

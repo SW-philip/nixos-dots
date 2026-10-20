@@ -2,6 +2,7 @@
 
 let
   isDesktop = config.myConfig.isDesktop;
+  hasTouch  = config.myConfig.hasTouch;
   scriptDir = "${config.home.homeDirectory}/.config/eww/scripts";
   connector = if isDesktop then "DP-2" else "eDP-1";
   scripts   = [ "context" "vitals" "storage" "boot" "snark"
@@ -110,10 +111,10 @@ let
       --replace-fail ':monitor 1' ':monitor "HDMI-A-1"' \
       --replace-fail '(defvar is_desktop false)' '(defvar is_desktop ${lib.boolToString isDesktop})' \
       --replace-fail 'EWW' '${pkgs.eww}/bin/eww' \
-      --replace-fail 'TABLET_FEED' '${if isDesktop then "sleep infinity" else "${surfaceFeed} tablet"}' \
-      --replace-fail 'OSK_FEED' '${if isDesktop then "sleep infinity" else "${surfaceFeed} osk"}' \
-      --replace-fail 'TABLET_STATE' '${if isDesktop then "true" else "${tabletStateBin}/bin/tablet-state"}' \
-      --replace-fail 'TABLET_ACT' '${if isDesktop then "true" else "${tabletActBin}/bin/tablet-act"}' \
+      --replace-fail 'TABLET_FEED' '${if hasTouch then "${surfaceFeed} tablet" else "sleep infinity"}' \
+      --replace-fail 'OSK_FEED' '${if hasTouch then "${surfaceFeed} osk" else "sleep infinity"}' \
+      --replace-fail 'TABLET_STATE' '${if hasTouch then "${tabletStateBin}/bin/tablet-state" else "true"}' \
+      --replace-fail 'TABLET_ACT' '${if hasTouch then "${tabletActBin}/bin/tablet-act" else "true"}' \
       --replace-fail 'UNIREMOTE_TOGGLE' '${if isDesktop then "true" else sessionActionsForEww.uniremoteToggle}' \
       --replace-fail 'MOONLIGHT_TOGGLE' '${if isDesktop then "true" else sessionActionsForEww.moonlightToggle}' \
       --replace-fail 'LIX_LOGOUT_TOGGLE' '${pkgs.lix-logout}/bin/lix-logout-toggle' \
@@ -125,7 +126,7 @@ let
 in
 {
   home.packages = [ pkgs.eww panelEdgeBin panelStepBin ]
-    ++ lib.optionals (!isDesktop) [ tabletStateBin tabletActBin tabletGesturesBin nirScripts.tabletShell ];
+    ++ lib.optionals hasTouch [ tabletStateBin tabletActBin tabletGesturesBin nirScripts.tabletShell ];
 
   xdg.configFile = lib.mkMerge [
     { "eww/eww.yuck".source = yuck; }
@@ -191,7 +192,7 @@ in
 
   # Edge swipes only exist while the Type Cover is detached: squeekboard.service
   # runs exactly then, same binding as surface-osk-gesture in profiles/surface-tablet.nix.
-  systemd.user.services.tablet-gestures = lib.mkIf (!isDesktop) {
+  systemd.user.services.tablet-gestures = lib.mkIf hasTouch {
     Unit = {
       Description = "Touchscreen edge swipes for the tablet shell";
       PartOf = [ "squeekboard.service" ];
@@ -207,11 +208,8 @@ in
   };
 
   systemd.user.services.eww = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "eww status window daemon";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
       # nrs that only edits the yuck/scss must actually restart the daemon —
       # the stats sidebar is gone (Phase C), so there is no fallback panel.
       X-Restart-Triggers = [ "${yuck}" "${./eww.scss}" ];
@@ -247,7 +245,7 @@ in
         ${lib.optionalString isDesktop ''open_slot wing-tv status-tv "${wingEdgeTv}" "left right"''}
         open_slot ledger ledger "${ledgerEdge}" "top bottom"
         ${lib.optionalString isDesktop ''open_slot ledger-tv ledger-tv "${ledgerEdgeTv}" "top bottom"''}
-        ${lib.optionalString (!isDesktop) "${nirScripts.tabletShell}/bin/tablet-shell || true"}
+        ${lib.optionalString hasTouch "${nirScripts.tabletShell}/bin/tablet-shell || true"}
       '';
       ExecReload = "${pkgs.eww}/bin/eww reload";
       Restart = "on-failure";

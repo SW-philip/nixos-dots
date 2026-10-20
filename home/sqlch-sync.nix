@@ -4,7 +4,7 @@ let
   # ssh alias per hosts/*/config.nix -- from surface it's "desktop", from
   # desktop it's "swsurface" (tailscale's registered device name, not the
   # nixos hostname "SWsurface"). Confirmed both directions work passwordless.
-  remoteHost = if isDesktop then "swsurface" else "desktop";
+  remoteHost = if isDesktop then (import ../hosts/inventory.nix).${config.myConfig.peer}.ts else config.myConfig.peer;
 
   # Surface holds the curated library; it wins when the same station id
   # differs on both hosts.
@@ -24,11 +24,8 @@ in
   home.packages = [ syncScript ];
 
   systemd.user.services.sqlch-sync = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "Union-merge sqlch station library with ${remoteHost}";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-      ConditionEnvironment = lib.mkForce [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
     };
     Service = {
       Type = "oneshot";

@@ -2,6 +2,7 @@
 
 let
   sandbox = import ../../lib/sandbox.nix;
+  ports = import ../ports.nix;
   netOnly = [ "AF_INET" "AF_INET6" ];
 in
 {
@@ -122,8 +123,8 @@ in
   #   tailscale0 (trusted interface, all ports open)
   #   enp4s0 (LAN, explicit allow below)
   ############################################################
-  networking.firewall.allowedTCPPorts = lib.optional config.iptv.enable 8765;
-  networking.firewall.interfaces."enp4s0".allowedTCPPorts = [ 8096 ];
+  networking.firewall.allowedTCPPorts = lib.optional config.iptv.enable ports.iptv-serve;
+  networking.firewall.interfaces."enp4s0".allowedTCPPorts = [ ports.jellyfin ];
 
   ############################################################
   # PS4/PS5 controller lightbar LED permissions

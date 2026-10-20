@@ -1,7 +1,6 @@
 { config, pkgs, lib, ... }:
 
 let
-  isDesktop = config.myConfig.isDesktop;
   swaync = "${pkgs.swaynotificationcenter}/bin/swaync-client";
 
   # Nix has no \u string escape; round-trip a codepoint through fromJSON.
@@ -38,14 +37,5 @@ let
   };
 in
 {
-  programs.waybar.settings = lib.mkMerge [
-    (lib.mkIf isDesktop {
-      leftBar."custom/notification"  = mod;
-      rightBar."custom/notification" = mod;
-      tvTopBar."custom/notification" = mod;
-    })
-    (lib.mkIf (!isDesktop) {
-      surfaceTopBar."custom/notification" = mod;
-    })
-  ];
+  programs.waybar.settings = lib.genAttrs config.waybar.allBars (_: { "custom/notification" = mod; });
 }

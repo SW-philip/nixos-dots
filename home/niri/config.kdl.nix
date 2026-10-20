@@ -1,4 +1,4 @@
-{ p, l, barHeight ? 45, cursorSize ? 48, isDesktop ? false, toggleOskBin ? "toggle-osk", launcherBin ? "launcher", sidebarToggleBin ? "swaync-toggle", lockScreenBin ? "hyprlock" }:
+{ p, l, barHeight ? 45, cursorSize ? 48, isDesktop ? false, hasTouch ? !isDesktop, toggleOskBin ? "toggle-osk", launcherBin ? "launcher", sidebarToggleBin ? "swaync-toggle", lockScreenBin ? "hyprlock" }:
 let
   # Remote-window colours: which accent is far enough from ROOT (the local focused border)
   # depends on the theme, so rank FIFTH/SEVENTH/SOTTO by RGB distance from ROOT and hand
@@ -477,11 +477,11 @@ binds {
     Mod+E      { spawn "nemo"; }
     Mod+V      { spawn "bash" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
     Mod+B      { spawn "${sidebarToggleBin}"; }
-    ${if !isDesktop then ''Mod+Shift+W { spawn "${toggleOskBin}"; }'' else ""}
+    ${if hasTouch then ''Mod+Shift+W { spawn "${toggleOskBin}"; }'' else ""}
     // Triple-finger tap on the touchpad = middle-click by niri's default
     // tap-button-map (left-right-middle), so this binding doubles as a
     // 3-finger-tap toggle without needing a separate gesture config.
-    ${if !isDesktop then ''MouseMiddle { spawn "${sidebarToggleBin}"; }'' else ""}
+    ${if hasTouch then ''MouseMiddle { spawn "${sidebarToggleBin}"; }'' else ""}
 
     // Windows
     Mod+Q { close-window; }

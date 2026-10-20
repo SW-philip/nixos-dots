@@ -1,0 +1,24 @@
+# Files palette-lint skips. One per line: path, two spaces, # reason. A file belongs here only
+# when literal colors are the point; anything themable gets fixed instead.
+home/waybar/scripts/teamcolors.json  # data: sports team colors, not UI
+home/eww/colors.scss  # checked-in placeholder seed; drmis overwrites the deployed copy per theme
+home/waybar/style.nix  # graded volume/network hover scale (the CLAUDE.md semantic-scale exception)
+home/waybar/scripts/weather.py  # fallbacks for a missing palette + graded temperature scale
+home/waybar/scripts/waybar-sqlch  # fallbacks for a missing palette
+home/waybar/scripts/battery.sh  # fallbacks for a missing palette
+home/waybar/scripts/kdeconnect-status.sh  # fallbacks for a missing palette
+home/waybar/scripts/protonvpn-status.sh  # fallbacks for a missing palette
+profiles/base.nix  # zsh-highlight fallback when no palette var is exported
+home/zed/theme.nix  # fully transparent #00000000 is "no color", not a palette entry
+home/openrgb/rgb-reactive.nix  # black = LED off, hardware meaning
+home/nix-mark/mark.nix  # sed targets: the upstream Nix logo's own fill values
+home/fastfetch/logo.nix  # Nix logo brand fills and the sed targets that recolor them
+hosts/retro/kiosk.nix  # --replace-fail strings must match Moonlight's source verbatim
+pkgs/dsa-plymouth/default.nix  # DSA brand art, not themed
+pkgs/dsa-plymouth/dsa-rose.script  # DSA brand art, not themed
+pkgs/dsa-plymouth/render.py  # DSA brand art, not themed
+pkgs/lix-plymouth/lix-icecream.script  # Lix brand art, not themed
+pkgs/lix-plymouth/render.py  # Lix brand art, not themed
+pkgs/greeter/greeter/fallback-palette.sh  # greeter's palette when no theme file loads
+pkgs/greeter/greeter/palette.py  # greeter's palette when no theme file loads, plus brand constants
+pkgs/greeter/greeter/mark.py  # Nix logo fills the recolor step matches against

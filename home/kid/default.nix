@@ -126,10 +126,10 @@ in
   ];
 
   xdg.configFile."nwg-drawer/drawer.css".text = ''
-    window { background-color: rgba(35, 33, 54, 0.92); }
-    #searchbox, #button, #label { color: #ffffff; font-size: 18px; }
+    window { background-color: alpha(${moon.HALL}, 0.92); }
+    #searchbox, #button, #label { color: ${moon.SCORE}; font-size: 18px; }
     button { background: transparent; border-radius: 12px; padding: 8px; }
-    button:hover { background-color: #303254; }
+    button:hover { background-color: ${moon.STAGE}; }
   '';
 
   programs.bash = {

@@ -6,22 +6,10 @@
 # enter it at spotify.com/pair; the credentials are then kept in
 # ~/.config/go-librespot/state.json.
 #
-# go-librespot is not in nixos-26.05, so it comes from nixpkgs-unstable, bumped
-# to v0.10.5 for the device_auth login (the interactive one is rejected by
-# Spotify's client id).
-{ inputs, pkgs, lib, config, ... }:
+# The package pin (nixpkgs-unstable, v0.10.5) is overlays/go-librespot.nix.
+{ pkgs, lib, config, ... }:
 let
-  goLibrespot =
-    inputs.nixpkgs-unstable.legacyPackages.${pkgs.stdenv.hostPlatform.system}.go-librespot.overrideAttrs
-      (old: rec {
-        version = "0.10.5";
-        src = old.src.override {
-          tag = "v${version}";
-          hash = "sha256-lSObYalZqAYfik59L5PrH4CGcZilA7Tpzx4tVmTdsks=";
-        };
-        vendorHash = "sha256-fxB99qZE+U355iKJHIl7LgxqHmYgCiU1FpbyObTXVcQ=";
-      });
-
+  ports = import ../hosts/ports.nix;
   configFile = (pkgs.formats.yaml { }).generate "go-librespot-config.yml" {
     device_name = "sqlch";
     device_type = "computer";
@@ -32,7 +20,7 @@ let
     server = {
       enabled = true;
       address = "localhost";
-      port = 3678;
+      port = ports.go-librespot;
     };
   };
 in
@@ -46,7 +34,7 @@ in
       PartOf = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${goLibrespot}/bin/go-librespot --config_dir ${config.xdg.configHome}/go-librespot";
+      ExecStart = "${pkgs.go-librespot}/bin/go-librespot --config_dir ${config.xdg.configHome}/go-librespot";
       Restart = "on-failure";
       RestartSec = 5;
     };

@@ -61,7 +61,10 @@ fi
 
 # --- 3. BLAME ANALYSIS ---
 echo -e "\n${BOLD}[3/5] Pinpointing Top Execution Bottlenecks...${NC}"
-systemd-analyze blame | head -n 5
+# .device units report when the device appeared, not how long anything ran;
+# they crowd out the services that actually hold boot up.
+BLAME=$(systemd-analyze blame --no-pager | grep -v '\.device$')
+echo "$BLAME" | head -n 5
 
 # --- 4. SECURITY AUDIT ---
 echo -e "\n${BOLD}[4/5] Running Core System Security Audit...${NC}"
@@ -190,7 +193,10 @@ elif [ -z "$USER_MS" ]; then
     echo -e "Userspace:     ${BLUE}N/A${NC}"
 elif [ "$USER_MS" -lt 2000 ]; then echo -e "Userspace:     ${GREEN}A+ (Fast Service Handoff)${NC}"
 elif [ "$USER_MS" -lt 5000 ]; then echo -e "Userspace:     ${GREEN}A  (Crisp Service Handoff)${NC}"
-else echo -e "Userspace:     ${YELLOW}B  (Slow Path To graphical.target)${NC}"; fi
+else
+    echo -e "Userspace:     ${YELLOW}B  (Slow Path To graphical.target)${NC}"
+    echo -e "  ${BLUE}Slowest units: $(echo "$BLAME" | head -n 3 | awk '{printf "%s%s (%s)", sep, $2, $1; sep=", "}')${NC}"
+fi
 
 if [ "$(awk -v a="$AVG_EXPOSURE" 'BEGIN {print (a < 2.5)?1:0}')" -eq 1 ]; then
     echo -e "Security:      ${GREEN}A+ (Actionable Services Fully Hardened)${NC}"

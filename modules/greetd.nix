@@ -44,16 +44,16 @@
           --theme "$theme"
       '';
 
-      # The Surface panel is HiDPI but cage outputs are always scale 1 (GDK_SCALE
+      # The Surface panel is HiDPI but the greeter's outputs stay at scale 1 (GDK_SCALE
       # only supersamples, it doesn't enlarge). So pass a real UI multiplier that
       # scales the greeter's logical sizes. Desktop stays 1x.
       uiScale = if config.myConfig.hiDpi then "2" else "1";
       # --scale sizes the nix mark + cursor; the pills/text/power cluster gets its
       # own smaller multiplier (--field-scale) so the fields aren't oversized next to it.
       fieldScale = if config.myConfig.hiDpi then "1.5" else "1";
-      # cage outputs are scale 1, so the pointer stays at the ~24px default while the
+      # Outputs are scale 1, so the pointer stays at the ~24px default while the
       # rest of the greeter is scaled up — tiny on the HiDPI Surface panel. Enlarge it
-      # to track uiScale (XCURSOR_SIZE is what wlroots reads for the seat cursor).
+      # to track uiScale (sway's `seat xcursor_theme` below takes the size).
       cursorSize = if config.myConfig.hiDpi then "64" else "32";
       # XCURSOR_SIZE alone does nothing without a real Xcursor theme on XCURSOR_PATH —
       # otherwise wlroots draws its fixed-size built-in pointer (the "tiny cursor").
@@ -65,9 +65,8 @@
       # polkit's allow_active grants systemctl suspend with no auth prompt.
       suspendIdle = lib.optionalString config.myConfig.onBattery
         "timeout 300 '${pkgs.systemd}/bin/systemctl suspend' ";
-      # cage has no idle management of its own, so blank the login screen via
-      # swayidle (idle-notify) + wlopm (real DPMS, cuts the backlight). Greeter
-      # is exec'd as session leader so cage exits cleanly on successful login.
+      # sway has no idle blanking in a bare config, so blank the login screen via
+      # swayidle (idle-notify) + wlopm (real DPMS, cuts the backlight).
       # Authoritative session list: every module that registers a wayland/x
       # session (niri, mango, …) lands in sessionData.desktops. The greeter's
       # default /run/current-system/sw/share dirs aren't populated under greetd,
@@ -88,25 +87,35 @@
         # Set the 4K TV to scale 3 so GTK4 renders at couch-readable size.
         # wlr-randr uses wlr_output_management_v1; exits silently if not connected.
         ${pkgs.wlr-randr}/bin/wlr-randr --output HDMI-A-1 --scale 3 2>/dev/null || true
-        exec ${lib.getExe pkgs.greeter} --scale ${uiScale} --field-scale ${fieldScale} \
+        ${lib.getExe pkgs.greeter} --scale ${uiScale} --field-scale ${fieldScale} \
           --palette ${config.greetd.greeterPalette} \
           --sessions-dir ${sessionsDir} --default-user prepko
+      '';
+      # Kiosk sway: no bar, no xwayland, the greeter is the only client. When the
+      # greeter exits (successful login) sway must exit too, or greetd never
+      # starts the user session.
+      swayConfig = pkgs.writeText "greeter-sway.conf" ''
+        xwayland disable
+        default_border none
+        seat * xcursor_theme posys_cursor_scalable ${cursorSize}
+        exec ${pkgs.runtimeShell} -c '${greeterSession}; ${pkgs.sway}/bin/swaymsg exit'
       '';
       greeterLaunch = pkgs.writeShellScript "greeter-launch" ''
         export XCURSOR_THEME=posys_cursor_scalable
         export XCURSOR_PATH=${posysCursor}/share/icons
         export XCURSOR_SIZE=${cursorSize}
         # NVIDIA multi-head: atomic DRM commits time out (~40s per connector) when
-        # more than one monitor is connected, causing cage to spin until greetd
-        # kills it. Legacy drmModeSetCrtc per-connector is reliable.
+        # more than one monitor is connected, causing the compositor to spin until
+        # greetd kills it. Legacy drmModeSetCrtc per-connector is reliable.
         export WLR_DRM_NO_ATOMIC=1
-        # greetd hands this script the bare login VT as stderr, so cage's
+        # greetd hands this script the bare login VT as stderr, so sway's
         # wlroots startup logs and the greeter's output print onto the
-        # handover screen before cage grabs DRM. systemd-cat routes both to
-        # the journal (journalctl -t greeter) instead — cage opens
+        # handover screen before sway grabs DRM. systemd-cat routes both to
+        # the journal (journalctl -t greeter) instead — sway opens
         # DRM via libseat/logind, not stdio, so redirecting stderr is harmless.
+        # --unsupported-gpu: sway refuses the proprietary NVIDIA driver without it.
         exec ${pkgs.systemd}/bin/systemd-cat -t greeter \
-          ${pkgs.cage}/bin/cage -s -- ${greeterSession}
+          ${pkgs.sway}/bin/sway --unsupported-gpu -c ${swayConfig}
       '';
     in
     {
@@ -154,8 +163,8 @@
       services.greetd = {
         enable = true;
         settings.default_session = {
-          # greetd provides no compositor; run the GTK greeter inside cage (kiosk).
-          # greeterLaunch wraps cage to set the per-host display scale.
+          # greetd provides no compositor; run the GTK greeter inside sway (kiosk).
+          # greeterLaunch wraps sway to set the per-host display scale.
           # To recover from a broken greeter: set this to "${tuigreetLaunch}"
           # and nrs (or boot the previous generation / Ctrl+Alt+F2 -> tty2).
           command = "${greeterLaunch}";

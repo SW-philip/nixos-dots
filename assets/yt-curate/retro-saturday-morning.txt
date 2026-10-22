@@ -1,0 +1,7 @@
+# dest: retro/saturday-morning
+# maxheight: 720
+# full Saturday-morning broadcasts with original commercials
+https://www.youtube.com/watch?v=8bclMpe2Npg  # Cartoon Network 2007 2:29
+https://www.youtube.com/watch?v=G1SemU2EAFE  # Kids WB 1999-2002 3:46
+https://www.youtube.com/watch?v=KyBcToJTHLU  # JBuck 1996 4:16
+https://www.youtube.com/watch?v=VU4NgzAwtR0  # Fox Kids 1997-98 3:16

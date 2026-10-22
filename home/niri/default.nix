@@ -583,7 +583,7 @@ in
   ];
 
   xdg.configFile."swaync/config.json" = lib.mkForce { source = swayncConfig; force = true; };
-  xdg.configFile."fuzzel/fuzzel.ini"  = lib.mkForce { source = fuzzelConfig; force = true; };
+  xdg.configFile."fuzzel/fuzzel.ini"  = { source = fuzzelConfig; force = true; };
 
   xdg.configFile."xdg-desktop-portal/niri-portals.conf".text = ''
     [preferred]

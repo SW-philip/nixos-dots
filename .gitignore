@@ -21,7 +21,6 @@ themes/**/wallpaper-*.png
 # Generated / profiling outputs (no reason to track these)
 boot_profile*
 commentlist.txt
-urface-kbd-monitor.service
 errors*.txt
 nix-audit.txt
 curl_response

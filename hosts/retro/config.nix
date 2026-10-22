@@ -114,7 +114,7 @@
   '';
   services.thermald.enable = true;
   # roles/secure-boot.nix keeps 10 signed UKIs on the ESP; this box needs 3.
-  boot.loader.systemd-boot.configurationLimit = lib.mkForce 3;
+  boot.loader.systemd-boot.configurationLimit = 3;
 
   # Every fleet-status probe used to log in over ssh and journal a user-manager start/stop; keep
   # the journal small and in RAM so idle chatter doesn't hit the SSD.

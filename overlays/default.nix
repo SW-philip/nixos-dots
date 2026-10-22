@@ -8,10 +8,6 @@ let
   overlays = map (f: import f args) [
     ./packages.nix
     ./pegasus-cxx17.nix
-    ./cage-xcursor.nix
-    ./deluge-setuptools.nix
-    ./anyio-py312.nix
-    ./nixos-rebuild-ng.nix
     ./azahar-cstring.nix
     ./emulator-ffmpeg7.nix
     ./niri-session-env.nix

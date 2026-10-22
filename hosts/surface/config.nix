@@ -39,6 +39,7 @@ in
     ../../modules/protonvpn.nix
     ../../modules/sqlch.nix
     ../../modules/bluetooth-idle-off.nix
+    ../../modules/transmission.nix
     ./hardware.nix
     ./boot.nix
     ./features.nix
@@ -119,7 +120,7 @@ in
 
   # desktop's /srv/prepko (Pictures/Downloads pass-through). Inside prepko's 0700 home on purpose:
   # all_squash makes every local user prepko on this mount, so the path must not be traversable by others.
-  fileSystems."/home/prepko/.desktop" = {
+  fileSystems."/home/${config.myConfig.user}/.desktop" = {
     device  = "100.64.0.1:/srv/prepko";
     fsType  = "nfs";
     options = [

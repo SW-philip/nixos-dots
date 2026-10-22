@@ -1,3 +1,4 @@
+import pytest
 import importlib.util
 from pathlib import Path
 
@@ -99,3 +100,155 @@ def test_argv_parsing_authority_flag():
     assert ss.parse_authority(["prog", "desktop", "1"]) is True
     assert ss.parse_authority(["prog", "desktop", "0"]) is False
     assert ss.parse_authority(["prog", "desktop"]) is False
+
+
+NOW = 1_800_000_000.0
+
+
+def fav(id, ts=None, source="youtube", removed=False, **extra):
+    row = {"source": source, "id": id, "title": id, **extra}
+    if ts is not None:
+        row["updated_at"] = ts
+    if removed:
+        row["removed"] = True
+    return row
+
+
+def test_fav_union_copies_missing_rows_both_ways():
+    nl, nr, lc, rc = ss.merge_favorites([fav("a", 1)], [fav("b", 2)], True, now=NOW)
+    assert {r["id"] for r in nl} == {"a", "b"} and {r["id"] for r in nr} == {"a", "b"}
+    assert lc and rc
+
+
+def test_fav_identical_reports_no_change():
+    nl, nr, lc, rc = ss.merge_favorites([fav("a", 1)], [fav("a", 1)], True, now=NOW)
+    assert not lc and not rc
+
+
+def test_fav_newer_updated_at_wins_regardless_of_authority():
+    local = [fav("a", 5, removed=True)]
+    remote = [fav("a", 9)]
+    for auth in (True, False):
+        nl, nr, lc, rc = ss.merge_favorites(local, remote, auth, now=NOW)
+        assert nl == remote and nr == remote
+        assert lc and not rc
+
+
+def test_fav_tombstone_propagates():
+    local = [fav("a", NOW, removed=True)]
+    remote = [fav("a", NOW - 10)]
+    nl, nr, lc, rc = ss.merge_favorites(local, remote, False, now=NOW)
+    assert nr[0].get("removed") is True and not lc and rc
+
+
+def test_fav_tie_goes_to_authority():
+    local = [fav("a", 5, title="local")]
+    remote = [fav("a", 5, title="remote")]
+    nl, nr, _, _ = ss.merge_favorites(local, remote, True, now=NOW)
+    assert nl[0]["title"] == "local" and nr[0]["title"] == "local"
+    nl, nr, _, _ = ss.merge_favorites(local, remote, False, now=NOW)
+    assert nl[0]["title"] == "remote" and nr[0]["title"] == "remote"
+
+
+def test_fav_same_id_different_source_are_distinct():
+    nl, nr, _, _ = ss.merge_favorites(
+        [fav("a", 1, source="youtube")], [fav("a", 1, source="jellyfin")], True, now=NOW)
+    assert len(nl) == 2 and len(nr) == 2
+
+
+def test_fav_refavorite_after_tombstone_wins():
+    nl, nr, _, _ = ss.merge_favorites(
+        [fav("a", 5, removed=True)], [fav("a", 8)], True, now=NOW)
+    assert not nl[0].get("removed") and not nr[0].get("removed")
+
+
+def test_fav_legacy_rows_without_updated_at_union():
+    nl, nr, lc, rc = ss.merge_favorites([fav("a")], [fav("a"), fav("b")], True, now=NOW)
+    assert {r["id"] for r in nl} == {"a", "b"} and lc and not rc
+
+
+def test_fav_old_tombstones_pruned_on_both_sides():
+    old = NOW - ss.TOMBSTONE_TTL - 1
+    nl, nr, lc, rc = ss.merge_favorites(
+        [fav("a", old, removed=True), fav("k", NOW)], [fav("k", NOW)], True, now=NOW)
+    assert [r["id"] for r in nl] == ["k"] and [r["id"] for r in nr] == ["k"]
+    assert lc and not rc
+
+
+def test_fav_recent_tombstone_kept():
+    recent = NOW - ss.TOMBSTONE_TTL + 60
+    nl, _, lc, _ = ss.merge_favorites([fav("a", recent, removed=True)], [], True, now=NOW)
+    assert nl[0]["id"] == "a" and not lc
+
+
+def test_fav_empty_sides():
+    nl, nr, lc, rc = ss.merge_favorites([], [fav("a", 1)], True, now=NOW)
+    assert nl == [fav("a", 1)] and lc and not rc
+
+
+def test_fav_keeps_existing_order_then_appends_new():
+    nl, _, _, _ = ss.merge_favorites(
+        [fav("z", 1), fav("a", 1)], [fav("m", 1)], True, now=NOW)
+    assert [r["id"] for r in nl] == ["z", "a", "m"]
+
+
+def test_fav_unkeyed_rows_pass_through_untouched():
+    junk = {"title": "no key"}
+    nl, nr, _, _ = ss.merge_favorites([junk, fav("a", 1)], [fav("b", 1)], True, now=NOW)
+    assert junk in nl and junk not in nr
+
+
+def test_ssh_read_default_for_missing_file(monkeypatch):
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["cmd"] = cmd
+
+        class P:
+            returncode = 0
+            stdout = b"[]"
+            stderr = b""
+        return P()
+
+    monkeypatch.setattr(ss.subprocess, "run", fake_run)
+    assert ss.ssh_read("h", "~/x.json", default="[]") == []
+    assert "[ -f ~/x.json ]" in seen["cmd"][-1]
+
+
+def test_targets_cover_library_and_favorites():
+    assert [t.label for t in ss.TARGETS] == ["library", "favorites"]
+    assert ss.TARGETS[0].empty is None and ss.TARGETS[1].empty == []
+
+
+def test_sync_target_favorites_pulls_when_local_missing(tmp_path, monkeypatch, capsys):
+    t = ss.TARGETS[1]._replace(local_path=str(tmp_path / "favorites.json"))
+    monkeypatch.setattr(ss, "ssh_read", lambda host, path, default=None: [fav("a", 1)])
+    ss.sync_target("h", t, True)
+    import json
+    assert [r["id"] for r in json.load(open(t.local_path))] == ["a"]
+    assert "favorites" in capsys.readouterr().out
+
+
+def test_sync_target_library_skips_when_no_local(tmp_path, capsys):
+    t = ss.TARGETS[0]._replace(local_path=str(tmp_path / "library.json"))
+    ss.sync_target("h", t, True)
+    assert "nothing to sync" in capsys.readouterr().out
+
+
+def test_main_one_target_failing_does_not_block_the_other(tmp_path, monkeypatch, capsys):
+    import json
+    bad = tmp_path / "library.json"
+    bad.write_text("{not json")
+    good = tmp_path / "favorites.json"
+    targets = [
+        ss.TARGETS[0]._replace(local_path=str(bad)),
+        ss.TARGETS[1]._replace(local_path=str(good)),
+    ]
+    monkeypatch.setattr(ss, "TARGETS", targets)
+    monkeypatch.setattr(ss, "ssh_read", lambda host, path, default=None: [fav("a", 1)])
+    monkeypatch.setattr(ss.sys, "argv", ["sqlch-sync", "h", "1"])
+    with pytest.raises(SystemExit) as ex:
+        ss.main()
+    assert ex.value.code == 1
+    assert [r["id"] for r in json.load(open(good))] == ["a"]
+    assert "library failed" in capsys.readouterr().err

@@ -17,18 +17,6 @@
     impermanence.inputs.nixpkgs.follows = "nixpkgs";
     claude-code.url = "github:sadjow/claude-code-nix";
     claude-code.inputs.nixpkgs.follows = "nixpkgs";
-    lix = {
-      # 2.96.0 release tag. git+https, not the /archive/<rev>.tar.gz endpoint:
-      # git.lix.systems's on-demand archive-tarball route hangs, git smart-HTTP
-      # works. rev pinned so the module still sees lix.shortRev.
-      url = "git+https://git.lix.systems/lix-project/lix?ref=refs/tags/2.96.0&rev=f67b34faf17756bac7b30d7946f70d9bea92ae2d";
-      flake = false;
-    };
-    lix-module = {
-      url = "git+https://git.lix.systems/lix-project/nixos-module?ref=main&rev=5e56f5a973e24292b125dca9e9d506b0a91d6903";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.lix.follows = "lix";
-    };
     posys-cursor = {
       url = "github:Morxemplum/posys-cursor-scalable";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
@@ -49,8 +37,6 @@
     home-manager-unstable,
     lanzaboote,
     claude-code,
-    lix,
-    lix-module,
     ...
   }:
   let
@@ -84,9 +70,16 @@
       home-manager.startAsUserService = true;
     };
 
-    lixNoCheck = { lib, ... }: {
-      nixpkgs.overlays = lib.mkAfter [ (import ./overlays/lix-nocheck.nix { inherit inputs; }) ];
-    };
+    # Lix 2.96 from nixpkgs-unstable (cached; stable's `latest` is 2.95, which had
+    # regressions) on both channels instead of building the upstream flake locally.
+    # pkgs.nix is Lix too, so comma/nix-direnv follow.
+    # drop when: the default lixPackageSets on both channels is >= 2.96.
+    lixModule = { ... }:
+      let lix = inputs.nixpkgs-unstable.legacyPackages.${system}.lixPackageSets.lix_2_96.lix;
+      in {
+        nix.package = lix;
+        nixpkgs.overlays = [ (final: prev: { inherit lix; nix = lix; }) ];
+      };
 
     hmPrepkoDesktop = {
       home-manager.users.prepko = ./profiles/prepko/desktop.nix;
@@ -125,8 +118,7 @@
           overlayModule
           allowUnfreeModule
           lanzaboote.nixosModules.lanzaboote
-          lix-module.nixosModules.default
-          lixNoCheck
+          lixModule
           inputs.impermanence.nixosModules.impermanence
           inputs.nirinit.nixosModules.nirinit
           ./hosts/surface/config.nix
@@ -145,8 +137,7 @@
         modules = [
           overlayModule
           allowUnfreeModule
-          lix-module.nixosModules.default
-          lixNoCheck
+          lixModule
           inputs.impermanence.nixosModules.impermanence
           inputs.nirinit.nixosModules.nirinit
           ./hosts/desktop/config.nix

@@ -3,6 +3,9 @@ let
   gitBackup = false;
 in
 {
+  # sd-image enables zfs support; no zfs root here, so skip the forced import (new default in 26.11).
+  boot.zfs.forceImportRoot = false;
+
   imports = [
     ../../modules/nixfetch.nix
     "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"

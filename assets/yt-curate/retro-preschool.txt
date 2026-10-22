@@ -1,0 +1,6 @@
+# dest: retro/preschool
+# maxheight: 720
+# full preschool-block broadcasts with original commercials
+https://www.youtube.com/watch?v=SPaoVCyDa-k  # Playhouse Disney 3:10
+https://www.youtube.com/watch?v=VFv6wS2rvmg  # Nick Jr block March 1991 3:30
+https://www.youtube.com/watch?v=aX1sCrf15lk  # PBS Kids Sprout Jan 2011 4:50

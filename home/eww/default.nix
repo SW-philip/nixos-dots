@@ -216,6 +216,12 @@ in
     };
     Service = {
       ExecStart = "${pkgs.eww}/bin/eww daemon --no-daemonize";
+      # eww's built-in sysinfo refresh statfs()es every mount on a loop, even
+      # with no EWW_* variable in the yuck. An NFS automount whose server is
+      # unreachable (boot before tailscale, away from home) blocks that call
+      # ~10 s per mount, stalling the daemon past ExecStartPost's `eww open`
+      # until the start timeout kills it and Restart= loops.
+      InaccessiblePaths = [ "-/srv/roms-nfs" "-/srv/game-saves" "-%h/.desktop" ];
       # The window must be open at daemon start: the revealer inside it (not
       # `eww open`) does the show/hide. Poll for the control socket first —
       # ExecStartPost races the daemon's socket bind and a failed open here

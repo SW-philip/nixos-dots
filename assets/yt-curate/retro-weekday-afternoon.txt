@@ -1,0 +1,6 @@
+# dest: retro/weekday-afternoon
+# maxheight: 720
+# full weekday-afternoon broadcasts with original commercials
+https://www.youtube.com/watch?v=SrN41-I33oc  # Toon Disney 2000s 3:26
+https://www.youtube.com/watch?v=WzVmE6YXSVU  # Boomerang 2001 3:17
+https://www.youtube.com/watch?v=nXoc7fgX3P8  # Disney Afternoon 1990s 1:59

@@ -17,7 +17,6 @@
       "/var/lib/fwupd"
       "/var/lib/upower"
       "/var/lib/OpenRGB"
-      "/var/lib/deluge"
       "/var/lib/myln"
       "/var/lib/libvirt"
       # nfsdcld client records: without them surface's NFSv4 reclaim after a

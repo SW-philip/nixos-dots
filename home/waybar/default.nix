@@ -227,7 +227,7 @@ in
         "DCONF_PROFILE=/dev/null"
       ];
       ExecStart = lib.mkForce "${waybarLauncher}";
-      Restart = lib.mkForce "on-failure";
+      Restart = "on-failure";
       RestartSec = 2;
     };
   };

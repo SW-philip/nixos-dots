@@ -29,6 +29,7 @@ in
     ../../roles/ssh-known-hosts.nix
     ../../modules/protonvpn.nix
     ../../modules/jellyfin.nix
+    ../../modules/ersatztv.nix
     ../../modules/sqlch.nix
     ../../modules/greetd.nix
     ../../modules/tailscale.nix
@@ -37,6 +38,7 @@ in
     ../../modules/retro-tiles.nix
     ../../modules/niri-bridge.nix
     ../../modules/btrbk.nix
+    ../../modules/transmission.nix
     ./myln.nix
     ./impermanence.nix
   ];

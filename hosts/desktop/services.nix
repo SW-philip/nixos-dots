@@ -11,21 +11,13 @@ in
   ############################################################
   services = {
     fwupd.enable = true;
-    deluge = {
-      enable = true;
-      openFirewall = false;
-      web.enable = false;
-    };
   };
 
-  # deluged ships with zero sandboxing upstream; bittorrent/DHT need open outbound.
-  systemd.services.deluged.serviceConfig = sandbox // {
-    ReadWritePaths = [ "/var/lib/deluge" ];
-    RestrictAddressFamilies = netOnly ++ [ "AF_UNIX" ];
+  # Upstream timer is hourly + Persistent, so it also fires right after boot.
+  systemd.timers.fwupd-refresh.timerConfig = {
+    OnCalendar = [ "" "monthly" ];
+    RandomizedDelaySec = "1d";
   };
-
-  # Start manually (`systemctl start deluged`), same as surface.
-  systemd.services.deluged.wantedBy = lib.mkForce [ ];
 
   # acpid is switched on unconditionally by the nvidia driver module and has no
   # handlers here; keep it to its unix socket + acpi netlink events. No
@@ -119,12 +111,12 @@ in
 
   ############################################################
   # Firewall
-  # Port 8096 (Jellyfin) is NOT in global allowedTCPPorts — access is via:
+  # Port 8096 (Jellyfin) and iptv-serve are NOT in global allowedTCPPorts — access is via:
   #   tailscale0 (trusted interface, all ports open)
   #   enp4s0 (LAN, explicit allow below)
   ############################################################
-  networking.firewall.allowedTCPPorts = lib.optional config.iptv.enable ports.iptv-serve;
-  networking.firewall.interfaces."enp4s0".allowedTCPPorts = [ ports.jellyfin ];
+  networking.firewall.interfaces."enp4s0".allowedTCPPorts =
+    [ ports.jellyfin ] ++ lib.optional config.iptv.enable ports.iptv-serve;
 
   ############################################################
   # PS4/PS5 controller lightbar LED permissions

@@ -8,6 +8,7 @@ let
     ssh = 22;
     go-librespot = 3678;
     jellyfin = 8096;
+    ersatztv = 8409;
     iptv-serve = 8765;
     sqlch-http-bridge = 8766;
     myln-inference = 8767; # systemd socket clients connect to

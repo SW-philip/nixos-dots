@@ -17,6 +17,7 @@ in
   ];
 
   networking.hostName = "nixos-rescue";
+  boot.zfs.forceImportRoot = false;
 
   image.fileName = lib.mkForce "nixos-rescue-${config.system.nixos.label}-${pkgs.stdenv.hostPlatform.system}.iso";
 

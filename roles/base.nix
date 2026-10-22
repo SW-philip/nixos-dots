@@ -92,7 +92,7 @@ in
   services.openssh = {
     enable = true;
     settings = {
-      UseDns = lib.mkForce false;
+      UseDns = false;
       PermitRootLogin = "no";
       PasswordAuthentication = false;
       X11Forwarding = false;
@@ -261,11 +261,12 @@ in
   # /run/wrappers/bin/sudo). Narrow NOPASSWD rules live next to the service
   # they serve (tailscale.nix, protonvpn.nix).
 
+  # Also sets kexec_load_disabled and adds `nohibernate` (no swap-backed resume is configured).
+  security.protectKernelImage = true;
   boot.kernel.sysctl = {
     "kernel.kptr_restrict" = 2;
     "kernel.dmesg_restrict" = 1;
     "kernel.unprivileged_bpf_disabled" = 1;
-    "kernel.kexec_load_disabled" = 1;
     "fs.protected_fifos" = 2;
     "fs.protected_regular" = 2;
     "net.ipv4.conf.all.accept_redirects" = 0;

@@ -78,6 +78,11 @@ in
     RuntimeDirectoryMode = "0700";
   };
 
+  # syncthing-init polls the GUI socket until syncthing finishes starting; wanted
+  # by multi-user.target it held the whole boot (~4s on desktop).
+  systemd.services.syncthing-init.wantedBy = lib.mkForce [ ];
+  systemd.services.syncthing.wants = [ "syncthing-init.service" ];
+
   # "-" keeps the mode of a directory that already exists.
   systemd.tmpfiles.rules = lib.concatMap (n: [
     "d ${home}/${n} - ${user} users -"

@@ -41,7 +41,6 @@
       "/var/lib/bluetooth"
       "/var/lib/sbctl"
       { directory = "/var/lib/sops-nix"; mode = "0700"; }
-      "/var/lib/deluge"
       "/var/lib/systemd/timers"
       "/var/lib/systemd/rfkill"
       "/var/lib/systemd/timesync"

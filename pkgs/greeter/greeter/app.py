@@ -54,8 +54,8 @@ class GreeterWindow(Gtk.ApplicationWindow):
         self.session_idx = 0
 
         self._apply_css()
-        # cage (our greetd compositor) has no wlr-layer-shell — plain fullscreen there;
-        # layer-shell only when a compositor advertises it.
+        # Layer-shell (all edges, overlay) when the compositor advertises it, which
+        # is how sway runs the greeter; plain fullscreen otherwise.
         if _HAVE_LAYER_SHELL and LayerShell.is_supported():
             LayerShell.init_for_window(self)
             LayerShell.set_layer(self, LayerShell.Layer.OVERLAY)
@@ -69,7 +69,7 @@ class GreeterWindow(Gtk.ApplicationWindow):
 
     def _apply_css(self):
         p = self.palette
-        # cage has no wp_cursor_shape_v1 and GTK ignores XCURSOR_* env, so name + size
+        # the greeter compositor has no wp_cursor_shape_v1 and GTK ignores XCURSOR_* env, so name + size
         # the cursor theme explicitly (resolved via the launcher's XCURSOR_PATH).
         settings = Gtk.Settings.get_default()
         if settings is not None:

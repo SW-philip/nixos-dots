@@ -1,0 +1,16 @@
+# dest: bumpers/monster-jam
+# chapter-aligned cuts from official Monster Jam compilations (splash-page bumpers)
+https://www.youtube.com/watch?v=V5r2Ec0YFTM 0-82 # MJ_Tom_Meents_takes_the_lead
+https://www.youtube.com/watch?v=V5r2Ec0YFTM 82-174 # MJ_Megalodon_San_Antonio
+https://www.youtube.com/watch?v=V5r2Ec0YFTM 174-281 # MJ_Son-uva_Digger
+https://www.youtube.com/watch?v=V5r2Ec0YFTM 382-464 # MJ_Avenger
+https://www.youtube.com/watch?v=V5r2Ec0YFTM 464-532 # MJ_Thunderroarus
+https://www.youtube.com/watch?v=V5r2Ec0YFTM 532-660 # MJ_Zombie_high-flying
+https://www.youtube.com/watch?v=V5r2Ec0YFTM 660-733 # MJ_Grave_Digger_Grand_Rapids
+https://www.youtube.com/watch?v=V5r2Ec0YFTM 733-876 # MJ_JCB_Digatron
+https://www.youtube.com/watch?v=uEx0Fc0mrLY 271-361 # MJ_Camden_Murphy_freestyle
+https://www.youtube.com/watch?v=uEx0Fc0mrLY 502-620 # MJ_Charlie_Pauken_freestyle
+https://www.youtube.com/watch?v=uEx0Fc0mrLY 765-884 # MJ_Todd_LeDuc_freestyle
+https://www.youtube.com/watch?v=uEx0Fc0mrLY 884-1026 # MJ_Cole_Venard_freestyle
+https://www.youtube.com/watch?v=uEx0Fc0mrLY 1124-1206 # MJ_Bari_Musawwir_freestyle
+https://www.youtube.com/watch?v=uEx0Fc0mrLY 1426-1533 # MJ_Weston_Anderson_freestyle

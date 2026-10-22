@@ -25,7 +25,7 @@
     };
 
     serviceConfig = {
-      ProtectHome = lib.mkForce false;
+      ProtectHome = false;
       ReadWritePaths = [ "/srv/Videos" "/srv/jellyfin" ];
       RestartSec = "15s";
       # Throttle writes to the spinning /srv disk (by-id: sdX letters aren't stable).

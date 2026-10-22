@@ -54,6 +54,7 @@ SHOWS = {
     "rupauls_drag_race": "RuPaul's Drag Race (2009)",
     "Spaced 1999 S01-S02 720p WEB-DL HEVC x265 BONE": "Spaced (1999)",
     "The IT Crowd": "The IT Crowd (2006)",
+    "The IT Crowd 2006 S01-S05 Complete 1080p WEB-DL HEVC x265 BONE": "The IT Crowd (2006)",
     "untucked": "RuPaul's Drag Race Untucked (2010)",
     # kid_and_henry
     "AAAHH, REAL MONSTERS (1994-1997) - Complete ANIMATED TV Series, S01-S04 - 480p DVDRip x264":

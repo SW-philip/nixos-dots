@@ -14,6 +14,7 @@ let
     myln-inference = 8767; # systemd socket clients connect to
     myln-embedding = 8768;
     myln-inference-backend = 8769; # llama-server behind the socket
+    ersatztv-logos = 8770;
     syncthing-sync = 22000;
     sunshine = 47989; # base port; the derived ones are below
     kid-dashboard = 47823;

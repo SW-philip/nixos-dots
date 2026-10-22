@@ -40,8 +40,8 @@ in
       '';
     });
 
+    # Not in trustedInterfaces: the tunnel is Proton's network, nothing here takes inbound from it.
     networking.networkmanager.unmanaged = names;
-    networking.firewall.trustedInterfaces = names;
 
     security.sudo.extraRules = [{
       users = [ config.myConfig.user ];

@@ -50,7 +50,7 @@
       uiScale = if config.myConfig.hiDpi then "2" else "1";
       # --scale sizes the nix mark + cursor; the pills/text/power cluster gets its
       # own smaller multiplier (--field-scale) so the fields aren't oversized next to it.
-      fieldScale = if config.myConfig.hiDpi then "1.5" else "1";
+      fieldScale = if config.myConfig.hiDpi then "1.25" else "1";
       # Outputs are scale 1, so the pointer stays at the ~24px default while the
       # rest of the greeter is scaled up — tiny on the HiDPI Surface panel. Enlarge it
       # to track uiScale (sway's `seat xcursor_theme` below takes the size).

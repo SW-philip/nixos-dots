@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="290" viewBox="0 0 1100 290"><g transform="translate(120 135)">
+  <ellipse rx="105" ry="38" fill="none" stroke="#22223b" stroke-width="22"/>
+  <ellipse rx="105" ry="38" fill="none" stroke="#1fa2ff" stroke-width="10"/>
+  <g transform="rotate(60)"><ellipse rx="105" ry="38" fill="none" stroke="#22223b" stroke-width="22"/><ellipse rx="105" ry="38" fill="none" stroke="#3cc04a" stroke-width="10"/></g>
+  <g transform="rotate(-60)"><ellipse rx="105" ry="38" fill="none" stroke="#22223b" stroke-width="22"/><ellipse rx="105" ry="38" fill="none" stroke="#8a4dff" stroke-width="10"/></g>
+  <circle r="24" fill="#ef3b36" stroke="#22223b" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+</g><text x="272" y="182" font-family="Nunito" font-weight="900" font-size="120" letter-spacing="2" fill="#22223b" stroke="#22223b" stroke-width="16" stroke-linejoin="round">SCIENCE</text><text x="265" y="175" font-family="Nunito" font-weight="900" font-size="120" letter-spacing="2" stroke="#22223b" stroke-width="16" stroke-linejoin="round" paint-order="stroke"><tspan fill="#3cc04a">S</tspan><tspan fill="#1fa2ff">C</tspan><tspan fill="#8a4dff">I</tspan><tspan fill="#ff6fb1">E</tspan><tspan fill="#ef3b36">N</tspan><tspan fill="#ff8a1f">C</tspan><tspan fill="#ffd21f">E</tspan></text></svg>

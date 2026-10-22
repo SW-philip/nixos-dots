@@ -75,6 +75,9 @@
   # comment for the full ownership rationale.
   programs.fzf.historyWidget.command = "";
 
+  # pasted YouTube URLs carry ? and &, which zsh would glob
+  programs.zsh.shellAliases.tv-add = "noglob tv-add";
+
   home.packages = with pkgs; [
     orch
     wayland-utils
@@ -85,5 +88,8 @@
     dig
     vmpk qsynth fluidsynth soundfont-fluid
     helio-workstation hydrogen
+    (writeShellScriptBin "tv-add" ''
+      exec ~/nixos/scripts/tv-add.sh "$@"
+    '')
   ];
 }

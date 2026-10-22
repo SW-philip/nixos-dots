@@ -233,21 +233,24 @@ in
   ############################################################
   # Safe-DNS (Cloudflare for Families) for kid only. System DNS stays
   # whatever DHCP hands out, so prepko gets unfiltered Google. Their port-53
-  # traffic is DNATed by uid; 1.1.1.3 also forces Google SafeSearch via CNAME.
-  # ProtonVPN overrides DNS while connected; the real lock is the Firefox
-  # allowlist in home/kid.
+  # traffic (v4 and v6) is DNATed by uid; 1.1.1.3 also forces Google
+  # SafeSearch via CNAME. ProtonVPN overrides DNS while connected; the real
+  # lock is the Firefox allowlist in home/kid.
   ############################################################
-  networking.firewall.extraCommands = ''
-    iptables -w -t nat -N clem-safedns 2>/dev/null || iptables -w -t nat -F clem-safedns
-    iptables -w -t nat -A clem-safedns -p udp --dport 53 -j DNAT --to-destination 1.1.1.3:53
-    iptables -w -t nat -A clem-safedns -p tcp --dport 53 -j DNAT --to-destination 1.1.1.3:53
-    iptables -w -t nat -D OUTPUT -m owner --uid-owner kid -j clem-safedns 2>/dev/null || true
-    iptables -w -t nat -A OUTPUT -m owner --uid-owner kid -j clem-safedns
-  '';
-  networking.firewall.extraStopCommands = ''
-    iptables -w -t nat -D OUTPUT -m owner --uid-owner kid -j clem-safedns 2>/dev/null || true
-    iptables -w -t nat -F clem-safedns 2>/dev/null || true
-    iptables -w -t nat -X clem-safedns 2>/dev/null || true
+  networking.nftables.enable = true;
+  networking.nftables.tables.clem-safedns = {
+    family = "inet";
+    content = ''
+      chain output {
+        type nat hook output priority dstnat; policy accept;
+        meta skuid kid meta nfproto ipv4 meta l4proto { tcp, udp } th dport 53 dnat ip to 1.1.1.3:53
+        meta skuid kid meta nfproto ipv6 meta l4proto { tcp, udp } th dport 53 dnat ip6 to [2606:4700:4700::1113]:53
+      }
+    '';
+  };
+  # The build-time `nft -c` runs in a sandbox with no kid account.
+  networking.nftables.preCheckRuleset = ''
+    sed -i 's/skuid kid/skuid nobody/g' ruleset.conf
   '';
 
   nix.settings.max-jobs = "auto"; # grade:host-specific

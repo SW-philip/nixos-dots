@@ -170,6 +170,8 @@ in
     ++ (map (s: "d /srv/roms/${s.dir} 0755 prepko users -") retroSystems)
     ++ (map (s: "L+ /srv/roms/${s.dir}/metadata.pegasus.txt - - - - ${mkPegasusMetadata { inherit s; }}") retroSystems);
 
+  networking.nftables.enable = true;
+
   ############################################################
   # NFS export of /srv/roms for surface, which no longer stores its own
   # copy of the ROMs (docs/superpowers/specs/2026-08-05-surface-roms-nfs-migration-design.md).

@@ -377,11 +377,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1792513091,
-        "narHash": "sha256-R7xTLJag3m5hfuFXDsucnR3mVqyvtjAQSKU/yT5BM9A=",
+        "lastModified": 1792689576,
+        "narHash": "sha256-q1jlbutTU6/gklabBA8DvPje8w2UPHxHFzmJQFYewuI=",
         "owner": "SW-philip",
         "repo": "sqlch",
-        "rev": "a6ac354b90e6a5a7f464e7da054e07071adcf64b",
+        "rev": "01d9fe4de68d84842d6e9c65e6636b1964bbf43b",
         "type": "github"
       },
       "original": {

@@ -60,7 +60,6 @@ if [[ "$choice" == *"Tailscale"* ]]; then
       notify-send "Tailscale" "Disconnected" -i network-vpn-off || \
       notify-send "Tailscale" "Disconnect failed" -i network-error
   else
-    [ -n "$active_vpn_svc" ] && $SUDO -n $SYSTEMCTL stop "$active_vpn_svc" 2>/dev/null
     $SUDO -n $SYSTEMCTL start tailscaled.service && \
       notify-send "Tailscale" "Connected" -i network-vpn-symbolic || \
       notify-send "Tailscale" "Connect failed" -i network-error
@@ -73,19 +72,8 @@ selected_label=$(echo "$choice" | sed 's/^[^A-Za-z]*//' | sed 's/  \[on\]$//')
 target="${VPN_SERVICES[$selected_label]:-}"
 [ -z "$target" ] && exit 1
 
-$tailscale_on && $SUDO -n $SYSTEMCTL stop tailscaled.service 2>/dev/null
-
-# Wait for tailscale0 to actually disappear before bringing up a second
-# full-tunnel interface — both fight over the default route/DNS if they're
-# ever up at once, which silently breaks connectivity even though wg-quick
-# itself reports success (it never checks for a real handshake).
-if $tailscale_on; then
-  for _ in $(seq 1 20); do
-    ip link show tailscale0 &>/dev/null || break
-    sleep 0.25
-  done
-fi
-
+# Tailscale stays up: the ip rules in modules/protonvpn.nix keep the tailnet
+# and tailscaled's own transport off the tunnel.
 [ -n "$active_vpn_svc" ] && $SUDO -n $SYSTEMCTL stop "$active_vpn_svc" 2>/dev/null
 
 if ! $SUDO -n $SYSTEMCTL start "wg-quick-${target}.service"; then
@@ -96,11 +84,12 @@ fi
 # systemctl start succeeding only means wg-quick set up the interface and
 # routes — it does NOT mean the peer answered. Poll for a real handshake
 # before declaring success; if one never lands, tear the tunnel back down
-# instead of leaving a dead full-tunnel route in place.
+# instead of leaving a dead full-tunnel route in place. Bytes received on
+# the interface mean the peer answered; readable without root, unlike wg show.
 handshake=0
 for _ in $(seq 1 20); do
-  ts=$($SUDO -n wg show "$target" latest-handshakes 2>/dev/null | awk '{print $2}')
-  if [ -n "$ts" ] && [ "$ts" != "0" ]; then
+  rx=$(cat "/sys/class/net/$target/statistics/rx_bytes" 2>/dev/null)
+  if [ -n "$rx" ] && [ "$rx" != "0" ]; then
     handshake=1
     break
   fi

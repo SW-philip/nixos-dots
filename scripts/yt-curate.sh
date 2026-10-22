@@ -37,8 +37,10 @@ common=(
   -f "bv*[height<=$maxh]+ba/b[height<=$maxh]"
   --merge-output-format mkv
   --embed-metadata --embed-thumbnail
-  --restrict-filenames
   --no-overwrites
+  # a few dozen unpaced fetches in a row trip YouTube's "confirm you're not
+  # a bot" block on the home IP for hours
+  --sleep-requests 1 --sleep-interval 5 --max-sleep-interval 15
 )
 [[ "$dry" == "--dry-run" ]] && common+=(--simulate --print "%(uploader)s - %(title)s")
 
@@ -51,15 +53,22 @@ while IFS= read -r line; do
 
   if [[ "${span:-}" =~ ^[0-9]+-[0-9]+$ ]]; then
     [[ -n "$label" ]] || { echo "cut needs a # label: $line" >&2; exit 1; }
-    out="$dest/${label//[^A-Za-z0-9._-]/_}.mkv"
+    out="$dest/${label//\//-}.mkv"
     [[ -e "$out" ]] && continue
     yt-dlp "${common[@]}" --no-playlist --force-keyframes-at-cuts \
       --download-sections "*${span}" -o "${out%.mkv}.%(ext)s" "$url" \
       || { echo "failed: $label" >&2; fail=1; }
   else
+    # ErsatzTV titles Other Videos by filename, ignoring the embedded tag, so
+    # the name is the guide title; .archive (not the name) tracks video ids.
     yt-dlp "${common[@]}" --download-archive "$dest/.archive" \
-      -o "$dest/%(uploader)s - %(title)s [%(id)s].%(ext)s" "$url" \
+      -o "$dest/%(title)s.%(ext)s" "$url" \
       || { echo "failed: $url" >&2; fail=1; }
   fi
 done < "$list"
+
+# trim "| Read Aloud Kids Book | …" clutter from the new names (guide titles)
+[[ "$dry" == "--dry-run" ]] \
+  || python3 -I "$(dirname "$(readlink -f "$0")")/tidy-titles.py" "$dest" --apply \
+  || fail=1
 exit "$fail"

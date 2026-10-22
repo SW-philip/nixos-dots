@@ -95,6 +95,8 @@ in
       UseDns = false;
       PermitRootLogin = "no";
       PasswordAuthentication = false;
+      # With UsePAM, keyboard-interactive still prompts for the account password.
+      KbdInteractiveAuthentication = false;
       X11Forwarding = false;
       AllowTcpForwarding = false;
       ClientAliveInterval = 300;

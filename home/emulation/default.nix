@@ -176,5 +176,6 @@
     /srv/roms/3ds
     /srv/roms/switch
     /srv/roms/dreamcast
+    /srv/roms/pc
   '';
 }

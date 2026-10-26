@@ -3,6 +3,7 @@ let
   # Full emulated-system list (surface filters this to its iGPU subset).
   retroSystems = import ../retro-systems.nix { inherit pkgs; };
   mkPegasusMetadata = import ../pegasus-metadata.nix { inherit pkgs; };
+  pegasusPc = import ./pegasus-pc.nix { inherit pkgs; };
 in
 {
   ############################################################
@@ -29,6 +30,7 @@ in
     ../../roles/ssh-known-hosts.nix
     ../../modules/protonvpn.nix
     ../../modules/jellyfin.nix
+    ../../modules/jellyfin-whisper.nix
     ../../modules/ersatztv.nix
     ../../modules/sqlch.nix
     ../../modules/greetd.nix
@@ -71,6 +73,18 @@ in
     secrets.protonvpn_ny_conf = {};
     secrets.protonvpn_au_conf = {};
     secrets.protonvpn_ca_conf = {};
+    # scrape (scripts/skyscraper-scrape.sh) appends this to a throwaway copy
+    # of ~/.skyscraper/config.ini for the igdb pass, so the creds never sit
+    # in that plain file or in Skyscraper's argv (`-u` would expose them).
+    secrets.igdb_client_id = {};
+    secrets.igdb_client_secret = {};
+    templates."skyscraper-igdb.ini" = {
+      owner = "prepko";
+      content = ''
+        [igdb]
+        userCreds="${config.sops.placeholder.igdb_client_id}:${config.sops.placeholder.igdb_client_secret}"
+      '';
+    };
   };
 
   users.mutableUsers = false;
@@ -168,9 +182,21 @@ in
       "A+ /srv/game-saves - - - - d:group::rwx,d:other::rwx,d:mask::rwx,group::rwx,other::rwx,mask::rwx"
     ]
     ++ (map (s: "d /srv/roms/${s.dir} 0755 prepko users -") retroSystems)
-    ++ (map (s: "L+ /srv/roms/${s.dir}/metadata.pegasus.txt - - - - ${mkPegasusMetadata { inherit s; }}") retroSystems);
+    ++ (map (s: "L+ /srv/roms/${s.dir}/metadata.pegasus.txt - - - - ${mkPegasusMetadata { inherit s; }}") retroSystems)
+    # pc isn't a retroSystems entry, so it needs its own `d`: a root-owned
+    # /srv/roms/pc (left by a sudo copy) makes tmpfiles refuse the L+ below
+    # as an unsafe path transition, and the PC collection silently vanishes.
+    ++ [ "d /srv/roms/pc 0755 prepko users -"
+         "L+ /srv/roms/pc/metadata.pegasus.txt - - - - ${pegasusPc}" ];
 
   networking.nftables.enable = true;
+
+  # ConnectBot 1.9.1 on the G1 (Android 2.2) predates the -etm MACs; mkOptionDefault
+  # appends to the NixOS defaults instead of replacing them.
+  services.openssh.settings.Macs = lib.mkOptionDefault [ "hmac-sha2-256" ];
+  users.users.prepko.openssh.authorizedKeys.keys = [
+    ''from="10.0.0.0/24" ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY
+  ];
 
   ############################################################
   # NFS export of /srv/roms for surface, which no longer stores its own

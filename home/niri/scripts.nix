@@ -3,8 +3,17 @@
 { pkgs, lib }:
 {
   swaybgLauncher = pkgs.writeShellScript "swaybg-launcher" ''
-    exec ${pkgs.swaybg}/bin/swaybg -o '*' -i "$(cat "$HOME/.local/state/wallpaper")" -m fill
+    # the overview pit; the `card` awww daemon draws the real wallpaper inside the workspaces
+    img="$HOME/.local/state/wallpaper-pit.png"
+    [ -e "$img" ] || img="$(cat "$HOME/.local/state/wallpaper")"
+    exec ${pkgs.swaybg}/bin/swaybg -o '*' -i "$img" -m fill
   '';
+
+  wallpaperFollow = pkgs.writeShellApplication {
+    name = "wallpaper-follow";
+    runtimeInputs = with pkgs; [ awww niri jq coreutils ];
+    text = builtins.readFile ../../scripts/wallpaper-follow.sh;
+  };
 
   toggleDisplayMode = pkgs.writeShellScriptBin "toggle-display-mode" ''
     STATE="$HOME/.local/state/monitor-mode"

@@ -27,11 +27,12 @@ from .snark import pick_snark_line
 
 WALLPAPER = "/run/greeter/wallpaper-img"
 NIX_MARK_PX = 48.0
-_SCRIM_PAD = 32       # px (× field_scale) of band around the mark/clock/date
+_SCRIM_PAD = 20       # px (× field_scale) of band around the mark/clock/date
 _AUTH_BLOCK_PX = 180  # rough height of the user+password+session+status stack;
                       # only used to bias the band onto the screen centre — tune
                       # if the band reads high or low
 _CLOCK_TICK_S = 10
+_WIDGET_SHRINK = 0.8  # fields/chips/power buttons vs the clock band, both × field_scale
 
 
 def _css_rgb(hex_color: str) -> str:
@@ -81,30 +82,39 @@ class GreeterWindow(Gtk.ApplicationWindow):
         def px(n):
             return round(n * s)
 
+        def wpx(n):
+            return round(n * s * _WIDGET_SHRINK)
+
+        shadow = f"0 {wpx(3)}px {wpx(10)}px {css_rgba(p.ground, 0.65)}"
+
         css = f"""
         .root  {{ background-color: {_css_rgb(p.ground)}; }}
         label  {{ color: {_css_rgb(p.ink)}; }}
-        .clock {{ color: {_css_rgb(p.clock)}; font-size: {px(96)}px; font-weight: 600; }}
-        .date  {{ color: {_css_rgb(p.date)}; font-size: {px(32)}px; }}
-        .scrim {{ background-color: {css_rgba(p.ground, 0.55)}; padding: {px(_SCRIM_PAD)}px 0; }}
+        .clock {{ color: {_css_rgb(p.ink)}; font-size: {px(96)}px; font-weight: 600;
+                  text-shadow: 0 0 {px(24)}px {css_rgba(p.ground, 0.9)}, 0 {px(2)}px {px(8)}px {css_rgba(p.ground, 0.95)}; }}
+        .date  {{ color: {_css_rgb(p.date)}; font-size: {px(32)}px;
+                  text-shadow: 0 0 {px(12)}px {css_rgba(p.ground, 0.95)}; }}
+        .scrim {{ padding: {px(_SCRIM_PAD)}px 0; }}
+        .scrim image {{ -gtk-icon-shadow: 0 0 {px(10)}px {css_rgba(p.ground, 0.95)}; }}
         .field, .chip, .pbtn {{
             background-image: none;
             background-color: {_css_rgb(p.field)};
             color: {_css_rgb(p.field_ink)};
             border: 1px solid {_css_rgb(p.outline)};
-            border-radius: {px(8)}px;
+            border-radius: {wpx(8)}px;
+            box-shadow: {shadow};
         }}
         .field, .chip, .pbtn, .field label, .chip label, .pbtn label {{
             color: {_css_rgb(p.field_ink)};
         }}
-        .field {{ min-width: {px(300)}px; caret-color: {_css_rgb(p.field_ink)};
-                  padding: {px(10)}px {px(16)}px; font-size: {px(20)}px; }}
+        .field {{ min-width: {wpx(300)}px; caret-color: {_css_rgb(p.field_ink)};
+                  padding: {wpx(10)}px {wpx(16)}px; font-size: {wpx(20)}px; }}
         .field text, .field text > placeholder {{ color: {_css_rgb(p.field_ink)}; }}
         .field:focus-within {{ outline: none; }}
         .field.fail {{ border-color: {_css_rgb(p.fail)}; }}
-        .chip  {{ padding: {px(6)}px {px(14)}px; font-size: {px(16)}px; }}
-        .pbtn  {{ min-width: {px(40)}px; min-height: {px(40)}px; font-size: {px(18)}px; }}
-        .msg   {{ color: {_css_rgb(p.date)}; font-size: {px(15)}px; }}
+        .chip  {{ padding: {wpx(6)}px {wpx(14)}px; font-size: {wpx(16)}px; }}
+        .pbtn  {{ min-width: {wpx(40)}px; min-height: {wpx(40)}px; font-size: {wpx(18)}px; }}
+        .msg   {{ color: {_css_rgb(p.date)}; font-size: {wpx(15)}px; }}
         .field:disabled {{ opacity: 0.6; }}
         * {{ font-family: "Josefin Sans"; }}
         """
@@ -164,7 +174,7 @@ class GreeterWindow(Gtk.ApplicationWindow):
         auth.set_halign(Gtk.Align.CENTER)
         auth.set_valign(Gtk.Align.CENTER)
         # +24*s == 2× the ~12px band→auth gap (valign=CENTER applies half of margin_top)
-        auth.set_margin_top(band_h + round(_AUTH_BLOCK_PX * s) + round(24 * s))
+        auth.set_margin_top(band_h + round(_AUTH_BLOCK_PX * s * _WIDGET_SHRINK) + round(24 * s))
 
         self.user_btn = Gtk.Button(label=f"{self.users[self.user_idx]}  ▾")
         self.user_btn.add_css_class("chip")

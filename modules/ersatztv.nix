@@ -1,7 +1,8 @@
 # ErsatzTV (legacy, with the Next streaming engine) as a podman container:
 # not packaged in nixpkgs. Web UI is published on localhost only — podman's
 # port publishing can bypass the NixOS firewall, so a LAN bind would be open.
-# Reach it with `ssh -L 8409:localhost:8409 desktop`.
+# Reach it with `ssh -L 8409:127.0.0.1:8409 desktop` from a tailnet host
+# (roles/base.nix lets sshd forward only to this port).
 #
 # Channels play Sequential playouts generated from `channels` below, mounted
 # at /schedules. ErsatzTV's API can't create channels or playouts, so each
@@ -140,6 +141,16 @@ let
       '') channels
     )
   );
+
+  # logos plus wm/<number>.png: each logo in greyscale lifted toward white,
+  # for the on-screen bug
+  logos = pkgs.runCommand "ersatztv-logos" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
+    mkdir -p $out/wm
+    cp ${./ersatztv-logos}/*.png $out/
+    for f in $out/*.png; do
+      magick "$f" -channel RGB -colorspace Gray +level 55%,100% +channel "$out/wm/$(basename "$f")"
+    done
+  '';
 in
 {
   virtualisation.podman.enable = true;
@@ -168,11 +179,15 @@ in
   # Nunito Black, rendered with rsvg-convert). Uploaded logos live in
   # ErsatzTV's artwork cache, and its hourly orphaned-artwork cleanup deleted
   # them twice; an external URL never enters the cache.
+  # Watermarks are the exception: ffmpeg runs inside the container, which
+  # can't reach this host-local server, so each wm/<number>.png is uploaded
+  # as that channel's Custom watermark. Cleanup spares any image a watermark
+  # references.
   systemd.services.ersatztv-logos = {
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" ];
     serviceConfig = {
-      ExecStart = "${pkgs.python3}/bin/python3 -m http.server ${toString ports.ersatztv-logos} --bind 127.0.0.1 --directory ${./ersatztv-logos}";
+      ExecStart = "${pkgs.python3}/bin/python3 -m http.server ${toString ports.ersatztv-logos} --bind 127.0.0.1 --directory ${logos}";
       DynamicUser = true;
       Restart = "on-failure";
     };

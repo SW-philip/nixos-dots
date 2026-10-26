@@ -104,10 +104,11 @@ in
     };
     # `waypipe ssh` needs a -R unix-socket forward and sshd refuses it under
     # AllowTcpForwarding no (AllowStreamLocalForwarding can't override). Tailnet only;
-    # -L pivots stay blocked.
+    # -L is limited by PermitOpen to ErsatzTV's loopback-only web UI.
     extraConfig = ''
       Match Address 100.64.0.0/10
-        AllowTcpForwarding remote
+        AllowTcpForwarding yes
+        PermitOpen 127.0.0.1:${toString ports.ersatztv}
     '';
   };
   networking.firewall = {

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """make-splotch-bg.py — generate a per-theme organic blurred-blob
 wallpaper: writes wallpaper-background.svg and rasterises it to
-wallpaper-<slug>.png (via resvg).
+wallpaper-<slug>.png (via resvg), plus wallpaper-<slug>-pos1..4.png
+(same blobs re-seeded, one layout per workspace slot) and wallpaper-pit.png.
 
 Two blobs sit over a flat, hue-free dark gray field (FLAT_BG — the same
 fixed color on every theme, not derived from the theme's own palette) so
@@ -30,9 +31,13 @@ import shutil
 import subprocess
 import sys
 import zlib
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
+import pit_bg  # noqa: E402  (sibling module; script dir is on sys.path)
+
 W, H = 1920, 1080
+VARIANTS = 5
 DIFFUSE_STDDEV = 90
 
 # Fixed, hue-free dark slate gray — identical across every theme so the
@@ -280,9 +285,10 @@ def field_for(theme_dir):
     return FLAT_BG
 
 
-def plan_blobs(theme_dir):
+def plan_blobs(theme_dir, variant=0):
     theme_dir = Path(theme_dir)
-    rng = random.Random(seed_for(theme_dir.name))
+    # variant 0 keeps the original seed so existing wallpapers don't move
+    rng = random.Random(seed_for(theme_dir.name if not variant else f"{theme_dir.name}#{variant}"))
     colors = load_colors(theme_dir)
 
     blob_colors = pick_blob_colors(colors, field_for(theme_dir))
@@ -303,8 +309,8 @@ def plan_blobs(theme_dir):
     return colors, blobs
 
 
-def build(theme_dir):
-    colors, blobs = plan_blobs(theme_dir)
+def build(theme_dir, variant=0):
+    colors, blobs = plan_blobs(theme_dir, variant)
     body = "".join(
         f'<path d="{blob_path(cx, cy, r, wobbles)}" fill="{color}" filter="url(#sp-diffuse)"/>'
         for color, cx, cy, r, wobbles in blobs
@@ -360,14 +366,30 @@ def render(theme_dir):
         ["resvg", "--width", str(W), "--height", str(H), str(svg_path), str(png_path)],
         check=True,
     )
+    # one layout per workspace slot (home/niri/wallpaper-card.py shows pos<N> for workspace N+1)
+    for n in range(1, VARIANTS):
+        alt_svg = theme_dir / f"wallpaper-background-pos{n}.svg"
+        alt_svg.write_text(build(theme_dir, n))
+        subprocess.run(
+            ["resvg", "--width", str(W), "--height", str(H), str(alt_svg), str(theme_dir / f"wallpaper-{slug}-pos{n}.png")],
+            check=True,
+        )
+        alt_svg.unlink()
+    pit_bg.render(theme_dir)
     return png_path
 
 
 def generate_all(themes_root):
+    """Render every theme in parallel (the blur is single-threaded in resvg),
+    printing each as it lands so a long run doesn't look hung."""
     _require_resvg()
     written = []
-    for theme_dir in iter_theme_dirs(themes_root):
-        written.append(render(theme_dir))
+    with ProcessPoolExecutor() as pool:
+        futures = [pool.submit(render, d) for d in iter_theme_dirs(themes_root)]
+        for fut in as_completed(futures):
+            out = fut.result()
+            print(f"🎨 wrote {out}", flush=True)
+            written.append(out)
     return written
 
 
@@ -375,8 +397,7 @@ def main():
     if "--all" in sys.argv:
         rest = [a for a in sys.argv[1:] if a != "--all"]
         themes_root = rest[0] if rest else DEFAULT_THEMES_ROOT
-        for out in generate_all(themes_root):
-            print(f"🎨 wrote {out}")
+        generate_all(themes_root)
         return
 
     if len(sys.argv) < 2:

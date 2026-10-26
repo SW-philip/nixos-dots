@@ -8,6 +8,20 @@ let
   tvBarThickness       = 53;
   surfaceBarThickness  = 46;
 
+  # Status modules grouped into pills, one chip each (style.nix): connectivity,
+  # background sync, and the two audio-ish controls. Volume ends the row so it
+  # sits in the screen corner.
+  pills = {
+    "group/pill-conn"  = { orientation = "horizontal"; modules = [ "custom/network" "custom/bluetooth" ]; };
+    "group/pill-sys"   = { orientation = "horizontal"; modules = [ "custom/fleet" "custom/sync" "custom/kdeconnect" ]; };
+    "group/pill-audio" = { orientation = "horizontal"; modules = [ "custom/notification" "custom/volume" ]; };
+  };
+  pillMods = lib.concatMap (g: g.modules) (lib.attrValues pills);
+  # sqlch leads modules-right (its outermost/left edge): the track title
+  # resizes it constantly, and as the left-most right module only its own
+  # left edge moves, so the rest stay pinned to the screen edge.
+  statusRight = [ "custom/sqlch" "group/pill-conn" "group/pill-sys" "group/pill-audio" ];
+
   waybarLauncher = pkgs.writeShellScript "waybar-launcher" ''
     CFG="''${XDG_CONFIG_HOME:-$HOME/.config}/waybar"
 
@@ -60,7 +74,7 @@ in
       # ── Desktop Bars ──────────────────────────────────────────────────
       # Desktop splits the surface's single bar across the two monitors:
       # media/connectivity on the left screen, the rest on the right.
-      leftBar = lib.mkIf isDesktop {
+      leftBar = lib.mkIf isDesktop (pills // {
         name = "top-left";
         layer = "top";
         position = "top";
@@ -68,11 +82,8 @@ in
         height = desktopBarThickness;
         modules-left   = [ ];
         modules-center = [ ];
-        # sqlch leads modules-right (its outermost/left edge): the track title
-        # resizes it constantly, and as the left-most right module only its own
-        # left edge moves, so the rest stay pinned to the screen edge.
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/sync" "custom/kdeconnect" "custom/volume" ];
-      };
+        modules-right  = statusRight;
+      });
 
       # Desktop has no battery module (charge is an eww widget).
       rightBar = lib.mkIf isDesktop {
@@ -85,11 +96,13 @@ in
         # clock stays alone in modules-center so its width swings just re-centre it.
         modules-left   = [ "custom/niri-workspace" "custom/weather" ];
         modules-center = [ "custom/clock" ];
-        modules-right  = [ "custom/notification" ];
+        # The bell lives in the left bar's audio pill, beside volume.
+        modules-right  = [ ];
       };
 
       # ── TV Bar (HDMI-A-1 — 65" Samsung 4K, scale 3.0 handled by niri) ──
-      tvTopBar = lib.mkIf isDesktop {
+      tvTopBar = lib.mkIf isDesktop ({
+        inherit (pills) "group/pill-conn" "group/pill-audio";
         name = "tv-top";
         layer = "top";
         position = "top";
@@ -99,9 +112,8 @@ in
         # stays alone in modules-center.
         modules-left   = [ "custom/niri-workspace" "custom/weather" "custom/launch-ghostty" ];
         modules-center = [ "custom/clock" ];
-        # sqlch leads modules-right so its title-driven width changes only
-        # push its own left edge, not volume/notification (see rightBar).
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/notification" "custom/volume" ];
+        # No sys pill: fleet/sync/kdeconnect aren't configured on this bar.
+        modules-right  = [ "custom/sqlch" "group/pill-conn" "group/pill-audio" ];
         "custom/clock"       = config.programs.waybar.settings.rightBar."custom/clock" or {};
         "custom/weather"     = config.programs.waybar.settings.rightBar."custom/weather" or {};
         "custom/volume"      = config.programs.waybar.settings.leftBar."custom/volume" or {};
@@ -113,10 +125,10 @@ in
           on-click = "ghostty";
           tooltip-format = "Terminal (ghostty)";
         };
-      };
+      });
 
       # ── Surface Bars ──────────────────────────────────────────────────
-      surfaceTopBar = lib.mkIf (!isDesktop) {
+      surfaceTopBar = lib.mkIf (!isDesktop) (pills // {
         name = "surface-top";
         layer = "top";
         position = "top";
@@ -127,10 +139,8 @@ in
         # desktop's charge readout is an eww widget instead, it has no battery here).
         modules-left   = [ "custom/battery" "custom/niri-workspace" "custom/weather" ];
         modules-center = [ "custom/clock" ];
-        # sqlch leads modules-right so its title-driven width changes only
-        # push its own left edge, not the rest of the cluster (see rightBar).
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/sync" "custom/notification" "custom/kdeconnect" "custom/volume" ];
-      };
+        modules-right  = statusRight;
+      });
 
     };
   };
@@ -155,11 +165,12 @@ in
         height = desktopBarThickness;
         modules-left   = [ "custom/niri-workspace" "custom/weather" ];
         modules-center = [ "custom/clock" ];
-        modules-right  = [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/sync" "custom/notification" "custom/kdeconnect" "custom/volume" ];
+        modules-right  = statusRight;
       }
-      // lib.genAttrs [ "custom/niri-workspace" "custom/weather" "custom/clock" "custom/notification" ]
+      // pills
+      // lib.genAttrs [ "custom/niri-workspace" "custom/weather" "custom/clock" ]
            (m: config.programs.waybar.settings.rightBar.${m} or {})
-      // lib.genAttrs [ "custom/sqlch" "custom/bluetooth" "custom/network" "custom/fleet" "custom/sync" "custom/kdeconnect" "custom/volume" ]
+      // lib.genAttrs ([ "custom/sqlch" ] ++ pillMods)
            (m: config.programs.waybar.settings.leftBar.${m} or {}))
     ];
   };
@@ -171,16 +182,11 @@ in
         s = config.programs.waybar.settings.surfaceTopBar;
         pick = mods: lib.genAttrs mods (m: s.${m} or {});
         base = { layer = "top"; position = "top"; output = "eDP-1"; height = surfaceBarThickness; };
-        pills = {
-          "group/pill-conn"  = { orientation = "horizontal"; modules = [ "custom/network" "custom/bluetooth" ]; };
-          "group/pill-sys"   = { orientation = "horizontal"; modules = [ "custom/fleet" "custom/sync" "custom/kdeconnect" ]; };
-          "group/pill-audio" = { orientation = "horizontal"; modules = [ "custom/notification" "custom/volume" ]; };
-        };
         topLeft = [ "custom/battery" "custom/niri-workspace" ];
         topRight = [ "group/pill-conn" "group/pill-sys" ];
         botLeft = [ "custom/weather" "group/pill-audio" ];
-        topPillMods = [ "custom/network" "custom/bluetooth" "custom/fleet" "custom/sync" "custom/kdeconnect" ];
-        botPillMods = [ "custom/notification" "custom/volume" ];
+        topPillMods = pills."group/pill-conn".modules ++ pills."group/pill-sys".modules;
+        botPillMods = pills."group/pill-audio".modules;
       in builtins.toJSON [
         (base // {
           name = "surface-portrait-top";

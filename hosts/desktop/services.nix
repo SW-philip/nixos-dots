@@ -113,10 +113,16 @@ in
   # Firewall
   # Port 8096 (Jellyfin) and iptv-serve are NOT in global allowedTCPPorts — access is via:
   #   tailscale0 (trusted interface, all ports open)
-  #   enp4s0 (LAN, explicit allow below)
+  #   enp4s0 (LAN, explicit allow below; jellyfin only from the Rokus)
   ############################################################
   networking.firewall.interfaces."enp4s0".allowedTCPPorts =
-    [ ports.jellyfin ] ++ lib.optional config.iptv.enable ports.iptv-serve;
+    lib.optional config.iptv.enable ports.iptv-serve;
+  # Jellyfin's plain-http port on the LAN is for the Rokus only (they can't run
+  # tailscale); everything else uses https via tailscale serve (modules/jellyfin.nix).
+  # Keep these addresses reserved in the router's DHCP table.
+  networking.firewall.extraInputRules = ''
+    iifname "enp4s0" ip saddr { 10.0.0.142, 10.0.0.66, 10.0.0.183 } tcp dport ${toString ports.jellyfin} accept
+  '';
 
   ############################################################
   # PS4/PS5 controller lightbar LED permissions

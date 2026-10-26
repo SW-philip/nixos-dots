@@ -20,6 +20,7 @@ in
     ../../home/tree-sync.nix
     ../../home/theme-sync.nix
     ../../home/fleet-status.nix
+    ../../home/whats-new.nix
     ../../home/nixfetch.nix
     ../../home/sync-status.nix
     ../../home/pass-through.nix
@@ -86,7 +87,7 @@ in
   systemd.user.paths.drmis-mug = mugConsumer.path;
 
   programs.zsh.shellAliases = {
-    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
+    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1 && whats-new";
     nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
     nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
 

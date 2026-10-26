@@ -195,6 +195,21 @@ def cache_wallpaper(src, state_dir):
         return str(dest) if dest.exists() else src
     return str(dest)
 
+def cache_extras(live, slug, state_dir):
+    """Same NFS-avoidance as cache_wallpaper, for the overview pit (swaybg) and the
+    per-workspace blob layouts (wallpaper-card): a missing source drops its stale copy."""
+    pairs = [(Path(live) / "wallpaper-pit.png", state_dir / "wallpaper-pit.png")]
+    pairs += [(Path(live) / f"wallpaper-{slug}-pos{n}.png", state_dir / f"wallpaper-cache-pos{n}.png")
+              for n in range(1, 5)]
+    for src, dest in pairs:
+        tmp = dest.with_suffix(".tmp")
+        try:
+            shutil.copyfile(src, tmp)
+            os.replace(tmp, dest)
+        except OSError:
+            tmp.unlink(missing_ok=True)
+            dest.unlink(missing_ok=True)
+
 def resolve_theme_alias(slug):
     return {"dark": "main", "light": "dawn"}.get(slug, slug)
 
@@ -210,6 +225,7 @@ def do_let(slug, theme_map):
     state_dir.mkdir(parents=True, exist_ok=True)
     live = Path(cfgs["wallpaperLiveDir"])
     wallpaper = cache_wallpaper(resolve_wallpaper(slug, live, cfgs["wallpaperFallback"]), state_dir)
+    cache_extras(live, slug, state_dir)
     (state_dir / "wallpaper").write_text(wallpaper)
     deploy_symlink(wallpaper, state_dir / "wallpaper-img")
     for profile_dir in firefox_profiles():
@@ -246,7 +262,7 @@ def do_set(slug, theme_map):
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     STATE_FILE.write_text(slug)
     do_let(slug, theme_map)
-    subprocess.run(["systemctl", "--user", "restart", "swaybg"],  stderr=subprocess.DEVNULL)
+    subprocess.run(["systemctl", "--user", "restart", "swaybg", "wallpaper-card", "wallpaper-follow"], stderr=subprocess.DEVNULL)
     subprocess.run(["pkill", "-USR1", "zsh"],                      stderr=subprocess.DEVNULL)
     subprocess.run(["pkill", "-SIGUSR1", "waybar"],                stderr=subprocess.DEVNULL)
     subprocess.run(["swaync-client", "-R"],                        stderr=subprocess.DEVNULL)

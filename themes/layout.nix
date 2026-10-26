@@ -5,5 +5,5 @@
   borderW      = 2;    # niri window border — thin; flat vocabulary, accent on active only
   radiusSm     = 6;    # small: workspace pills, scrollbars, fuzzel
   radiusMd     = 8;    # medium: bar modules, entry fields, tooltips
-  radiusLg     = 12;   # large: pill groups, lix-logout buttons
+  radiusLg     = 12;   # large: pill groups
 }

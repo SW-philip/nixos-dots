@@ -281,9 +281,12 @@ window#waybar {
 #tray > .needs-attention  { -gtk-icon-effect: highlight; }
 
 /* -----------------------------------------------------------------
-   Pills (portrait bar) — one chip wrapping several modules. The group
-   carries the chip look; its children drop theirs, hover included
-   (id+class outranks .module:hover, so no lift inside a pill).
+   Pills — one chip wrapping several modules, segmented like a keycap
+   tray. The group carries the chip look; its children drop theirs
+   (id+class outranks .module:hover, so no lift inside a pill) and
+   instead light an inset WING segment on hover, so each member still
+   reads as its own click target. Pill padding + segment padding = the
+   plain .module's 4px, so a pill is the same height as a lone chip.
    ----------------------------------------------------------------- */
 #pill-conn, #pill-sys, #pill-audio {
   background-color: ${p.STAGE};
@@ -291,15 +294,30 @@ window#waybar {
   border-radius: 7px;
   box-shadow: ${drop};
   margin: 4px 3px;
+  padding: 2px;
 }
 
 #pill-conn .module, #pill-sys .module, #pill-audio .module,
 #pill-conn .module:hover, #pill-sys .module:hover, #pill-audio .module:hover {
   background-color: transparent;
   border: none;
+  border-radius: 5px;
   box-shadow: none;
   margin: 0;
-  padding: 4px 8px;
+  padding: 2px 9px;
+}
+
+#pill-conn .module:hover, #pill-sys .module:hover, #pill-audio .module:hover {
+  background-color: ${p.WING};
+  text-shadow: ${liftText};
+}
+
+/* Divider between members. `* + *` because the group's children are
+   anonymous eventbox wrappers around each module's label. */
+#pill-conn > * + *, #pill-sys > * + *, #pill-audio > * + * {
+  border-left: 1px solid ${keyline};
+  margin-left: 2px;
+  padding-left: 2px;
 }
 
 /* -----------------------------------------------------------------

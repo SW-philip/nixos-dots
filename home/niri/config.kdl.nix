@@ -89,8 +89,8 @@ output "HDMI-A-1" {
 layout {
     gaps ${toString l.gap}
 
-    // Transparent so the backdrop-pinned swaybg wallpaper (see layer-rule
-    // below) shows through instead of niri's own opaque per-workspace fill.
+    // Transparent so the wallpaper layers (see layer-rule below) show through
+    // instead of niri's own opaque per-workspace fill.
     background-color "transparent"
 
     border {
@@ -162,8 +162,10 @@ environment {
 animations {
     slowdown 0.8
 
+    // Instant, so the pit behind the wallpaper isn't exposed mid-slide.
+    // Overview has its own animation and is unaffected.
     workspace-switch {
-        spring damping-ratio=1.0 stiffness=800 epsilon=0.001
+        off
     }
     window-open {
         duration-ms 150
@@ -187,11 +189,23 @@ blur {
     passes 3
 }
 
-// Pin swaybg into the backdrop so it stays put during workspace-switch/
-// overview animations instead of sliding with the viewport.
+// swaybg shows the stepped "pit" and is pinned into the backdrop, so it sits
+// still beneath the workspace cards in the overview. The real wallpaper is
+// the unpinned `awww-daemoncard` layer: it belongs to each workspace, so it
+// slides with workspace switches and shrinks into a card in the overview.
 layer-rule {
     match namespace="^wallpaper$"
     place-within-backdrop true
+}
+
+// The card edge's cast shadow is what makes the pit read as depth.
+overview {
+    workspace-shadow {
+        softness 40
+        spread 6
+        offset x=0 y=14
+        color "rgba(${p.STAFF}, ${p.STAFF_A_OUTER})"
+    }
 }
 
 // ── Window rules ──────────────────────────────────────────
@@ -200,6 +214,14 @@ layer-rule {
 window-rule {
     geometry-corner-radius ${toString l.radiusMd}
     clip-to-geometry true
+}
+// Portal file pickers arrive without a parent window, so tiled they open as
+// unfocused columns beside the app that asked, off-screen.
+window-rule {
+    match app-id="xdg-desktop-portal-gtk"
+    match app-id="xdg-desktop-portal-gnome"
+    open-floating true
+    open-focused true
 }
 window-rule {
     match app-id="weather-radar"
@@ -436,12 +458,20 @@ window-rule {
     open-on-workspace "media"
 }
 window-rule {
-    match app-id="nemo"
     match app-id="nwg-look"
     match app-id="org.kde.kdenlive"
     match app-id="krita"
     match app-id="org.kde.easyeffects"
     open-on-workspace "scratch"
+}
+// File managers float over whatever workspace called them.
+window-rule {
+    match app-id="nemo"
+    open-floating true
+}
+window-rule {
+    match app-id="dev.prepko.whats-new"
+    open-floating true
 }
 // LibreOffice's app-id is module-specific (e.g. "libreoffice-writer"), so
 // a prefix match catches Writer/Calc/Impress/etc. under one rule.

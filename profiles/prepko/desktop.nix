@@ -11,6 +11,7 @@
     ../../home/tree-sync.nix
     ../../home/theme-sync.nix
     ../../home/fleet-status.nix
+    ../../home/whats-new.nix
     ../../home/goodnight.nix
     ../../home/nixfetch.nix
     ../../home/pi-git-mirror.nix
@@ -35,7 +36,7 @@
   # failure base.nix's comment warns about).
   ########################################
   programs.zsh.shellAliases = {
-    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos";
+    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos && whats-new";
     nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos";
     nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos";
   };

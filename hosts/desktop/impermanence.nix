@@ -8,6 +8,7 @@
       "/var/lib/NetworkManager"
       { directory = "/etc/NetworkManager/system-connections"; mode = "0700"; }
       "/var/lib/tailscale"
+      "/var/lib/jellyfin-whisper"
       "/var/lib/bluetooth"
       "/var/lib/sbctl"
       { directory = "/var/lib/sops-nix"; mode = "0700"; }

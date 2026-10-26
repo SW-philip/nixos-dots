@@ -556,6 +556,37 @@ in
     ${pkgs.niri}/bin/niri msg action load-config-file 2>/dev/null || true
   '';
 
+  # Workspace-tier wallpaper: an awww daemon in its own namespace (surface
+  # `awww-daemoncard`, no backdrop rule, so it lives inside each workspace).
+  systemd.user.services.wallpaper-card = {
+    Unit = config.lib.niri.unit { wayland = true; } {
+      Description = "awww daemon: workspace-tier wallpaper";
+      StartLimitIntervalSec = 0;
+    };
+    Service = {
+      ExecStart = "${pkgs.awww}/bin/awww-daemon --namespace card";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.wallpaper-follow = {
+    Unit = config.lib.niri.unit { wayland = true; } {
+      Description = "wallpaper-follow: blob layout per focused workspace";
+      After = [ "wallpaper-card.service" ];
+      # drmis restarts wallpaper-card on a theme switch; follow re-reads the pointer on restart
+      PartOf = [ "wallpaper-card.service" ];
+      StartLimitIntervalSec = 0;
+    };
+    Service = {
+      ExecStart = "${s.wallpaperFollow}/bin/wallpaper-follow";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   systemd.user.services.swaybg = {
     Unit = {
       Description = "swaybg wallpaper";

@@ -367,7 +367,7 @@ in
       # -e pins nh's elevation strategy to the real setuid sudo wrapper —
       # nh's "auto" detection can otherwise resolve the non-setuid
       # /run/current-system/sw/bin/sudo and fail activation.
-      nrs = "nh os switch -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos";
+      nrs = "nh os switch -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos && whats-new";
       nrb = "nh os boot -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos";
       nrt = "nh os test -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos";
       nfu = "nix flake update";

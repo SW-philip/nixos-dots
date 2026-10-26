@@ -32,4 +32,23 @@
       IOWriteBandwidthMax = "/dev/disk/by-id/ata-ST3000DM008-2DM166_Z505GAGT 20000000";
     };
   };
+
+  # HTTPS for clients (sqlch sends the API key in every request): tailscale
+  # terminates TLS with a Let's Encrypt cert for swphil.<tailnet>.ts.net and
+  # proxies to jellyfin on loopback. Needs "HTTPS Certificates" enabled in the
+  # tailnet admin console (DNS page). Config persists in /var/lib/tailscale.
+  systemd.services.jellyfin-tailscale-serve = {
+    description = "Serve Jellyfin over HTTPS on the tailnet";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "tailscaled.service" "jellyfin.service" ];
+    wants = [ "tailscaled.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --https=443 http://127.0.0.1:8096";
+      ExecStop = "${config.services.tailscale.package}/bin/tailscale serve --https=443 off";
+      Restart = "on-failure";
+      RestartSec = "30s";
+    };
+  };
 }

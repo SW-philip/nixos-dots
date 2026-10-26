@@ -17,6 +17,10 @@
 # (megadrive, gc, wii, ...) where they differ. For folders scraped by more
 # than one token (gamecube-wii: gc+wii), `-d <folder>` deploys both passes
 # in one go — skyscraper-deploy.sh's <token> argument is handled internally.
+#
+# Each console is scraped from screenscraper, thegamesdb, igdb (with creds)
+# and local import art, then merged; see scrape_modules below. ps3 still
+# scrapes screenscraper only (scrape_ps3).
 
 set -uo pipefail
 
@@ -156,7 +160,54 @@ JOBS=(
   "3ds|3ds"
   "switch|switch"
   "dreamcast|dreamcast"
+  "pc|pc"
 )
+
+# /srv/roms/pc holds whole Windows install trees, so a folder scan would
+# also scrape every crash handler and _Redist installer. Scrape only the
+# entry points the PC collection launches (hosts/desktop/pegasus-pc.nix);
+# Skyscraper still searches by their filenames, so name them after the game.
+pc_files() {
+  local meta="/srv/roms/pc/metadata.pegasus.txt"
+  if [[ ! -f "$meta" ]]; then
+    echo "==> [pc] $meta missing (tmpfiles link from hosts/desktop/config.nix)" >&2
+    return 1
+  fi
+  sed -n 's#^file: #/srv/roms/pc/#p' "$meta"
+}
+
+# Every pass lands in Skyscraper's resource cache and the `-f pegasus` pass
+# merges them per field, ranked by ~/.skyscraper/cache/<token>/priorities.xml
+# (pc ranks igdb first: screenscraper matched Hook.exe to the 1992 Hook).
+# igdb runs only once sops has rendered its creds; import only for a
+# platform with its own ~/.skyscraper/import/<token>/ art folder, since the
+# bare import/ dir would be read for every platform.
+scrape_modules() {
+  local token="$1"
+  echo screenscraper thegamesdb
+  [[ -r "$IGDB_INI" ]] && echo igdb
+  [[ -d "$HOME/.skyscraper/import/$token" ]] && echo import
+}
+
+# The igdb creds come from sops (hosts/desktop/config.nix) and reach
+# Skyscraper only through a 0600 config copy on the runtime tmpfs, passed
+# with -c: never argv (`-u` shows in ps) and never ~/.skyscraper/config.ini.
+IGDB_INI="/run/secrets/rendered/skyscraper-igdb.ini"
+igdb_config=""
+skyscraper_module() {
+  local token="$1" module="$2"
+  shift 2
+  if [[ "$module" == igdb ]]; then
+    if [[ -z "$igdb_config" ]]; then
+      igdb_config="$(umask 077; mktemp -p "${XDG_RUNTIME_DIR:-/tmp}" skyscraper-igdb.XXXXXX.ini)"
+      trap 'rm -f "$igdb_config"' EXIT
+      cat ~/.skyscraper/config.ini "$IGDB_INI" > "$igdb_config"
+    fi
+    Skyscraper -c "$igdb_config" -p "$token" -s igdb "$@"
+  else
+    Skyscraper -p "$token" -s "$module" "$@"
+  fi
+}
 
 usage() {
   echo "Usage: scrape [-r|--for <console>]"
@@ -250,14 +301,31 @@ for job in "${matched[@]}"; do
     continue
   fi
 
-  echo "==> [$token] scraping art+metadata from screenscraper..."
-  if ! Skyscraper -p "$token" -s screenscraper; then
-    echo "==> [$token] scrape pass failed, skipping gamelist" >&2
+  romfiles=()
+  if [[ "$token" == "pc" ]]; then
+    mapfile -t romfiles < <(pc_files)
+    if [[ ${#romfiles[@]} -eq 0 ]]; then
+      failed+=("$token")
+      continue
+    fi
+  fi
+
+  scraped=0
+  for module in $(scrape_modules "$token"); do
+    echo "==> [$token] scraping art+metadata from $module..."
+    if skyscraper_module "$token" "$module" "${romfiles[@]}"; then
+      scraped=$((scraped + 1))
+    else
+      echo "==> [$token] $module pass failed, continuing with the rest" >&2
+    fi
+  done
+  if [[ "$scraped" -eq 0 ]]; then
+    echo "==> [$token] every scrape pass failed, skipping gamelist" >&2
     failed+=("$token")
     continue
   fi
   echo "==> [$token] writing Pegasus gamelist..."
-  if ! Skyscraper -p "$token" -f pegasus; then
+  if ! Skyscraper -p "$token" -f pegasus "${romfiles[@]}"; then
     echo "==> [$token] gamelist generation failed" >&2
     failed+=("$token")
     continue

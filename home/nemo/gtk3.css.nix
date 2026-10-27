@@ -245,4 +245,67 @@ tooltip {
 tooltip * {
   color: ${p.SCORE};
 }
+
+/* ── Dialogs (polkit agent, message prompts) ─────────────── */
+
+dialog,
+dialog * {
+  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-size: 13px;
+}
+
+dialog {
+  background-color: ${p.STAGE};
+  color: ${p.SCORE};
+}
+
+dialog decoration {
+  border: 1px solid alpha(${p.SCORE}, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 2px 3px rgba(${p.STAFF}, ${p.STAFF_A_DROP});
+}
+
+dialog .dialog-vbox {
+  background-color: transparent;
+}
+
+dialog label {
+  color: ${p.SCORE};
+}
+
+dialog entry {
+  background-color: ${p.WING};
+  background-image: none;
+  color: ${p.SCORE};
+  border: 1px solid alpha(${p.SCORE}, 0.15);
+  border-radius: 5px;
+  box-shadow: none;
+  padding: 7px 10px;
+}
+
+dialog entry:focus {
+  border-color: ${p.ROOT};
+}
+
+dialog button {
+  background-color: ${p.WING};
+  background-image: none;
+  color: ${p.SCORE};
+  border: 1px solid alpha(${p.SCORE}, 0.15);
+  border-radius: 5px;
+  box-shadow: none;
+  text-shadow: none;
+  padding: 6px 20px;
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+dialog button:hover,
+dialog button:focus {
+  background-color: rgba(${p.ROOT_RGB}, 0.22);
+  color: ${p.ROOT};
+}
+
+dialog expander title {
+  color: ${p.REST};
+}
 ''

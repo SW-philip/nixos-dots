@@ -111,7 +111,7 @@ in
 
   ############################################################
   # Firewall
-  # Port 8096 (Jellyfin) and iptv-serve are NOT in global allowedTCPPorts — access is via:
+  # Jellyfin and iptv-serve are NOT in global allowedTCPPorts — access is via:
   #   tailscale0 (trusted interface, all ports open)
   #   enp4s0 (LAN, explicit allow below; jellyfin only from the Rokus)
   ############################################################

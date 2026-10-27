@@ -6,7 +6,7 @@ let
   scriptDir = "${config.home.homeDirectory}/.config/eww/scripts";
   connector = if isDesktop then "DP-2" else "eDP-1";
   scripts   = [ "context" "vitals" "storage" "boot" "snark"
-                "purity" "net" "bt" "power" "mug" "myln" "launcher-favs" "sparkle-picks" ];
+                "purity" "net" "bt" "power" "mug" "myln" "launcher-favs" "sparkle-picks" "feed" ];
 
   # tablet/osk feeds: inotify on the Type Cover state file and squeekboard's
   # D-Bus signals, instead of a bash loop forking every 1 s / 0.5 s.

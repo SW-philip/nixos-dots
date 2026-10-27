@@ -8,6 +8,7 @@ in
 
   imports = [
     ../../modules/nixfetch.nix
+    ../../modules/adguardhome.nix
     "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
     ../../identities/prepko.nix
     ../../roles/nix-hygiene.nix

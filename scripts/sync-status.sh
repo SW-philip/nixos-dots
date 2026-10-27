@@ -4,7 +4,7 @@
 set -euo pipefail
 
 OUT=${SYNC_OUT:-${XDG_CACHE_HOME:-$HOME/.cache}/sync-status.json}
-URL=${SYNC_URL:-http://127.0.0.1:8384}
+URL=${SYNC_URL:-http://127.0.0.1:${SYNC_PORT:-8384}}
 SOCK=${SYNC_SOCK:-/run/syncthing/gui.sock}
 CONF=${SYNC_CONF:-$HOME/.config/syncthing/config.xml}
 ROOT=${SYNC_ROOT:-$HOME}

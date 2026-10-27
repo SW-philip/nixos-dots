@@ -7,7 +7,7 @@
 #   jellyfin-logos.sh ~/Pictures/channel-logos
 set -euo pipefail
 
-JF="${JF:-http://localhost:8096}"
+JF="${JF:-http://localhost:${JF_PORT:-8096}}"
 out="${1:-$HOME/Pictures/channel-logos}"
 mkdir -p "$out"
 

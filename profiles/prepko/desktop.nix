@@ -22,6 +22,8 @@
     ../../home/quivr.nix
     ../../home/go-librespot.nix
     ../../home/on.nix
+    ../../home/tunnel.nix
+    ../../home/polkit-agent.nix
     ../../home/shared-apps
     ../../home/pegasus
     ../../home/bluetooth-idle-notify.nix

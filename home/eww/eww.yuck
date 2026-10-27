@@ -7,17 +7,17 @@
 (defvar wing_open false)
 (defvar fade_on false)
 
-(deflisten vitals  :initial "{}" `while :; do bash SCRIPTS/vitals.sh;  sleep 2;  done`)
-(deflisten storage :initial "{}" `while :; do bash SCRIPTS/storage.sh; sleep 60; done`)
-(deflisten boot    :initial "{}" `while :; do bash SCRIPTS/boot.sh;    sleep 30; done`)
-(deflisten snark   :initial `{"line":""}` `while :; do bash SCRIPTS/snark.sh; sleep 20; done`)
+(deflisten vitals  :initial "{}" `bash SCRIPTS/feed.sh 5 0 'bash SCRIPTS/vitals.sh'`)
+(deflisten storage :initial "{}" `bash SCRIPTS/feed.sh 61 1 'bash SCRIPTS/storage.sh'`)
+(deflisten boot    :initial "{}" `bash SCRIPTS/feed.sh 31 2 'bash SCRIPTS/boot.sh'`)
+(deflisten snark   :initial `{"line":""}` `bash SCRIPTS/feed.sh 23 3 'bash SCRIPTS/snark.sh'`)
 
-(deflisten purity :initial "{}" `while :; do bash SCRIPTS/purity.sh; sleep 20; done`)
-(deflisten net    :initial "{}" `while :; do bash SCRIPTS/net.sh;    sleep 20; done`)
-(deflisten bt     :initial "{}" `while :; do bash SCRIPTS/bt.sh;     sleep 20; done`)
-(deflisten power  :initial "{}" `while :; do bash SCRIPTS/power.sh;  sleep 30; done`)
-(deflisten mug    :initial "{}" `while :; do bash SCRIPTS/mug.sh;    sleep 20; done`)
-(deflisten myln   :initial "{}" `while :; do bash SCRIPTS/myln.sh;   sleep 30; done`)
+(deflisten purity :initial "{}" `bash SCRIPTS/feed.sh 19 5 'bash SCRIPTS/purity.sh'`)
+(deflisten net    :initial "{}" `bash SCRIPTS/feed.sh 17 7 'bash SCRIPTS/net.sh'`)
+(deflisten bt     :initial "{}" `bash SCRIPTS/feed.sh 29 9 'bash SCRIPTS/bt.sh'`)
+(deflisten power  :initial "{}" `bash SCRIPTS/feed.sh 37 11 'bash SCRIPTS/power.sh'`)
+(deflisten mug    :initial "{}" `bash SCRIPTS/feed.sh 41 13 'bash SCRIPTS/mug.sh'`)
+(deflisten myln   :initial "{}" `bash SCRIPTS/feed.sh 43 4 'bash SCRIPTS/myln.sh'`)
 (deflisten spark :initial "[]" `bash SCRIPTS/sparkle-picks.sh`)
 (deflisten tablet :initial "false" `TABLET_FEED`)
 ;; true while squeekboard is on screen; the bottom ledger fades out of its way.
@@ -25,13 +25,13 @@
 (deflisten launcher_rows :initial "[]" `last=; while :; do cur=$(bash SCRIPTS/launcher-favs.sh); [ "$cur" = "$last" ] || { echo "$cur"; last=$cur; }; sleep 3; done`)
 ;; Tablet shell (surface, cover detached). tablet-shell swaps waybar for the
 ;; strip; the sheet drops from under it.
-(deflisten tablet_state :initial "{}" `while :; do TABLET_STATE; sleep 3; done`)
+(deflisten tablet_state :initial "{}" `bash SCRIPTS/feed.sh 5 6 'TABLET_STATE'`)
 (defpoll clock_text :interval "10s" `date +'%-I:%M %p'`)
 
 ;; Reads the same ~/.cache/waybar/stoic-quote.json that
 ;; home/waybar/stoic.nix's poll timer writes -- this chip is just another
 ;; reader of that cache, same as the retired waybar custom module was.
-(deflisten stoic_quote :initial "{}" `while :; do QUOTE_CACHE_READ; sleep 10; done`)
+(deflisten stoic_quote :initial "{}" `bash SCRIPTS/feed.sh 47 8 'QUOTE_CACHE_READ'`)
 
 ;; One coloured letter per pill. `spark` (scripts/sparkle-picks.sh) supplies a
 ;; regex (k skipped letters + the pick) and a colour per slot `i`. eww's replace()

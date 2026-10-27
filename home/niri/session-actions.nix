@@ -7,10 +7,10 @@
 let
   user = config.home.username;
 
-  # Desktop's Tailscale IPv4 (modules/tailscale.nix). Not the `desktop`
+  # Desktop's Tailscale IPv4. Not the `desktop`
   # MagicDNS name: that also resolves to a Tailscale IPv6 which wlvncc may
   # try first, but wayvnc listens v4-only and the cert's IP SAN is v4-only.
-  desktopHost = "100.64.0.1";
+  desktopHost = (import ../../hosts/inventory.nix).desktop.ip;
 in
 {
   # uniremote is a windowed GUI, not a daemon — a bare relaunch just stacks

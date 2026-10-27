@@ -4,6 +4,7 @@ let
   retroSystems = import ../retro-systems.nix { inherit pkgs; };
   mkPegasusMetadata = import ../pegasus-metadata.nix { inherit pkgs; };
   pegasusPc = import ./pegasus-pc.nix { inherit pkgs; };
+  surfaceIp = (import ../inventory.nix).surface.ip;
 in
 {
   ############################################################
@@ -11,6 +12,7 @@ in
   ############################################################
   imports = [
     ../../modules/nixfetch.nix
+    ../../modules/port-viewer.nix
     ../../modules/health-root.nix
     ../../roles/goodnight-activate.nix
     ../../roles/base.nix
@@ -226,10 +228,10 @@ in
   services.nfs.server = {
     enable = true;
     exports = ''
-      /srv/roms 100.64.0.2(ro,all_squash,anonuid=1002,anongid=984,no_subtree_check)
-      /srv/game-saves 100.64.0.2(rw,all_squash,anonuid=1002,anongid=984,no_subtree_check)
+      /srv/roms ${surfaceIp}(ro,all_squash,anonuid=1002,anongid=984,no_subtree_check)
+      /srv/game-saves ${surfaceIp}(rw,all_squash,anonuid=1002,anongid=984,no_subtree_check)
       # anonuid/gid are prepko (1000:users) so files surface writes here are owned by prepko
-      /srv/prepko 100.64.0.2(rw,all_squash,anonuid=1000,anongid=100,no_subtree_check)
+      /srv/prepko ${surfaceIp}(rw,all_squash,anonuid=1000,anongid=100,no_subtree_check)
     '';
   };
 

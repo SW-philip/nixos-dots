@@ -7,10 +7,12 @@ set -euo pipefail
 die() { echo "retro-recover: $*" >&2; exit 1; }
 
 target="${1:-prepko@retro}"
+desktop_ip=$(jq -r .desktop.ip /etc/fleet.json) || die "no desktop ip in /etc/fleet.json"
 
-ssh "$target" bash -s <<'REMOTE' || die "recovery failed on $target"
+ssh "$target" bash -s -- "$desktop_ip" <<'REMOTE' || die "recovery failed on $target"
 set -euo pipefail
 die() { echo "retro-recover: $*" >&2; exit 1; }
+desktop_ip=$1
 
 stream=$(systemctl cat cage-tty1 | grep -o '/nix/store/[^ "]*retro-stream[^ "]*' | head -n1) || true
 [ -n "${stream:-}" ] || die "no retro-stream path in cage-tty1"
@@ -21,7 +23,7 @@ echo "1/3 moonlight: $bindir/moonlight"
 uid=$(id -u retro)
 if sudo -n systemd-run --quiet --wait --pipe --uid=retro \
   --setenv=QT_QPA_PLATFORM=offscreen --setenv=HOME=/home/retro --setenv=XDG_RUNTIME_DIR="/run/user/$uid" \
-  /run/current-system/sw/bin/timeout 25 "$bindir/moonlight" quit 100.64.0.1 </dev/null >/dev/null 2>&1; then
+  /run/current-system/sw/bin/timeout 25 "$bindir/moonlight" quit "$desktop_ip" </dev/null >/dev/null 2>&1; then
   echo "2/3 Sunshine asked to quit the running app"
 else
   echo "2/3 moonlight quit failed or timed out (continuing)"

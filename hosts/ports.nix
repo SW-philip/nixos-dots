@@ -6,7 +6,11 @@
 let
   ports = {
     ssh = 22;
+    adguard-dns = 53;
+    tailscale-serve-https = 443; # jellyfin, tailnet interface only
+    adguard-ui = 3080;
     go-librespot = 3678;
+    transmission-rpc = 9091;
     jellyfin = 8096;
     ersatztv = 8409;
     iptv-serve = 8765;
@@ -23,7 +27,7 @@ let
   # Ports a service takes implicitly. Not referenced elsewhere; listed so a
   # new entry can't land on top of them.
   derived = {
-    sunshine = [ 47984 47990 48010 47998 47999 48000 48002 ];
+    sunshine = [ 47984 47990 48010 47998 47999 48000 48002 ]; # 47990 = web UI (base + 1)
   };
 
   claims =

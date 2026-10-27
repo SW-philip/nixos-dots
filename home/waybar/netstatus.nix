@@ -15,8 +15,12 @@ let
     exec ${config.home.homeDirectory}/.config/waybar/scripts/quantum-wifimenu.sh
   '';
 
+  # Desktop's wifi radio sits `unavailable` while it's on ethernet; a rescan
+  # there fails every tick, so only scan when some wifi device can.
   wifiRescanScript = pkgs.writeShellScriptBin "quantum-wifi-rescan" ''
-    exec ${pkgs.networkmanager}/bin/nmcli dev wifi rescan
+    nmcli=${pkgs.networkmanager}/bin/nmcli
+    $nmcli -t -f TYPE,STATE dev | grep -q '^wifi:\(dis\)\?connected' || exit 0
+    exec $nmcli dev wifi rescan
   '';
 
   # netstatus.sh's get_speed() sleeps a full second to sample throughput —

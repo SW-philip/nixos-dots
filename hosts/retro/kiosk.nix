@@ -83,7 +83,7 @@ let
       # it runs and kill it once the unit starts deactivating, or every stop hangs
       # until TimeoutStopSec SIGKILLs cage.
       stopping() { [ "$(systemctl is-active cage-tty1)" = deactivating ]; }
-      # The desktop host (Tailscale 100.64.0.1, Sunshine closed on the LAN) is
+      # The desktop host (its Tailscale IP, hosts/inventory.json; Sunshine closed on the LAN) is
       # stored in Moonlight's own config, not here.
       # Moonlight caches Sunshine's box art per app on disk and never refreshes
       # it; the desktop regenerates tile art, so drop the cache on every start.

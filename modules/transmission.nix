@@ -1,10 +1,14 @@
 { lib, ... }:
+let
+  ports = import ../hosts/ports.nix;
+in
 {
   services.transmission = {
     enable = true;
-    # Peer port stays closed on the LAN; RPC/web UI binds 127.0.0.1:9091.
+    # Peer port stays closed on the LAN; RPC/web UI binds 127.0.0.1.
     openPeerPorts = false;
     openRPCPort = false;
+    settings.rpc-port = ports.transmission-rpc;
   };
 
   # Idle transmission keeps network and disk out of low-power states; start it

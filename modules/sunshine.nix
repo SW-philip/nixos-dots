@@ -1,5 +1,7 @@
 { config, lib, pkgs, ... }:
 let
+  inventory = import ../hosts/inventory.nix;
+  ports = import ../hosts/ports.nix;
   artDir = "/home/${config.myConfig.user}/.local/share/retro-tiles/art";
   tileSystems = builtins.filter (s: s.tile or false)
     (import ../hosts/retro-systems.nix { inherit pkgs; });
@@ -100,7 +102,8 @@ in
     # Error" when reached at any other origin, including the Tailscale IP
     # clients actually use.
     settings = {
-      csrf_allowed_origins = "https://100.64.0.1:47990";
+      # web UI listens on base + 1
+      csrf_allowed_origins = "https://${inventory.desktop.ip}:${toString (ports.sunshine + 1)}";
 
       # Sunshine >=2026.914 tries the xdg-desktop-portal capture path first.
       # Under niri the only ScreenCast backend is portal-gnome, which has no

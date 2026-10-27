@@ -275,6 +275,12 @@ window-rule {
     geometry-corner-radius 0
     clip-to-geometry true
 }
+// polkit password prompt: stay opaque (no blur/translucency) so the field is easy to read.
+window-rule {
+    match app-id="polkit-gnome-authentication-agent-1"
+    open-floating true
+    open-focused true
+}
 window-rule {
     match app-id="dev.prepko.lix-logout"
     open-floating true

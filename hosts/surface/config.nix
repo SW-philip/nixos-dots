@@ -1,5 +1,6 @@
 { inputs, config, pkgs, lib, ... }:
 let
+  desktopIp = (import ../inventory.nix).desktop.ip;
   # The subset of hosts/retro-systems.nix this Surface's Intel iGPU can run —
   # ppsspp + libretro cores only, no heavy standalone emulators. The list
   # stays a local value (not the NFS mount) because NFS serves symlinks
@@ -18,6 +19,7 @@ in
   ############################################################
   imports = [
     ../../modules/nixfetch.nix
+    ../../modules/port-viewer.nix
     ../../modules/health-root.nix
     ../../roles/goodnight-activate.nix
     ../../roles/base.nix
@@ -96,7 +98,7 @@ in
   # deciseconds — timeo=30 is a 3s per-retry timeout, not 30s.
   ############################################################
   fileSystems."/srv/roms-nfs" = {
-    device  = "100.64.0.1:/srv/roms";
+    device  = "${desktopIp}:/srv/roms";
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "ro" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
@@ -110,7 +112,7 @@ in
   # simply absent and RetroArch writes locally (not auto-merged back).
   # See docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md.
   fileSystems."/srv/game-saves" = {
-    device  = "100.64.0.1:/srv/game-saves";
+    device  = "${desktopIp}:/srv/game-saves";
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
@@ -121,7 +123,7 @@ in
   # desktop's /srv/prepko (Pictures/Downloads pass-through). Inside prepko's 0700 home on purpose:
   # all_squash makes every local user prepko on this mount, so the path must not be traversable by others.
   fileSystems."/home/${config.myConfig.user}/.desktop" = {
-    device  = "100.64.0.1:/srv/prepko";
+    device  = "${desktopIp}:/srv/prepko";
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
@@ -232,7 +234,7 @@ in
 
   ############################################################
   # Safe-DNS (Cloudflare for Families) for kid only. System DNS stays
-  # whatever DHCP hands out, so prepko gets unfiltered Google. Their port-53
+  # whatever DHCP hands out (the pi's AdGuard at home). Their port-53
   # traffic (v4 and v6) is DNATed by uid; 1.1.1.3 also forces Google
   # SafeSearch via CNAME. ProtonVPN overrides DNS while connected; the real
   # lock is the Firefox allowlist in home/kid.

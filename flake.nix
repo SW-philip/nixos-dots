@@ -1,5 +1,5 @@
 {
-  description = "NixOS flake: desktop (unstable) + surface (26.05)";
+  description = "NixOS flake: desktop (unstable) + surface, retro, pi (26.05)";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";

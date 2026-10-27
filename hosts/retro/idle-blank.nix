@@ -51,6 +51,17 @@ let
                     pass
 
 
+    def hdmi_connected():
+        for path in glob.glob("/sys/class/drm/card*-HDMI-*/status"):
+            try:
+                with open(path) as f:
+                    if f.read().strip() == "connected":
+                        return True
+            except OSError:
+                pass
+        return False
+
+
     def streaming():
         out = subprocess.run(
             ["ss", "-uHnp"], capture_output=True, text=True
@@ -84,6 +95,13 @@ let
             last_stream_check = now
             if streaming():
                 last_activity = now
+        if not hdmi_connected():
+            # The TV is on another input (or off), so nobody is watching retro: stay awake and
+            # reachable, and restart the idle clock so it doesn't suspend the moment the signal returns.
+            last_activity = now
+            blanked = False
+            blank_tried = False
+            continue
         idle = now - last_activity
         if idle > IDLE_SECS + SUSPEND_SECS:
             # Not gated on blanked: with the kiosk stopped there is no output to blank, but the
@@ -98,7 +116,7 @@ let
 in
 {
   systemd.services.idle-blank = {
-    description = "Blank the display after 11 minutes without input or a Moonlight stream, suspend 20 minutes after that, display or not";
+    description = "Blank the display after 11 minutes without input or a Moonlight stream, suspend 20 minutes after that; never while HDMI is disconnected";
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.iproute2 ];
     serviceConfig = {

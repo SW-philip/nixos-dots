@@ -243,6 +243,10 @@ let
       label = "󰖂  VPN";
       command = "bash ${config.home.homeDirectory}/.config/waybar/scripts/vpn-toggle.sh";
     }
+    {
+      label = "󰒍  Tunnel";
+      command = "ssh-tunnel";
+    }
   ];
 
   # Static swaync config.json — palette-independent, only style.css carries colors.

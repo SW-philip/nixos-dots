@@ -72,6 +72,13 @@ selected_label=$(echo "$choice" | sed 's/^[^A-Za-z]*//' | sed 's/  \[on\]$//')
 target="${VPN_SERVICES[$selected_label]:-}"
 [ -z "$target" ] && exit 1
 
+if [ "$selected_label" = "$active_vpn_label" ]; then
+  $SUDO -n $SYSTEMCTL stop "$active_vpn_svc" && \
+    notify-send "VPN" "Disconnected — $selected_label" -i network-vpn-off || \
+    notify-send "VPN" "Disconnect failed" -i network-error
+  exit 0
+fi
+
 # Tailscale stays up: the ip rules in modules/protonvpn.nix keep the tailnet
 # and tailscaled's own transport off the tunnel.
 [ -n "$active_vpn_svc" ] && $SUDO -n $SYSTEMCTL stop "$active_vpn_svc" 2>/dev/null

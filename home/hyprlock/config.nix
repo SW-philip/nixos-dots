@@ -12,15 +12,16 @@ let
   outline = lib.concatMapStrings (i: hex2 ((ch p.SCORE i * 55 + ch p.HALL i * 45 + 50) / 100)) [ 0 2 4 ];
 
   # hyprlock works in physical pixels with no output scaling, and font_size is
-  # Pango *points* at 96 dpi (pt = px × 3/4). The greeter also renders at
-  # output scale 1 with --scale ${toString sc} (mark only) and --field-scale 1
-  # (everything else), so its CSS px carry over as-is: mark × sc, rest literal.
-  pt = px: toString (px * 3 / 4);
+  # Pango *points* at 96 dpi (pt = px × 3/4). The layout below is in logical px,
+  # so every size and offset is multiplied by the panel scale (sc) on output;
+  # otherwise a 2x panel draws the whole screen at half the size of the desktop.
+  pt = px: toString (px * sc * 3 / 4);
+  s  = px: toString (px * sc);
 
   # Greeter band: mark, 14, clock 96, 14, date 32 — a column centred on the
   # screen. Josefin's line box is exactly 1em, so label heights = font px.
   # Offsets are centre-to-centre, y-up (+y raises).
-  markPx   = 48 * sc;
+  markPx   = 48;
   bandH    = markPx + 14 + 96 + 14 + 32;
   markOff  = bandH / 2 - markPx / 2;
   clockMid = markOff - markPx / 2 - 14 - 48;
@@ -51,13 +52,13 @@ in ''
   # nix mark — flat REST silhouette, drmis-managed (state/nix-mark-img).
   image {
       path          = ${home}/.local/state/nix-mark-img
-      size          = ${toString markPx}
+      size          = ${s markPx}
       rounding      = 0
       border_size   = 0
       shadow_passes = 2
-      shadow_size   = 5
+      shadow_size   = ${s 5}
       shadow_color  = rgba(${h p.HALL}f2)
-      position      = 0, ${toString markOff}
+      position      = 0, ${s markOff}
       halign        = center
       valign        = center
   }
@@ -69,10 +70,10 @@ in ''
       font_size     = ${pt 96}
       font_family   = Josefin Sans SemiBold
       shadow_passes = 3
-      shadow_size   = 12
+      shadow_size   = ${s 12}
       shadow_color  = rgba(${h p.HALL}e6)
       shadow_boost  = 1.4
-      position      = 0, ${toString clockMid}
+      position      = 0, ${s clockMid}
       halign        = center
       valign        = center
   }
@@ -84,9 +85,9 @@ in ''
       font_size     = ${pt 32}
       font_family   = Josefin Sans
       shadow_passes = 2
-      shadow_size   = 6
+      shadow_size   = ${s 6}
       shadow_color  = rgba(${h p.HALL}f2)
-      position      = 0, ${toString dateOff}
+      position      = 0, ${s dateOff}
       halign        = center
       valign        = center
   }
@@ -94,8 +95,8 @@ in ''
   # ── password field — greeter .field: 240 + 2×13 pad + 2 border wide ──────
 
   input-field {
-      size              = 268, 34
-      outline_thickness = 1
+      size              = ${s 268}, ${s 34}
+      outline_thickness = ${s 1}
       dots_size         = 0.2
       dots_spacing      = 0.4
       dots_center       = true
@@ -105,16 +106,16 @@ in ''
       font_color        = rgba(${h p.SCORE}ff)
       font_family       = Josefin Sans
       fade_on_empty     = false
-      rounding          = 6
+      rounding          = ${s 6}
       check_color       = rgba(${h p.PIANO}ff)
       fail_color        = rgba(${h p.FORTE}ff)
       fail_text         = @@SNARK@@
       placeholder_text  =
       hide_input        = false
       shadow_passes     = 1
-      shadow_size       = 4
+      shadow_size       = ${s 4}
       shadow_color      = rgba(${h p.HALL}a6)
-      position          = 0, ${toString fieldOff}
+      position          = 0, ${s fieldOff}
       halign            = center
       valign            = center
   }

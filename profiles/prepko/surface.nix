@@ -1,5 +1,6 @@
 { inputs, pkgs, lib, config, ... }:
 let
+  buildHost = "prepko@${(import ../../hosts/inventory.nix).desktop.ip}";
   mugConsumer = import ../../home/niri/theme-consumer.nix { inherit lib; } {
     name = "ember-mug";
     description = "Sync the Ember mug LED to the drmis theme ROOT color";
@@ -27,6 +28,8 @@ in
     ../../home/quivr.nix
     ../../home/go-librespot.nix
     ../../home/on.nix
+    ../../home/tunnel.nix
+    ../../home/polkit-agent.nix
     ../../home/shared-apps
     ../../home/network-notify.nix
     ../../home/autobrightness.nix
@@ -87,9 +90,9 @@ in
   systemd.user.paths.drmis-mug = mugConsumer.path;
 
   programs.zsh.shellAliases = {
-    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1 && whats-new";
-    nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
-    nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo -H surface --build-host prepko@100.64.0.1";
+    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost} && whats-new";
+    nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost}";
+    nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost}";
 
     # `ember-mug set/get` without -m scans and can grab a stale, unpaired
     # BlueZ device object (from a prior BLE address rotation) instead of the

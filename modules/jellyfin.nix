@@ -1,5 +1,8 @@
 { config, pkgs, lib, ... }:
-
+let
+  ports = import ../hosts/ports.nix;
+  https = toString ports.tailscale-serve-https;
+in
 {
   services.jellyfin = {
     enable = true;
@@ -45,8 +48,8 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --https=443 http://127.0.0.1:8096";
-      ExecStop = "${config.services.tailscale.package}/bin/tailscale serve --https=443 off";
+      ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --https=${https} http://127.0.0.1:${toString ports.jellyfin}";
+      ExecStop = "${config.services.tailscale.package}/bin/tailscale serve --https=${https} off";
       Restart = "on-failure";
       RestartSec = "30s";
     };

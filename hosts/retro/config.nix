@@ -5,6 +5,7 @@
     ./hardware.nix
     ./kiosk.nix
     ./idle-blank.nix
+    ./dns-querylog.nix
     ../../identities/prepko.nix
     ../../roles/secure-boot.nix
     ../../roles/wifi-home.nix
@@ -108,11 +109,25 @@
       post)
         # ath10k and the BT dongle come back wedged after resume.
         ${pkgs.util-linux}/bin/rfkill unblock all
-        ${pkgs.systemd}/bin/systemctl restart bluetooth.service idle-blank.service
+        ${pkgs.systemd}/bin/systemctl restart bluetooth.service idle-blank.service retro-epp.service
         ;;
     esac
   '';
   services.thermald.enable = true;
+  # Kernel default is balance_performance (= PPD "balanced") and the i5 sat at 79-80 C
+  # idling a thin client. Moonlight decodes on the GPU, so the CPU can ramp lazily.
+  systemd.services.retro-epp = {
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do
+        echo balance_power > "$f"
+      done
+    '';
+  };
   # roles/secure-boot.nix keeps 10 signed UKIs on the ESP; this box needs 3.
   boot.loader.systemd-boot.configurationLimit = 3;
 

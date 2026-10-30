@@ -1,7 +1,7 @@
 # Niri session utility scripts — shell derivations for Wayland tools, screen capture,
 # MPRIS, and waybar mode. Extracted from home/niri/default.nix for modularity.
 { pkgs, lib }:
-{
+rec {
   swaybgLauncher = pkgs.writeShellScript "swaybg-launcher" ''
     # the overview pit; the `card` awww daemon draws the real wallpaper inside the workspaces
     img="$HOME/.local/state/wallpaper-pit.png"
@@ -75,11 +75,15 @@
         Paused)  echo "󰏤 $TITLE — $ARTIST''${AD_MARK}" ;;
       esac
     else
-      if [[ ! -f "$SNARK_CACHE" ]]; then
-        jq -r '.mpris.stopped[]' "$SNARK_FILE" 2>/dev/null | shuf -n1 \
-          > "$SNARK_CACHE" || echo "The silence judges you." > "$SNARK_CACHE"
+      if [[ -e "''${XDG_STATE_HOME:-$HOME/.local/state}/snark-off" ]]; then
+        echo ""
+      else
+        if [[ ! -f "$SNARK_CACHE" ]]; then
+          jq -r '.mpris.stopped[]' "$SNARK_FILE" 2>/dev/null | shuf -n1 \
+            > "$SNARK_CACHE" || echo "The silence judges you." > "$SNARK_CACHE"
+        fi
+        cat "$SNARK_CACHE"
       fi
-      cat "$SNARK_CACHE"
     fi
   '';
 
@@ -104,7 +108,12 @@
       exec $BC --user call sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b false
     fi
 
-    $SC --user is-active --quiet squeekboard.service || exit 0
+    # Desktop mode leaves squeekboard stopped; asking for it by hand starts it.
+    if ! $SC --user is-active --quiet squeekboard.service; then
+      $SC --user start squeekboard.service 2>/dev/null || exit 0
+      for _ in 1 2 3 4 5 6 7 8 9 10; do sleep 0.2; $BC --user status sm.puri.OSK0 >/dev/null 2>&1 && break; done
+      exec $BC --user call sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b true
+    fi
     if visible; then want=false; else want=true; fi
     exec $BC --user call sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b $want
   '';
@@ -146,6 +155,52 @@
     export TABLET_SYSTEMCTL=${pkgs.systemd}/bin/systemctl
     export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.procps ]}:$PATH"
     exec ${pkgs.bash}/bin/bash ${./tablet-fade.sh} "$@"
+  '';
+
+  # Single writer of the surface-cover state file: hardware (Type Cover present) unless
+  # surface-mode forces desktop, which reads as "attached" so every consumer (waybar,
+  # scale, squeekboard, firefox UA) takes the desktop layout. `fade` crossfades on change.
+  # flock: the udev loop and surface-mode can fire together.
+  surfaceCoverUpdate = pkgs.writeShellScriptBin "surface-cover-update" ''
+    export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep pkgs.util-linux ]}:$PATH"
+    SC=${pkgs.systemd}/bin/systemctl
+    run="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    state="$run/surface-cover"
+    exec 9>"$run/surface-cover.lock"
+    flock 9
+    if grep -qlF "Type Cover Keyboard" /sys/class/input/*/name 2>/dev/null; then cover=1; else cover=0; fi
+    if [ "$cover" = 1 ] || [ "$(cat "$run/surface-mode" 2>/dev/null)" = desktop ]; then want=attached
+    else want=detached; fi
+    prev=$(cat "$state" 2>/dev/null || true)
+    do_fade=0
+    if [ "''${1:-}" = fade ] && [ "$prev" != "$want" ]; then do_fade=1; fi
+    if [ "$do_fade" = 1 ]; then ${tabletFade}/bin/tablet-fade out || true; fi
+    echo "$want" > "$state"
+    # the OSK follows the physical cover, not the layout: desktop mode still needs typing
+    if [ "$cover" = 1 ]; then
+      $SC --user stop squeekboard.service 2>/dev/null || true
+    else
+      $SC --user start squeekboard.service 2>/dev/null || true
+    fi
+    ${surfaceScale}/bin/surface-scale || true
+    ${tabletShell}/bin/tablet-shell || true
+    if [ "$do_fade" = 1 ]; then ${tabletFade}/bin/tablet-fade in || true; fi
+  '';
+
+  # With the Type Cover off, tablet mode is automatic; this pins the desktop layout
+  # (tablet as a plain third screen). Not persisted: a new login returns to auto.
+  surfaceMode = pkgs.writeShellScriptBin "surface-mode" ''
+    f="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/surface-mode"
+    cur=auto; [ "$(cat "$f" 2>/dev/null)" = desktop ] && cur=desktop
+    case "''${1:-toggle}" in
+      status)  [ "$cur" = desktop ] && echo true || echo false; exit 0 ;;
+      desktop) want=desktop ;;
+      auto)    want=auto ;;
+      toggle)  [ "$cur" = desktop ] && want=auto || want=desktop ;;
+      *) echo "usage: surface-mode [toggle|desktop|auto|status]" >&2; exit 2 ;;
+    esac
+    if [ "$want" = desktop ]; then echo desktop > "$f"; else rm -f "$f"; fi
+    exec ${surfaceCoverUpdate}/bin/surface-cover-update fade
   '';
 
   # Cover detached: the tablet tile grid (eww window launcher-tablet). Otherwise fuzzel's
@@ -212,6 +267,12 @@
   setDefaultSink = pkgs.writeShellScript "set-default-sink" ''
     export PATH="${lib.makeBinPath [ pkgs.wireplumber pkgs.pipewire pkgs.jq pkgs.coreutils ]}:$PATH"
     target="$1"
+    # `settings` → Audio → Pin output. Path must match PIN_FILE in scripts/settings/lib.sh.
+    pin="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/audio-output-pinned"
+    if [ -e "$pin" ]; then
+      echo "set-default-sink: output pinned — leaving default alone" >&2
+      exit 0
+    fi
     # The ALSA sink can lag the display hotplug by a beat — retry briefly.
     for _ in $(seq 1 10); do
       id=$(pw-dump 2>/dev/null | jq -r --arg n "$target" \

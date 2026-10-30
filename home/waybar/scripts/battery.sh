@@ -10,6 +10,8 @@ if [[ -f "$PALETTE_FILE" ]]; then
 else
     REST="#6e6a86"; BAR="#6e6a86"; ROOT="#c4a7e7"; PIANO="#f6c177"
 fi
+# shellcheck source=/dev/null
+source "$(dirname "${BASH_SOURCE[0]}")/waybar-lib.sh"
 
 # minutes -> "1h05m" / "47m"
 fmt_eta() {
@@ -90,7 +92,9 @@ else
 fi
 
 snark="System operational."
-if [[ -f "$SNARK_FILE" ]]; then
+if snark_quiet; then
+    snark=""
+elif [[ -f "$SNARK_FILE" ]]; then
     snark=$(jq -r --arg a "$bucket" --arg b "$snark_b" \
         '((.battery[$a] // []) + (if $b == "" then [] else (.battery[$b] // []) end)) | .[]' \
         "$SNARK_FILE" | shuf -n1 || echo "System operational.")
@@ -106,6 +110,7 @@ TOOLTIP="<span foreground='${REST}'>Status:</span> ${status}"
 TOOLTIP+="
 <span foreground='${REST}'>────────────────────</span>
 <span foreground='${ROOT}'>${snark}</span>"
+TOOLTIP=$(waybar_unsnark "$TOOLTIP")
 
 jq -nc \
   --arg text "$BAT_TEXT" \

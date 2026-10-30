@@ -11,7 +11,7 @@ let
   };
   jellyfinWhisper = pkgs.writeShellApplication {
     name = "jellyfin-whisper";
-    runtimeInputs = with pkgs; [ (whisper-cpp.override { vulkanSupport = true; }) ffmpeg-headless jq coreutils findutils gnused gnugrep ];
+    runtimeInputs = with pkgs; [ (whisper-cpp.override { vulkanSupport = true; }) ffmpeg-headless jq coreutils findutils gawk gnused gnugrep ];
     text = ''
       export WHISPER_MODEL=''${WHISPER_MODEL:-${model}}
       export WHISPER_STATE=''${WHISPER_STATE:-/var/lib/jellyfin-whisper}
@@ -42,7 +42,7 @@ in
       Group = "users";
       ExecStart = "${jellyfinWhisper}/bin/jellyfin-whisper";
       StateDirectory = "jellyfin-whisper";
-      RuntimeMaxSec = "6h";
+      TimeoutStartSec = "6h";
       Nice = 19;
       IOSchedulingClass = "idle";
     };

@@ -28,7 +28,7 @@ if command -v rfkill >/dev/null; then
   if [ -n "$rfkill_states" ] && ! grep -qx "unblocked" <<<"$rfkill_states"; then
     jq -nc --arg text "$ICON_AIRPLANE" \
            --arg text_compact "$ICON_AIRPLANE" \
-           --arg tooltip "$(printf "<span foreground='${PIANO}'>Airplane mode</span>\n<span foreground='${REST}'>────────────────────</span>\n<span foreground='${ROOT}'>%s</span>" "$(snark_for airplane 'Airplane mode engaged.')")" \
+           --arg tooltip "$(waybar_unsnark "$(printf "<span foreground='${PIANO}'>Airplane mode</span>\n<span foreground='${REST}'>────────────────────</span>\n<span foreground='${ROOT}'>%s</span>" "$(snark_for airplane 'Airplane mode engaged.')")")" \
            --arg class "airplane" \
            '{text:$text, text_compact:$text_compact, tooltip:$tooltip, class:$class}'
     exit 0
@@ -156,6 +156,8 @@ case "$mode" in
     tooltip=$(printf "<span foreground='${REST}'>Offline</span>\n<span foreground='${REST}'>────────────────────</span>\n<span foreground='${ROOT}'>%s</span>" "$(snark_for offline 'touching grass.')")
     ;;
 esac
+
+tooltip=$(waybar_unsnark "$tooltip")
 
 jq -nc \
   --arg text "$text" \

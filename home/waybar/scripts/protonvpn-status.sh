@@ -21,10 +21,12 @@ snark_for() { waybar_snark protonvpn "$1" "${2:-}"; }
 
 if systemctl is-active --quiet wg-quick-protonvpn.service 2>/dev/null; then
     TOOLTIP=$(printf "<span foreground='${SEVENTH}'>ProtonVPN Connected</span>\n<span foreground='${BAR}'>────────────────────</span>\n<span foreground='${ROOT}'>%s</span>" "$(snark_for on 'Traffic disguised.')")
+    TOOLTIP=$(waybar_unsnark "$TOOLTIP")
     jq -nc --arg text "$ICON_ON" --arg tooltip "$TOOLTIP" --arg class "vpn-on" \
         '{text:$text, tooltip:$tooltip, class:$class}'
 else
     TOOLTIP=$(printf "<span foreground='${BAR}'>ProtonVPN Off</span>\n<span foreground='${BAR}'>Click to connect</span>\n<span foreground='${BAR}'>────────────────────</span>\n<span foreground='${ROOT}'>%s</span>" "$(snark_for off 'Exposed to the open internet.')")
+    TOOLTIP=$(waybar_unsnark "$TOOLTIP")
     jq -nc --arg text "$ICON_OFF" --arg tooltip "$TOOLTIP" --arg class "vpn-off" \
         '{text:$text, tooltip:$tooltip, class:$class}'
 fi

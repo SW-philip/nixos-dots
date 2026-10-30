@@ -1,10 +1,11 @@
 from __future__ import annotations
+import html
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 
 import requests
 
-from uniremote.api import RokuAPI, SmartThingsAPI
+from uniremote.api import RokuAPI, SamsungAPI
 
 NOT_SET_UP = "not set up · ⋯ → Preferences"
 
@@ -31,24 +32,17 @@ class DeviceStatus:
     online: bool
 
 
-def samsung_status(api: SmartThingsAPI, label: str) -> DeviceStatus:
-    name = label or "Samsung TV"
+def samsung_status(api: SamsungAPI) -> DeviceStatus:
     try:
-        main = api.status()
-    except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code in (401, 403):
-            return DeviceStatus(name, "token rejected · ⋯ → Preferences", False)
-        return DeviceStatus(name, "", False)
+        info = api.device_info()
     except (requests.RequestException, ValueError):
-        return DeviceStatus(name, "", False)
-    power = main.get("switch", {}).get("switch", {}).get("value")
-    volume = main.get("audioVolume", {}).get("volume", {}).get("value")
-    source = main.get("mediaInputSource", {}).get("inputSource", {}).get("value")
-    parts = [power or "unknown"]
-    if volume is not None:
-        parts.append(f"vol {volume}")
-    if source:
-        parts.append(str(source))
+        return DeviceStatus("Samsung TV", "", False)
+    name = html.unescape(info.get("name", "")).removeprefix("[TV] ") or "Samsung TV"
+    if not api.paired:
+        return DeviceStatus(name, "not paired · ⋯ → Preferences", True)
+    parts = [info.get("PowerState", "on")]
+    if info.get("modelName"):
+        parts.append(info["modelName"])
     return DeviceStatus(name, " · ".join(parts), True)
 
 

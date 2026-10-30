@@ -3,7 +3,7 @@
 # rejected by Spotify's client id).
 # drop when: the stable channel ships go-librespot >= 0.10.5.
 { inputs, ... }:
-final: prev: {
+_final: prev: {
   go-librespot =
     inputs.nixpkgs-unstable.legacyPackages.${prev.stdenv.hostPlatform.system}.go-librespot.overrideAttrs
       (old: rec {

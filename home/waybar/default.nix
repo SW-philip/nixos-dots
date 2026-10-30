@@ -233,6 +233,7 @@ in
         "DCONF_PROFILE=/dev/null"
       ];
       ExecStart = lib.mkForce "${waybarLauncher}";
+      ExecStopPost = "${config.lib.niri.crashToast "waybar"}";
       Restart = "on-failure";
       RestartSec = 2;
     };

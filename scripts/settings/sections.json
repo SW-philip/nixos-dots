@@ -1,0 +1,7 @@
+[
+  {"id": "network",   "label": "Network",   "glyph": "󰖩", "requires": [], "kind": "menu", "command": "settings-network"},
+  {"id": "bluetooth", "label": "Bluetooth", "glyph": "󰂯", "requires": [], "kind": "menu", "command": "settings-bluetooth"},
+  {"id": "audio",     "label": "Audio",     "glyph": "󰕾", "requires": [], "kind": "menu", "command": "settings-audio"},
+  {"id": "display",   "label": "Display",   "glyph": "󰍹", "requires": [], "kind": "menu", "command": "settings-display"},
+  {"id": "interface", "label": "Interface", "glyph": "󰋗", "requires": [], "kind": "menu", "command": "settings-interface"}
+]

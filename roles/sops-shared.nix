@@ -1,4 +1,5 @@
 { config, ... }: {
+  imports = [ ./sops-registry.nix ];
   sops.secrets.spotify_env = {
     sopsFile = ../secrets/shared.yaml;
     owner    = config.myConfig.user;

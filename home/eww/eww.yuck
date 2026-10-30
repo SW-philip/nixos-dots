@@ -159,7 +159,7 @@
 ;; panel if that ever needs fixing too.
 (defwidget panel [?dock]
   (box :class "panel ${dock ?: ""}" :orientation "vertical" :space-evenly false :width 410 :height 600
-    (label :class "snark" :halign "start" :wrap true :text {snark.line ?: ""})
+    (label :class "snark" :halign "start" :wrap true :visible {(snark.line ?: "") != ""} :text {snark.line ?: ""})
     (legendary)
     (rare)
     (common)))
@@ -176,6 +176,7 @@
 (defwidget ledger-content [?dock]
   (box :class "ledger-bar ${dock ?: ""}${tablet ? " tablet" : ""}" :orientation "horizontal" :space-evenly false :spacing 6
     (button :class "chip" :onclick "EWW update ledger_open=false; LAUNCHER_BIN" :timeout "5s" (spk :i 18 :class "" :halign "center" :text "󰀻 Launcher"))
+    (button :class "chip" :onclick "EWW update ledger_open=false; SETTINGS_BIN" :timeout "5s" (spk :i 23 :class "" :halign "center" :text "󰒓 Settings"))
     (button :class "chip" :onclick "EWW update ledger_open=false; UNIREMOTE_TOGGLE" :timeout "5s" :visible {!is_desktop} (spk :i 19 :class "" :halign "center" :text "󰠲 Uniremote"))
     (button :class "chip" :onclick "EWW update ledger_open=false; MOONLIGHT_TOGGLE" :timeout "5s" :visible {!is_desktop} (spk :i 20 :class "" :halign "center" :text "󰊗 Moonlight"))
     (button :class "chip" :onclick "EWW update ledger_open=false; QUOTE_REFRESH" :timeout "5s"
@@ -387,6 +388,7 @@
       (ts-toggle :label "Keyboard" :glyph "󰌓" :on osk :action "osk")
       (ts-toggle :label "Rotate" :glyph "󰑵" :on {tablet_state.rotate_on ?: false} :action "rotate")
       (ts-toggle :label "Quiet" :glyph "󰂛" :on {tablet_state.dnd_on ?: false} :action "dnd")
+      (ts-toggle :label "Desktop" :glyph "󰍹" :on false :action "desktop")
       (ts-toggle :label "Alerts" :glyph "󰂚" :on false :action "notif"))
     (box :class "ts-card" :orientation "horizontal" :space-evenly false :spacing 14
       (label :class "ts-card-main" :hexpand true :halign "start"

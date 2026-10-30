@@ -12,7 +12,7 @@ for arg in "$@"; do
   [[ "$arg" == "--fix" ]] && FIX_MODE=true
   [[ "$arg" =~ ^(/|\./) ]] && ROOT="$arg"
 done
-cd "$ROOT"
+cd "$ROOT" || exit 1
 
 PASS=0; WARN=0; FAIL=0
 declare -a AUTO_FIX=()   # commands safe to run automatically (git rm)
@@ -214,7 +214,6 @@ for pkg in "${!pkg_seen[@]}"; do
   if [ "$count" -ge 3 ]; then
     fail "\"$pkg\" declared in $count files — consolidate:"
     echo "$files" | tr '|' '\n' | while read -r f; do [ -n "$f" ] && echo "       $f"; done
-    primary=$(echo "$files" | tr '|' '\n' | head -1)
     fix_note "Pick one canonical file for pkgs.$pkg (probably the most general), remove from the others"
     ((pkg_dupes++))
   elif [ "$count" -eq 2 ]; then
@@ -412,7 +411,6 @@ declare -A username_files_seen
 hardcoded=0
 while IFS= read -r match; do
   file=$(echo "$match" | cut -d: -f1)
-  lineno=$(echo "$match" | cut -d: -f2)
   echo "$file" | grep -qE "^./hosts/" && continue
   echo "$file" | grep -qE "$GENERATED" && continue
   [[ -n "${username_files_seen[$file]:-}" ]] || {

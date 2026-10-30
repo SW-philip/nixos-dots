@@ -79,6 +79,9 @@ class RokuView(Gtk.Box):
 
         self._run_async(self._load_apps, callback=self._on_apps_loaded)
 
+    def set_online(self, online: bool):
+        self.set_sensitive(online)
+
     def _roku(self) -> RokuAPI:
         return RokuAPI(self._config.roku_ip)
 

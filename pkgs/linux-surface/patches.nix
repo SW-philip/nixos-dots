@@ -101,6 +101,5 @@
   { name = "ms-surface/0012-surface-gpe";       patch = patchSrc + "/0012-surface-gpe.patch"; }
   { name = "ms-surface/0013-cameras";           patch = patchSrc + "/0013-cameras.patch"; }
   { name = "ms-surface/0014-amd-gpio";          patch = patchSrc + "/0014-amd-gpio.patch"; }
-  { name = "ms-surface/0015-rtc";               patch = patchSrc + "/0015-rtc.patch"; }
-  { name = "ms-surface/0016-hid-surface";       patch = patchSrc + "/0016-hid-surface.patch"; }
+  { name = "ms-surface/0015-hid-surface";       patch = patchSrc + "/0015-hid-surface.patch"; }
 ]

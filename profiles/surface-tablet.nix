@@ -128,31 +128,7 @@ in
     Service = {
       Type = "simple";
       ExecStart = pkgs.writeShellScript "surface-kbd-monitor" ''
-        SC="${pkgs.systemd}/bin/systemctl"
-        STATE="$XDG_RUNTIME_DIR/surface-cover"
-
-        kbd_present() {
-          grep -qlF "Type Cover Keyboard" /sys/class/input/*/name 2>/dev/null
-        }
-
-        update() {
-          local want prev do_fade=0
-          if kbd_present; then want=attached; else want=detached; fi
-          prev=$(cat "$STATE" 2>/dev/null || true)
-          if [ "''${1:-}" = fade ] && [ "$prev" != "$want" ]; then do_fade=1; fi
-          if [ "$do_fade" = 1 ]; then ${s.tabletFade}/bin/tablet-fade out || true; fi
-          echo "$want" > "$STATE"
-          if [ "$want" = attached ]; then
-            $SC --user stop squeekboard.service 2>/dev/null || true
-          else
-            $SC --user start squeekboard.service 2>/dev/null || true
-          fi
-          ${s.surfaceScale}/bin/surface-scale || true
-          ${s.tabletShell}/bin/tablet-shell || true
-          if [ "$do_fade" = 1 ]; then ${s.tabletFade}/bin/tablet-fade in || true; fi
-        }
-
-        update
+        ${s.surfaceCoverUpdate}/bin/surface-cover-update
 
         ${pkgs.systemd}/bin/udevadm monitor --udev --property --subsystem-match=input \
           | ${pkgs.gawk}/bin/awk '
@@ -166,7 +142,7 @@ in
             ' \
           | while read -r _event; do
               sleep 0.3
-              update fade
+              ${s.surfaceCoverUpdate}/bin/surface-cover-update fade
             done
       '';
       Restart = "on-failure";

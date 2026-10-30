@@ -126,7 +126,14 @@ def load_snark() -> dict:
     except Exception:
         return {}
 
+def snark_quiet() -> bool:
+    """`snark off` creates this file; mirrors snark_quiet in waybar-lib.sh."""
+    state = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
+    return os.path.exists(os.path.join(state, "snark-off"))
+
 def pick_weather_snark(family: str) -> str:
+    if snark_quiet():
+        return ""
     data = load_snark()
     options = data.get("weather", {}).get(family, [])
     return random.choice(options) if options else ""

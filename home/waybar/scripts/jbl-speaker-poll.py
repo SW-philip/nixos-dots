@@ -229,8 +229,10 @@ def main(argv) -> int:
         print(json.dumps(fields, indent=2, sort_keys=True))
         return 0 if fields and "battery_pct" in fields else 1
 
+    # Exit 0 even when the speaker is off or out of range: the {ok:false}
+    # cache already says so, and a failed unit skips the ExecStartPost merge hook.
     write_cache(fields)
-    return 0 if (fields and "battery_pct" in fields) else 1
+    return 0
 
 
 if __name__ == "__main__":

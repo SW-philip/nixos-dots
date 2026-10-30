@@ -64,6 +64,15 @@ echo -e "\n${BOLD}[3/5] Pinpointing Top Execution Bottlenecks...${NC}"
 # .device units report when the device appeared, not how long anything ran;
 # they crowd out the services that actually hold boot up.
 BLAME=$(systemd-analyze blame --no-pager | grep -v '\.device$')
+# blame also lists timer-fired units (btrbk, nightly jobs) that ran hours after
+# boot; keep only units whose activation began before graphical.target.
+GFX_US=$(systemctl show graphical.target -p ActiveEnterTimestampMonotonic --value 2>/dev/null)
+if [ "${GFX_US:-0}" -gt 0 ]; then
+    mapfile -t BLAME_UNITS < <(awk '{print $NF}' <<<"$BLAME")
+    BOOT_UNITS=$(systemctl show -p Id -p InactiveExitTimestampMonotonic "${BLAME_UNITS[@]}" 2>/dev/null |
+        awk -F= -v g="$GFX_US" '$1=="Id"{id=$2} $1=="InactiveExitTimestampMonotonic" && $2>0 && $2<g {print id}')
+    BLAME=$(awk 'NR==FNR{b[$1]; next} $NF in b' <(echo "$BOOT_UNITS") <(echo "$BLAME"))
+fi
 echo "$BLAME" | head -n 5
 
 # --- 4. SECURITY AUDIT ---
@@ -80,9 +89,10 @@ export STRUCTURAL_EXEMPT='^(serial-)?getty@|^rescue\.service$|^emergency\.servic
 # skipped (libvirt/samba/nfs need broad host access to do their job; plymouth
 # needs DRM+tty at boot and a black screen there is not worth a lower score;
 # nix-optimise rewrites /nix/store, NM-dispatcher runs root hook scripts, and
-# nvidia-persistenced holds the driver open — all upstream units).
+# nvidia-persistenced holds the driver open — all upstream units; rootful
+# podman and its oci-containers units need the same privileges as the runtime).
 # Reported on their own line rather than hidden, and kept out of the average.
-export ACCEPTED_RISK='^virt[a-z]*d\.service$|^libvirt(d|-guests)\.service$|^samba-|^nfs-|^nfsdcld\.service$|^plymouth-|^systemd-ask-password-plymouth\.service$|^nix-optimise\.service$|^NetworkManager-dispatcher\.service$|^nvidia-persistenced\.service$'
+export ACCEPTED_RISK='^virt[a-z]*d\.service$|^libvirt(d|-guests)\.service$|^samba-|^nfs-|^nfsdcld\.service$|^plymouth-|^systemd-ask-password-plymouth\.service$|^nix-optimise\.service$|^NetworkManager-dispatcher\.service$|^nvidia-persistenced\.service$|^podman(-.+)?\.service$'
 # Passed via ENVIRON, not -v: gawk's -v assignment runs C-style escape
 # processing on the value first, which mangles the \. sequences above.
 
@@ -195,7 +205,7 @@ elif [ "$USER_MS" -lt 2000 ]; then echo -e "Userspace:     ${GREEN}A+ (Fast Serv
 elif [ "$USER_MS" -lt 5000 ]; then echo -e "Userspace:     ${GREEN}A  (Crisp Service Handoff)${NC}"
 else
     echo -e "Userspace:     ${YELLOW}B  (Slow Path To graphical.target)${NC}"
-    echo -e "  ${BLUE}Slowest units: $(echo "$BLAME" | head -n 3 | awk '{printf "%s%s (%s)", sep, $2, $1; sep=", "}')${NC}"
+    echo -e "  ${BLUE}Slowest units: $(echo "$BLAME" | head -n 3 | awk '{u=$NF; $NF=""; sub(/^ +/, ""); sub(/ +$/, ""); printf "%s%s (%s)", sep, u, $0; sep=", "}')${NC}"
 fi
 
 if [ "$(awk -v a="$AVG_EXPOSURE" 'BEGIN {print (a < 2.5)?1:0}')" -eq 1 ]; then

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2029  # remote paths are meant to expand client-side
 # key-escrow: passphrase-encrypt this host's unrecoverable keys (sops age key, SSH host key,
-# sbctl Secure Boot keys) and park the bundle on the pi.
+# sbctl Secure Boot keys, sops editor key) and park the bundle on the pi.
 # The pi's microSD is unencrypted and `.sops.yaml` lists it as a recipient, so the bundle is
 # encrypted with a passphrase that exists nowhere on the pi. Never lands on disk in plaintext.
 #   key-escrow.sh [backup]   encrypt and upload (prompts for a passphrase twice)
@@ -19,6 +19,8 @@ CANDIDATES=(
   /persist/etc/ssh/ssh_host_ed25519_key.pub
   /var/lib/sbctl
   /etc/ssh/ssh_host_ed25519_key
+  # already passphrase-encrypted; escrowed so losing both laptops still leaves a way to edit
+  "$HOME/.config/sops/age/editor.age"
 )
 
 backup() {

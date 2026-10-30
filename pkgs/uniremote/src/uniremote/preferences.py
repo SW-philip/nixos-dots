@@ -4,7 +4,9 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw
 
-from uniremote.api import SmartThingsAPI, discover_roku
+from samsungtvws.exceptions import UnauthorizedError
+
+from uniremote.api import SamsungAPI, discover_roku, discover_samsung
 
 
 class Preferences(Adw.PreferencesDialog):
@@ -13,33 +15,33 @@ class Preferences(Adw.PreferencesDialog):
         self._config = config
         self._run_async = run_async
         self._notify = notify
-        self._device_ids: list[str] = []
 
         page = Adw.PreferencesPage()
         self.add(page)
 
-        samsung = Adw.PreferencesGroup(title="Samsung SmartThings")
+        samsung = Adw.PreferencesGroup(
+            title="Samsung TV",
+            description="Pair once and accept the prompt on the TV.")
         page.add(samsung)
 
-        self._token_row = Adw.PasswordEntryRow(title="API Token")
-        self._token_row.set_text(config.samsung_token)
-        fetch_btn = Gtk.Button(icon_name="view-refresh-symbolic",
-                               valign=Gtk.Align.CENTER,
-                               tooltip_text="Fetch devices")
-        fetch_btn.add_css_class("flat")
-        fetch_btn.connect("clicked", lambda _: self._fetch_devices())
-        self._token_row.add_suffix(fetch_btn)
-        samsung.add(self._token_row)
+        self._samsung_ip_row = Adw.EntryRow(title="IP Address")
+        self._samsung_ip_row.set_text(config.samsung_ip)
+        samsung_discover = Gtk.Button(icon_name="system-search-symbolic",
+                                      valign=Gtk.Align.CENTER,
+                                      tooltip_text="Discover on network")
+        samsung_discover.add_css_class("flat")
+        samsung_discover.connect("clicked", lambda _: self._discover_samsung())
+        self._samsung_ip_row.add_suffix(samsung_discover)
+        samsung.add(self._samsung_ip_row)
 
-        self._device_row = Adw.ComboRow(
-            title="Device",
-            model=Gtk.StringList.new(["(fetch devices first)"]),
-        )
-        if config.samsung_device_id:
-            self._device_ids = [config.samsung_device_id]
-            self._device_row.set_model(
-                Gtk.StringList.new([f"Saved: {config.samsung_device_id}"]))
-        samsung.add(self._device_row)
+        # filled in from the TV the first time it answers
+        self._mac_row = Adw.EntryRow(title="MAC Address (Wake-on-LAN)")
+        self._mac_row.set_text(config.samsung_mac)
+        samsung.add(self._mac_row)
+
+        pair_row = Adw.ButtonRow(title="Pair with TV")
+        pair_row.connect("activated", lambda _: self._pair())
+        samsung.add(pair_row)
 
         roku = Adw.PreferencesGroup(title="Roku")
         page.add(roku)
@@ -61,25 +63,33 @@ class Preferences(Adw.PreferencesDialog):
         save_row.connect("activated", lambda _: self._save())
         actions.add(save_row)
 
-    def _fetch_devices(self):
-        token = self._token_row.get_text().strip()
-        if not token:
-            self._notify("Enter an API token first.")
-            return
-        self._notify("Fetching devices…")
-        self._run_async(SmartThingsAPI.fetch_devices, token,
-                        callback=self._devices_fetched)
+    def _discover_samsung(self):
+        self._notify("Scanning for Samsung TV…")
+        self._run_async(discover_samsung, callback=self._samsung_discovered)
 
-    def _devices_fetched(self, result):
-        if isinstance(result, Exception):
-            self._notify(f"Error: {result}")
+    def _samsung_discovered(self, result):
+        if isinstance(result, Exception) or not result:
+            self._notify("No Samsung TV found on network.")
             return
-        if not result:
-            self._notify("No devices found.")
+        self._samsung_ip_row.set_text(result)
+        self._notify(f"Found Samsung TV at {result}")
+
+    def _pair(self):
+        ip = self._samsung_ip_row.get_text().strip()
+        if not ip:
+            self._notify("Enter the TV's IP first.")
             return
-        self._device_ids = [d[0] for d in result]
-        self._device_row.set_model(Gtk.StringList.new([d[1] for d in result]))
-        self._notify(f"Found {len(result)} device(s).")
+        self._notify("Accept the prompt on the TV…")
+        api = SamsungAPI(ip, self._config.samsung_token_file)
+        self._run_async(api.pair, callback=self._paired)
+
+    def _paired(self, result):
+        if isinstance(result, UnauthorizedError):
+            self._notify("TV refused. Allow it under External Device Manager → Device Connection Manager.")
+        elif isinstance(result, Exception):
+            self._notify(f"Pairing failed: {result}")
+        else:
+            self._notify("Paired with TV.")
 
     def _discover(self):
         self._notify("Scanning for Roku…")
@@ -93,10 +103,8 @@ class Preferences(Adw.PreferencesDialog):
         self._notify(f"Found Roku at {result}")
 
     def _save(self):
-        self._config.samsung_token = self._token_row.get_text().strip()
-        idx = self._device_row.get_selected()
-        if self._device_ids and idx < len(self._device_ids):
-            self._config.samsung_device_id = self._device_ids[idx]
+        self._config.samsung_ip = self._samsung_ip_row.get_text().strip()
+        self._config.samsung_mac = self._mac_row.get_text().strip()
         self._config.roku_ip = self._ip_row.get_text().strip()
         self._config.save()
         self._notify("Settings saved.")

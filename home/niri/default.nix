@@ -185,6 +185,12 @@ let
     command = "${s.toggleOsk}/bin/toggle-osk";
     update-command = "${s.toggleOsk}/bin/toggle-osk status";
   }
+  ++ lib.optional config.myConfig.hasTouch {
+    label = "󰍹  Desktop Mode";
+    type = "toggle";
+    command = "${s.surfaceMode}/bin/surface-mode toggle";
+    update-command = "${s.surfaceMode}/bin/surface-mode status";
+  }
   ++ [
     {
       label = "󰈐  Power Profile";
@@ -336,8 +342,6 @@ let
   hdmiSink   = "alsa_output.pci-0000_01_00.1.hdmi-stereo";
   spdifSink  = "alsa_output.pci-0000_00_1f.3.iec958-stereo";
 
-  sessionActions = import ./session-actions.nix { inherit pkgs lib config; };
-
   # Mod+B / surface MouseMiddle / TV hamburger — toggles swaync's control
   # center. (The waybar stats sidebar it used to sit beside is gone; the eww
   # status window replaces it.)
@@ -366,6 +370,8 @@ let
       mapfile -t lines < "$snark_file"
       [[ ''${#lines[@]} -gt 0 ]] || return 1
       local line="''${lines[RANDOM % ''${#lines[@]}]}"
+      # `snark off` creates this file (see waybar-lib.sh snark_quiet)
+      [[ -e "''${XDG_STATE_HOME:-$HOME/.local/state}/snark-off" ]] && line=""
       local content
       content="$(cat "$conf")" || return 1
       content="''${content//@@SNARK@@/$line}"
@@ -420,6 +426,7 @@ let
       ghostty        = pkgs.writeText "ghostty-config-${slug}"          (mkGhosttyConfig { p = t.palette; });
       ghosttyCss     = pkgs.writeText "ghostty-gtk-${slug}.css"         (mkGhosttyCss    { p = t.palette; });
       tmuxTheme      = pkgs.writeText "tmux-theme-${slug}.conf"         (import ../tmux/theme.nix { p = t.palette; });
+      digikamColors  = pkgs.writeText "digikam-${slug}.colors"          (import ../digikam/colors.nix { p = t.palette; });
       hyprlockConf   = pkgs.writeText "hyprlock-${slug}.conf"           (mkHyprlock      { p = t.palette; inherit l config lib; });
       firefoxCss     = pkgs.writeText "firefox-chrome-${slug}.css"      (import ../firefox/userChrome.css.nix  t.palette);
       userContentCss = pkgs.writeText "firefox-content-${slug}.css"     (import ../firefox/userContent.css.nix t.palette);
@@ -479,6 +486,7 @@ let
       ghostty            = copy ".config/ghostty/config";
       ghosttyCss         = copy ".config/ghostty/ghostty.css";
       tmuxTheme          = copy ".config/tmux/theme.conf";
+      digikamColors      = copy ".local/share/digikam/colorschemes/drmis.colors";
       hyprlockConf       = copy ".config/hypr/hyprlock.conf";
       fastfetchLogo      = link ".local/share/fastfetch/logo.png";
       nixMark            = link ".local/state/nix-mark-img";
@@ -613,7 +621,7 @@ in
   };
 
   home.packages = [
-    pkgs.swaybg s.toggleDisplayMode drmis s.mprisWatch s.toggleOsk s.launcher
+    pkgs.swaybg s.toggleDisplayMode s.surfaceMode drmis s.mprisWatch s.toggleOsk s.launcher
     pkgs.satty pkgs.losslesscut-bin s.shootAnnotate s.screenRecordToggle
   ];
 

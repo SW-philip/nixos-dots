@@ -4,10 +4,21 @@
 
 SNARK_FILE="${SNARK_FILE:-$HOME/.config/waybar/snark.json}"
 
+# `snark off` creates this file; every snark consumer checks it per pick.
+snark_quiet() { [[ -e "${XDG_STATE_HOME:-$HOME/.local/state}/snark-off" ]]; }
+
+# waybar_unsnark <tooltip> — in quiet mode, drop the trailing rule + snark line.
+waybar_unsnark() {
+  local t="$1"
+  if snark_quiet; then t=${t%$'\n'*}; t=${t%$'\n'*}; fi
+  printf '%s' "$t"
+}
+
 # waybar_snark <category> <bucket> [fallback] — random line from
-# snark.json[category][bucket], else the fallback.
+# snark.json[category][bucket], else the fallback. Empty when quiet.
 waybar_snark() {
   local category="$1" bucket="$2" fallback="${3:-}" s
+  snark_quiet && return 0
   if [[ -f "$SNARK_FILE" ]] && command -v jq >/dev/null; then
     s=$(jq -r ".${category}.${bucket}[]?" "$SNARK_FILE" 2>/dev/null | shuf -n1 || true)
     if [[ -n "$s" && "$s" != "null" ]]; then

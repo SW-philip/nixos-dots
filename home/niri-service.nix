@@ -4,7 +4,7 @@
 # whole session unless the unit is also ordered After= and tied PartOf= it.
 # Usage: Unit = config.lib.niri.unit { wayland = true; } { Description = "..."; };
 # After = [...] adds ordering deps. wayland = true also requires WAYLAND_DISPLAY (units that talk to the compositor).
-{ lib, ... }:
+{ lib, pkgs, ... }:
 {
   # An After in attrs is appended to graphical-session.target, not a replacement.
   config.lib.niri.unit = { wayland ? false }: attrs: {
@@ -13,4 +13,12 @@
   } // attrs // {
     After = [ "graphical-session.target" ] ++ (attrs.After or [ ]);
   };
+
+  # ExecStopPost for daemons whose Restart= hides crashes (eww, waybar).
+  # SERVICE_RESULT is "success" for a requested stop (nrs, systemctl restart),
+  # so only real deaths toast.
+  config.lib.niri.crashToast = name: pkgs.writeShellScript "crash-toast-${name}" ''
+    [ "$SERVICE_RESULT" = success ] && exit 0
+    ${pkgs.libnotify}/bin/notify-send -u critical -a ${name} "${name} crashed" "$SERVICE_RESULT (exit ''${EXIT_STATUS:-?}); systemd is restarting it"
+  '';
 }

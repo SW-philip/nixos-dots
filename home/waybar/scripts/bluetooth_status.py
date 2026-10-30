@@ -73,18 +73,23 @@ def esc(v) -> str:
     return html.escape(str(v), quote=False)
 
 
+def snark_quiet() -> bool:
+    """`snark off` creates this file; mirrors snark_quiet in waybar-lib.sh."""
+    state = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
+    return os.path.exists(os.path.join(state, "snark-off"))
+
 def render(powered: bool, dev: tuple[str, str] | None, info: dict, p: dict, snark) -> dict:
     """Pure: palette + state in, waybar frame out. `snark(bucket)` supplies the quip."""
     sm = lambda t: f"<span foreground='{p['REST']}' size='small'>{t}</span>"  # noqa: E731
     rule = f"<span foreground='{p['REST']}'>{RULE}</span>"
     if not powered:
-        return {"text": ICON_OFF, "class": "off", "tooltip":
-                f"Bluetooth <span foreground='{p['REST']}'>off</span>\n{rule}\n"
-                f"<span foreground='{p['ROOT']}'>{esc(snark('off'))}</span>"}
+        head = f"Bluetooth <span foreground='{p['REST']}'>off</span>"
+        tail = "" if snark_quiet() else f"\n{rule}\n<span foreground='{p['ROOT']}'>{esc(snark('off'))}</span>"
+        return {"text": ICON_OFF, "class": "off", "tooltip": head + tail}
     if dev is None:
-        return {"text": ICON_ON, "class": "idle", "tooltip":
-                f"Bluetooth <span foreground='{p['REST']}'>on</span> · no device\n{rule}\n"
-                f"<span foreground='{p['ROOT']}'>{esc(snark('idle'))}</span>"}
+        head = f"Bluetooth <span foreground='{p['REST']}'>on</span> · no device"
+        tail = "" if snark_quiet() else f"\n{rule}\n<span foreground='{p['ROOT']}'>{esc(snark('idle'))}</span>"
+        return {"text": ICON_ON, "class": "idle", "tooltip": head + tail}
     dtype = info.get("type") or ""
     battery = "" if info.get("battery") is None else str(info["battery"])
     charging = info.get("charging") is True or info.get("charging") == "true"
@@ -110,6 +115,8 @@ class Source:
         self._bucket, self._line = "", ""
 
     def snark(self, bucket: str) -> str:
+        if snark_quiet():
+            return ""
         if bucket != self._bucket:  # re-roll on state change only
             self._bucket = bucket
             try:

@@ -1,6 +1,6 @@
 { inputs, pkgs, lib, config, ... }:
 let
-  pythonEnv = pkgs.python312.withPackages (ps: with ps; [
+  pythonEnv = pkgs.python3.withPackages (ps: with ps; [
     pygobject3 textual rich pystray pillow pydbus cairosvg
     requests watchdog python-dateutil
     loguru platformdirs attrs typing-extensions
@@ -385,6 +385,7 @@ in
       gf = "git fetch";
       gp = "git push";
       ship = "~/nixos/scripts/ship.sh";
+      secrets = "~/nixos/scripts/secrets.py";
       gl = "git pull";
       gd = "git diff";
       gfa = "git fetch --all --prune";
@@ -411,10 +412,12 @@ in
     # compaudit stats every dir in $fpath on every startup (Nix profiles inflate
     # $fpath heavily); that alone was ~40% of shell startup time (measured via
     # zprof). Skip it, and the dump rebuild, unless the dump is over a day old.
+    # The touch matters: a full compinit finding a valid dump leaves its mtime
+    # alone, so without it every shell after day one takes the slow path again.
     completionInit = ''
       autoload -Uz compinit
       _zcd=(''${HOME}/.zcompdump(N.mh-24))
-      if (( ''${#_zcd} )); then compinit -C; else compinit; fi
+      if (( ''${#_zcd} )); then compinit -C; else compinit; touch ''${HOME}/.zcompdump; fi
       unset _zcd
     '';
 
@@ -429,6 +432,16 @@ in
     # p10k instant prompt only works if this is the first thing .zshrc does —
     # sourced after the plugins it just writes a cache file nothing reads.
     initContent = lib.mkMerge [
+      # Plain `sops` uses the passphrase-encrypted editor key (scripts/sops-editor-key.sh), so no
+      # host key sits in ~. Not SOPS_AGE_KEY_CMD: sops reruns that once per recipient it tries,
+      # i.e. a passphrase prompt per recipient. The key reaches only this one sops process.
+      (lib.mkAfter ''
+        sops() {
+          local key
+          key=$(${pkgs.age}/bin/age -d "$HOME/.config/sops/age/editor.age") || return
+          SOPS_AGE_KEY=$key command sops "$@"
+        }
+      '')
       (lib.mkOrder 0 ''
         if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
           source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
@@ -595,8 +608,8 @@ in
         }
         {
           timeout = 600;
-          on-timeout = "niri msg action power-off-monitors 2>/dev/null; hyprctl dispatch dpms off 2>/dev/null; true";
-          on-resume = "niri msg action power-on-monitors 2>/dev/null; hyprctl dispatch dpms on 2>/dev/null; true";
+          on-timeout = "niri msg action power-off-monitors 2>/dev/null; true";
+          on-resume = "niri msg action power-on-monitors 2>/dev/null; true";
         }
       ] ++ lib.optional (!config.myConfig.isDesktop) {
         # 10 min after the 8-min lock: end the niri session, dropping back to

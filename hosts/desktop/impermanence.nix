@@ -1,5 +1,8 @@
 { ... }:
 {
+  imports = [ ../../modules/root-rollback.nix ];
+  rootRollback.device = "/dev/mapper/luks-d8543351-206f-4b3e-884f-9d0ea8c2eebd";
+
   environment.persistence."/persist" = {
     hideMounts = true;
 
@@ -31,6 +34,8 @@
       "/var/cache/jellyfin"
       "/var/cache/tuigreet"
       "/var/log"
+      # State file for services.logrotate.extraArgs below.
+      "/var/lib/logrotate"
       # `sudo nixos-rebuild --target-host` ssh's as root.
       { directory = "/root/.ssh"; mode = "0700"; }
     ];
@@ -41,6 +46,19 @@
       "/var/lib/systemd/credential.secret"
     ];
   };
+
+  # Without its state file logrotate restarts every log's rotation clock at each
+  # boot. It can't be a persisted file: logrotate renames a temp file over it,
+  # which fails with EBUSY on a bind mount, so it lives in a persisted directory.
+  services.logrotate.extraArgs = [ "-s" "/var/lib/logrotate/status" ];
+
+  # Jellyfin writes ~100G of transcode segments a day and deletes them; as plain
+  # /persist content the hourly btrbk snapshots pinned every one for days. A
+  # nested subvolume is left out of snapshots. `v` only creates it when the path
+  # is missing, so an existing plain directory must be removed by hand first.
+  systemd.tmpfiles.rules = [
+    "v /persist/var/cache/jellyfin/transcodes 0750 jellyfin jellyfin -"
+  ];
 
   environment.etc."machine-id" = {
     text = "35872b60dbfe485ca1505bc546c91848\n";

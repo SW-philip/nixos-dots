@@ -1,7 +1,4 @@
 {pkgs, lib, ...}:
-let
-  sandbox = import ../../lib/sandbox.nix;
-in
 {
   services.fwupd.enable = true;
 

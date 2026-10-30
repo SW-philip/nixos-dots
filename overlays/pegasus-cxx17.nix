@@ -4,7 +4,7 @@
 # need it so the 26.05 (GCC 15) surface build keeps its cached output.
 # drop when: pegasus-frontend builds under GCC 16 without the flag.
 { ... }:
-final: prev: {
+_final: prev: {
   pegasus-frontend = if prev.lib.versionAtLeast prev.stdenv.cc.version "16"
     then prev.pegasus-frontend.overrideAttrs (old: {
       cmakeFlags = (old.cmakeFlags or [ ]) ++ [ "-DCMAKE_CXX_STANDARD=17" ];

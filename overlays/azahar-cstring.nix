@@ -7,7 +7,7 @@
 # include; only stable's 2125.x needs the patch.
 # drop when: stable's azahar includes <cstring> itself in those two files.
 { ... }:
-final: prev: {
+_final: prev: {
   azahar = if prev.lib.versionAtLeast prev.lib.version "26.10" then prev.azahar
   else prev.azahar.overrideAttrs (old: {
     postPatch = (old.postPatch or "") + ''

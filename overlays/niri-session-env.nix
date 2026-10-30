@@ -8,7 +8,7 @@
 # XDG_SESSION_CLASS (greetd never sets it). So they're excluded here.
 # drop when: niri-session stops using import-all (or systemd stops warning).
 { ... }:
-final: prev: {
+_final: prev: {
   niri = prev.niri.overrideAttrs (old: {
     postInstall = (old.postInstall or "") + ''
       substituteInPlace $out/bin/niri-session \

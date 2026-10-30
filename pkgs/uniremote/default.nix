@@ -18,6 +18,7 @@ python3Packages.buildPythonApplication {
   propagatedBuildInputs = with python3Packages; [
     pygobject3
     requests
+    samsungtvws
   ];
 
   buildInputs = [ gtk4 libadwaita adwaita-icon-theme ];

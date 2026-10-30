@@ -43,6 +43,25 @@ Desktop and Surface use [Lix](https://lix.systems), lanzaboote secure boot, LUKS
 - **A locked-down kid account** with its own touch-friendly dashboard.
 - **Small scripts** for Bluetooth battery levels, notifications, backups and recovery, in `scripts/` and `home/*.nix`.
 
+## First ten keys
+
+`Mod` is the Super key. `Mod+Slash` shows the full list.
+
+| keys | does |
+|---|---|
+| `Mod+Return` | terminal |
+| `Mod+Space` | launcher |
+| `Mod+S` | settings: network, Bluetooth, audio, display |
+| `Mod+O` | overview of every workspace |
+| `Mod+Slash` | the hotkey list |
+| `Mod+Q` | close the window |
+| `Mod+H` / `Mod+L` | focus the column to the left / right (arrows work too) |
+| `Mod+1`..`5` | workspace (add `Shift` to send the window there) |
+| `Mod+Ctrl+Shift+,` / `.` | previous / next theme |
+| `Mod+Escape` | lock |
+
+Two things don't have a key. The **ledger** is the bar of chips along the top edge (Launcher, Settings, Logout); hover the edge to open it. The **wing** is the side panel; hover the left or right edge. `Mod+Ctrl+arrows` hops them between monitors. `commands` prints every tool this repo installs, with a line each.
+
 ## Tablet mode
 
 ![tablet mode](assets/recordings/tablet-mode.webp)
@@ -77,7 +96,7 @@ Good places to start:
 - `home/emulation/`: shared emulator setup
 - `hosts/retro/kiosk.nix`: the Moonlight kiosk
 
-Before building anything:
+Before building anything, run `scripts/doctor.sh`. It lists the placeholders below that are still unreplaced and exits non-zero until they're gone.
 
 - `secrets/*.yaml` are placeholders with my key names and no real values. Make your own age keys, put them in `.sops.yaml` and re-encrypt, or anything that reads a secret will fail.
 - Search for `AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY`, `example.ts.net` and the `00:00:00:00:00:0x` Bluetooth addresses. Those were scrubbed from my real values.

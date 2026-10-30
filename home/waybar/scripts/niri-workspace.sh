@@ -20,6 +20,10 @@ if [ -n "${NIRI_WS_SNARK_FILE:-}" ] && [ -r "${NIRI_WS_SNARK_FILE}" ] \
    && jq -e . "${NIRI_WS_SNARK_FILE}" >/dev/null 2>&1; then
   SNARK_JSON=$(cat "${NIRI_WS_SNARK_FILE}")
 fi
+# `snark off` creates this file (see waybar-lib.sh snark_quiet)
+if [ -e "${XDG_STATE_HOME:-$HOME/.local/state}/snark-off" ]; then
+  SNARK_JSON='{}'
+fi
 
 # Pure. $1 = `niri msg --json workspaces` payload, $2 = output name.
 # Prints one waybar JSON line for that output's active workspace.

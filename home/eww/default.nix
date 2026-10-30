@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, osConfig, pkgs, lib, ... }:
 
 let
   isDesktop = config.myConfig.isDesktop;
@@ -65,6 +65,7 @@ let
     export PATH="${tabletPath}:/run/current-system/sw/bin"
     export TABLET_EWW=${pkgs.eww}/bin/eww
     export TABLET_TOGGLE_OSK=${nirScripts.toggleOsk}/bin/toggle-osk
+    export TABLET_SURFACE_MODE=${nirScripts.surfaceMode}/bin/surface-mode
     export TABLET_SQLCH_STEP=${tabletSqlchStep}
     export TABLET_LAUNCHER=${nirScripts.launcher}/bin/launcher
     exec ${pkgs.bash}/bin/bash ${./scripts/tablet-act.sh} "$@"
@@ -118,6 +119,7 @@ let
       --replace-fail 'UNIREMOTE_TOGGLE' '${if isDesktop then "true" else sessionActionsForEww.uniremoteToggle}' \
       --replace-fail 'MOONLIGHT_TOGGLE' '${if isDesktop then "true" else sessionActionsForEww.moonlightToggle}' \
       --replace-fail 'LIX_LOGOUT_TOGGLE' '${pkgs.lix-logout}/bin/lix-logout-toggle' \
+      --replace-fail 'SETTINGS_BIN' '${pkgs.util-linux}/bin/setsid -f ${config.home.profileDirectory}/bin/settings' \
       --replace-fail 'NIRI_BIN' '${pkgs.niri}/bin/niri' \
       --replace-fail 'LAUNCHER_BIN' '${nirScripts.launcher}/bin/launcher' \
       --replace-fail 'QUOTE_CACHE_READ' '${quoteCacheRead}' \
@@ -221,7 +223,12 @@ in
       # unreachable (boot before tailscale, away from home) blocks that call
       # ~10 s per mount, stalling the daemon past ExecStartPost's `eww open`
       # until the start timeout kills it and Restart= loops.
-      InaccessiblePaths = [ "-/srv/roms-nfs" "-/srv/game-saves" "-%h/.desktop" ];
+      # Derived from the host's network mounts, never hardcoded: on desktop
+      # /srv/game-saves is a plain dir on the vault, and masking it gave eww a
+      # private namespace that pinned the vault mount after a host-side umount.
+      InaccessiblePaths = lib.mapAttrsToList (p: _: "-${p}")
+        (lib.filterAttrs (_: fs: lib.elem fs.fsType [ "nfs" "nfs4" "cifs" "fuse.sshfs" ])
+          osConfig.fileSystems);
       # The window must be open at daemon start: the revealer inside it (not
       # `eww open`) does the show/hide. Poll for the control socket first —
       # ExecStartPost races the daemon's socket bind and a failed open here
@@ -254,6 +261,7 @@ in
         ${lib.optionalString hasTouch "${nirScripts.tabletShell}/bin/tablet-shell || true"}
       '';
       ExecReload = "${pkgs.eww}/bin/eww reload";
+      ExecStopPost = "${config.lib.niri.crashToast "eww"}";
       Restart = "on-failure";
       RestartSec = "2s";
     };

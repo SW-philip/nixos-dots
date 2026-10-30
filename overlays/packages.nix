@@ -1,6 +1,6 @@
 # Software packaged in this repo (pkgs/).
 { inputs, system }:
-final: prev: {
+_final: prev: {
   sqlch                  = prev.callPackage ../pkgs/sqlch { src = inputs.sqlch; };
   uniremote              = prev.callPackage ../pkgs/uniremote { };
   orch                   = prev.callPackage ../pkgs/orch { };

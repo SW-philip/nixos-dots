@@ -78,7 +78,7 @@
       let lix = inputs.nixpkgs-unstable.legacyPackages.${system}.lixPackageSets.lix_2_96.lix;
       in {
         nix.package = lix;
-        nixpkgs.overlays = [ (final: prev: { inherit lix; nix = lix; }) ];
+        nixpkgs.overlays = [ (_final: _prev: { inherit lix; nix = lix; }) ];
       };
 
     hmPrepkoDesktop = {

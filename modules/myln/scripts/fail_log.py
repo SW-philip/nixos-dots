@@ -246,7 +246,7 @@ def main() -> None:
     p.add_argument("--ext", required=True)
     p.add_argument("--embed-url", default=None)
     p.add_argument("--target", default="nixosConfigurations.desktop")
-    p.add_argument("--git-dir", default="/home/prepko/nixos")
+    p.add_argument("--git-dir", default=str(Path.home() / "nixos"))
 
     # log mode
     p.add_argument("--log", action="store_true")

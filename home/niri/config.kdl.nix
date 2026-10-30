@@ -508,16 +508,17 @@ layer-rule {
 // ── Bindings ──────────────────────────────────────────────
 binds {
     // Apps
-    Mod+Return { spawn "ghostty"; }
-    Mod+Space  { spawn "${launcherBin}"; }
-    Mod+E      { spawn "nemo"; }
-    Mod+V      { spawn "bash" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
-    Mod+B      { spawn "${sidebarToggleBin}"; }
-    ${if hasTouch then ''Mod+Shift+W { spawn "${toggleOskBin}"; }'' else ""}
+    Mod+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
+    Mod+Space  hotkey-overlay-title="Launcher" { spawn "${launcherBin}"; }
+    Mod+E      hotkey-overlay-title="Files" { spawn "nemo"; }
+    Mod+V      hotkey-overlay-title="Clipboard history" { spawn "bash" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
+    Mod+B      hotkey-overlay-title="Toggle sidebar" { spawn "${sidebarToggleBin}"; }
+    Mod+S hotkey-overlay-title="Settings" { spawn "settings"; }
+    ${if hasTouch then ''Mod+Shift+W hotkey-overlay-title="On-screen keyboard" { spawn "${toggleOskBin}"; }'' else ""}
     // Triple-finger tap on the touchpad = middle-click by niri's default
     // tap-button-map (left-right-middle), so this binding doubles as a
     // 3-finger-tap toggle without needing a separate gesture config.
-    ${if hasTouch then ''MouseMiddle { spawn "${sidebarToggleBin}"; }'' else ""}
+    ${if hasTouch then ''MouseMiddle hotkey-overlay-title=null { spawn "${sidebarToggleBin}"; }'' else ""}
 
     // Windows
     Mod+Q { close-window; }
@@ -546,7 +547,7 @@ binds {
 
     // Resize
     Mod+R { switch-preset-column-width; }
-    Mod+Shift+R { spawn "niri" "msg" "action" "load-config-file"; }
+    Mod+Shift+R hotkey-overlay-title="Reload niri config" { spawn "bash" "-c" "niri msg action load-config-file && notify-send -u low niri 'config reloaded'"; }
     Mod+Minus { set-column-width "-5%"; }
     Mod+Equal { set-column-width "+5%"; }
     Mod+Shift+Minus { set-window-height "-5%"; }
@@ -573,49 +574,50 @@ binds {
     Mod+Period { focus-monitor-right; }
     Mod+Shift+Comma  { move-column-to-monitor-left; }
     Mod+Shift+Period { move-column-to-monitor-right; }
-    Mod+Ctrl+Shift+Comma  { spawn "drmis" "prev"; }
-    Mod+Ctrl+Shift+Period { spawn "drmis" "next"; }
-    Mod+Ctrl+Shift+M      { spawn "drmis" "mode" "toggle"; }
-    Mod+Ctrl+D { spawn "kanshictl" "switch" "desktop-dual"; }
-    Mod+Ctrl+S { spawn "kanshictl" "switch" "desktop-single-dp2"; }
+    Mod+Ctrl+Shift+Comma  hotkey-overlay-title="Previous theme" { spawn "drmis" "prev"; }
+    Mod+Ctrl+Shift+Period hotkey-overlay-title="Next theme" { spawn "drmis" "next"; }
+    Mod+Ctrl+Shift+M      hotkey-overlay-title="Toggle light/dark" { spawn "drmis" "mode" "toggle"; }
+    Mod+Ctrl+D hotkey-overlay-title="Monitors: both" { spawn "bash" "-c" "kanshictl switch desktop-dual && notify-send -u low Monitors 'both'"; }
+    Mod+Ctrl+S hotkey-overlay-title="Monitors: DP-2 only" { spawn "bash" "-c" "kanshictl switch desktop-single-dp2 && notify-send -u low Monitors 'DP-2 only'"; }
 
     // Panel edges (wing/ledger eww bars — see home/eww/scripts/panel-edge.sh)
-    Mod+Ctrl+Left  { spawn "eww-panel-step" "wing" "left"; }
-    Mod+Ctrl+Right { spawn "eww-panel-step" "wing" "right"; }
-    Mod+Ctrl+Up    { spawn "eww-panel-step" "ledger" "up"; }
-    Mod+Ctrl+Down  { spawn "eww-panel-step" "ledger" "down"; }
+    // One overlay line covers all four arrows.
+    Mod+Ctrl+Left  hotkey-overlay-title="Hop panels (Mod+Ctrl+arrows)" { spawn "eww-panel-step" "wing" "left"; }
+    Mod+Ctrl+Right hotkey-overlay-title=null { spawn "eww-panel-step" "wing" "right"; }
+    Mod+Ctrl+Up    hotkey-overlay-title=null { spawn "eww-panel-step" "ledger" "up"; }
+    Mod+Ctrl+Down  hotkey-overlay-title=null { spawn "eww-panel-step" "ledger" "down"; }
 
     // Scroll through columns
     Mod+WheelScrollRight cooldown-ms=150 { focus-column-right; }
     Mod+WheelScrollLeft  cooldown-ms=150 { focus-column-left; }
 
     // Media / system
-    XF86AudioRaiseVolume  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"; }
-    XF86AudioLowerVolume  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
-    XF86AudioMute         allow-when-locked=true { spawn "bash" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
-    F6  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"; }
-    F5  allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
-    F4  allow-when-locked=true { spawn "bash" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
-    XF86AudioPlay  { spawn "playerctl" "play-pause"; }
-    XF86AudioNext  { spawn "playerctl" "next"; }
-    XF86AudioPrev  { spawn "playerctl" "previous"; }
-    XF86MonBrightnessUp   { spawn "brightnessctl" "-e4" "-n2%" "set" "+5%"; }
-    XF86MonBrightnessDown { spawn "brightnessctl" "-e4" "-n2%" "set" "5%-"; }
+    XF86AudioRaiseVolume  hotkey-overlay-title=null allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"; }
+    XF86AudioLowerVolume  hotkey-overlay-title=null allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
+    XF86AudioMute         hotkey-overlay-title=null allow-when-locked=true { spawn "bash" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    F6  hotkey-overlay-title=null allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"; }
+    F5  hotkey-overlay-title=null allow-when-locked=true { spawn "bash" "-c" "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
+    F4  hotkey-overlay-title=null allow-when-locked=true { spawn "bash" "-c" "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    XF86AudioPlay  hotkey-overlay-title=null { spawn "playerctl" "play-pause"; }
+    XF86AudioNext  hotkey-overlay-title=null { spawn "playerctl" "next"; }
+    XF86AudioPrev  hotkey-overlay-title=null { spawn "playerctl" "previous"; }
+    XF86MonBrightnessUp   hotkey-overlay-title=null { spawn "brightnessctl" "-e4" "-n2%" "set" "+5%"; }
+    XF86MonBrightnessDown hotkey-overlay-title=null { spawn "brightnessctl" "-e4" "-n2%" "set" "5%-"; }
 
     // Screenshot
     Print { screenshot; }
     Ctrl+Print { screenshot-screen; }
     Alt+Print  { screenshot-window; }
-    Mod+Print  { spawn "shoot-annotate"; }
-    Mod+Shift+Print { spawn "screen-record-toggle"; }
+    Mod+Print  hotkey-overlay-title="Screenshot + annotate" { spawn "shoot-annotate"; }
+    Mod+Shift+Print hotkey-overlay-title="Toggle screen recording" { spawn "screen-record-toggle"; }
 
     // Overview / help
-    Mod+O     { toggle-overview; }
+    Mod+O     hotkey-overlay-title="Overview" { toggle-overview; }
     Mod+Slash { show-hotkey-overlay; }
 
     // Session
-    Mod+Escape { spawn "${lockScreenBin}"; }
+    Mod+Escape hotkey-overlay-title="Lock screen" { spawn "${lockScreenBin}"; }
     Mod+Shift+E { quit; }
-    Mod+Shift+P { power-off-monitors; }
+    Mod+Shift+P hotkey-overlay-title="Monitors off" { power-off-monitors; }
 }
 ''

@@ -1,9 +1,7 @@
 { config, pkgs, lib, ... }:
 
 let
-  sandbox = import ../../lib/sandbox.nix;
   ports = import ../ports.nix;
-  netOnly = [ "AF_INET" "AF_INET6" ];
 in
 {
   ############################################################

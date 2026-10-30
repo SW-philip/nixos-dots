@@ -22,27 +22,6 @@
       # greeter: set default_session.command =
       # "${tuigreetLaunch}" and nrs (or boot the previous generation /
       # Ctrl+Alt+F2 -> tty2 to revert).
-      tuigreetLaunch = pkgs.writeShellScript "tuigreet-launch" ''
-        theme=$(cat /run/tuigreet-theme 2>/dev/null)
-        if [ -z "$theme" ]; then
-          theme="${import ../lib/tuigreet-theme.nix (import ../themes/Dark/indigo-rose/palette-indigo-rose.nix)}"
-        fi
-        exec ${pkgs.tuigreet}/bin/tuigreet \
-          --time \
-          --remember \
-          --remember-session \
-          --greeting "${config.greetd.greeting}" \
-          --asterisks \
-          --asterisks-char "•" \
-          --width 80 \
-          --window-padding 1 \
-          --container-padding 4 \
-          --prompt-padding 1 \
-          --greet-align center \
-          --power-shutdown "systemctl poweroff" \
-          --power-reboot "systemctl reboot" \
-          --theme "$theme"
-      '';
 
       # The Surface panel is HiDPI but the greeter's outputs stay at scale 1 (GDK_SCALE
       # only supersamples, it doesn't enlarge). So pass a real UI multiplier that

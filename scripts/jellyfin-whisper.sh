@@ -37,6 +37,13 @@ has_sidecar() {
   return 1
 }
 
+# Whisper stuck repeating itself: one cue text many times in a row. Real repeats are short
+# ("Pikachu!") or sung (♪); a loop repeats a whole sentence.
+looped() {
+  grep -vE -- '^[0-9]+$|-->|^[[:space:]]*$|^[[:space:]]*♪' "$1" | uniq -c \
+    | awk '{ n = $1; sub(/^ *[0-9]+ /, "") } n >= 20 || (n >= 15 && length($0) > 20) { found = 1 } END { exit !found }'
+}
+
 process() {
   local f=$1 probe audio tag out
   [[ -z ${skip[$f]:-} ]] || return 0
@@ -61,13 +68,16 @@ process() {
   echo "transcribing: $f"
 
   if ! ffmpeg -nostdin -loglevel error -y -i "$f" -map "0:$audio" -ac 1 -ar 16000 -c:a pcm_s16le "$work/audio.wav" \
-     || ! whisper-cli -m "$WHISPER_MODEL" -f "$work/audio.wav" -l en -sns -osrt -of "$work/out" > "$work/log" 2>&1; then
+     || ! whisper-cli -m "$WHISPER_MODEL" -f "$work/audio.wav" -l en -sns -mc 0 -osrt -of "$work/out" > "$work/log" 2>&1; then
     echo "failed: $f" >&2; tail -5 "$work/log" >&2 2>/dev/null || true
     echo "$f" >> "$failed_ledger"; return 0
   fi
 
   if ! grep -q -- '-->' "$work/out.srt"; then
     echo "no speech: $f"; echo "$f" >> "$failed_ledger"; return 0
+  fi
+  if looped "$work/out.srt"; then
+    echo "looped: $f"; echo "$f" >> "$failed_ledger"; return 0
   fi
   out="${f%.*}.en.srt"
   cp -- "$work/out.srt" "$out.part" && mv -- "$out.part" "$out"
@@ -85,4 +95,4 @@ while IFS=$'\t' read -r _ f; do
   process "$f"
 done < <(find "${root_list[@]}" -type f \( -iname '*.mkv' -o -iname '*.mp4' -o -iname '*.m4v' \
            -o -iname '*.avi' -o -iname '*.mov' -o -iname '*.webm' -o -iname '*.ts' \) \
-           -not -path '*/_broken/*' -printf '%T@\t%p\n' 2>/dev/null | sort -rn)
+           -not -path '*/_broken/*' -printf '%T@\t%p\n' 2>/dev/null | sort -rn 2>/dev/null)

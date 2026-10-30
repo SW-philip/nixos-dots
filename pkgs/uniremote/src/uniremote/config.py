@@ -27,8 +27,8 @@ def _write_toml(data: dict) -> str:
 class Config:
     def __init__(self, path: Path = DEFAULT_CONFIG_PATH):
         self.path = Path(path)
-        self.samsung_token = ""
-        self.samsung_device_id = ""
+        self.samsung_ip = ""
+        self.samsung_mac = ""
         self.roku_ip = ""
         self.recent_roku_apps: list[str] = []
         self._load()
@@ -40,15 +40,19 @@ class Config:
             data = tomllib.load(f)
         samsung = data.get("samsung", {})
         roku = data.get("roku", {})
-        self.samsung_token = samsung.get("token", "")
-        self.samsung_device_id = samsung.get("device_id", "")
+        self.samsung_ip = samsung.get("ip", "")
+        self.samsung_mac = samsung.get("mac", "")
         self.roku_ip = roku.get("ip", "")
         self.recent_roku_apps = [str(a) for a in roku.get("recent", [])]
+
+    @property
+    def samsung_token_file(self) -> Path:
+        return self.path.parent / "samsung-token"
 
     def save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         data = {
-            "samsung": {"token": self.samsung_token, "device_id": self.samsung_device_id},
+            "samsung": {"ip": self.samsung_ip, "mac": self.samsung_mac},
             "roku": {"ip": self.roku_ip, "recent": self.recent_roku_apps},
         }
         self.path.write_text(_write_toml(data))

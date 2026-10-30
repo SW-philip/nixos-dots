@@ -25,7 +25,6 @@ in
 
   boot.extraModprobeConfig = ''
     options snd_hda_intel power_save=1 power_save_controller=Y
-    options snd_sof_intel_hda_common hda_model=dell-headset-multi
     # Intel BT L2CAP ERTM handling drops DS4/DS3 controllers seconds after
     # connect ("Connection terminated by remote user" loop in bluetoothctl).
     options bluetooth disable_ertm=1

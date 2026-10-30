@@ -104,9 +104,9 @@ elif [[ "$worst" != ok ]]; then class=$worst; bucket=behind
 else class=ok; bucket=ok; fi
 
 rule=$(col "$DIM" "────────────────────")
-tip+="$rule"$'\n'
+if ! snark_quiet || (( stale )); then tip+="$rule"$'\n'; fi
 if (( stale )); then tip+="$(col "$DIM" "snapshot $(age $((NOW - gen))) old")"$'\n'; fi
-tip+="$(col "$ACCENT" "$(waybar_snark fleet "$bucket" "the fleet has no comment.")")"
+if snark_quiet; then tip=${tip%$'\n'}; else tip+="$(col "$ACCENT" "$(waybar_snark fleet "$bucket" "the fleet has no comment.")")"; fi
 
 text=$IDLE
 if (( bad_n > 0 )); then text="$GLYPH $bad_n"; fi

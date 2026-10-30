@@ -9,6 +9,9 @@ last_file="$state_dir/eww-snark.last"
 
 emit_fallback() { printf '%s\n' '{"line":"Words fail. So does the snark file."}'; exit 0; }
 
+# `snark off` creates this file (see waybar-lib.sh snark_quiet)
+if [[ -e "${XDG_STATE_HOME:-$HOME/.local/state}/snark-off" ]]; then echo '{"line":""}'; exit 0; fi
+
 [[ -r "$pool" ]] || emit_fallback
 jq -e . "$pool" >/dev/null 2>&1 || emit_fallback
 

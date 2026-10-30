@@ -10,7 +10,7 @@ from gi.repository import Gtk, Gio, GLib, Adw, Gdk
 
 import requests
 from uniremote import __version__
-from uniremote.api import RokuAPI, SmartThingsAPI
+from uniremote.api import RokuAPI, SamsungAPI
 from uniremote.config import Config
 from uniremote.header import Header
 from uniremote.recenter import center_own_window
@@ -23,6 +23,17 @@ from uniremote.preferences import Preferences
 APP_ID = "com.prepko.uniremote"
 POLL_SECONDS = 5
 config = Config()
+_samsung: SamsungAPI | None = None
+
+
+def samsung_api() -> SamsungAPI | None:
+    """One client per IP, so key presses reuse the open socket."""
+    global _samsung
+    if not config.samsung_ip:
+        return None
+    if _samsung is None or _samsung.ip != config.samsung_ip:
+        _samsung = SamsungAPI(config.samsung_ip, config.samsung_token_file)
+    return _samsung
 
 
 def run_async(fn, *args, callback=None):
@@ -93,7 +104,7 @@ class UniremoteApp(Adw.Application):
             version=__version__,
             developer_name="prepko",
             website="https://github.com/SW-philip/nixos",
-            comments="A GTK4 remote for Samsung SmartThings TVs and Roku devices.",
+            comments="A GTK4 remote for Samsung TVs and Roku devices, over the LAN.",
         ).present(self._win)
 
 
@@ -102,7 +113,6 @@ class MainWindow(Adw.ApplicationWindow):
         super().__init__(title="Uniremote",
                          default_width=320, default_height=680, **kwargs)
         notify = self.get_application().notify
-        self._labels: dict[str, str] = {}
         self._poll_seq = 0
         self._applied_seq = 0
 
@@ -114,7 +124,7 @@ class MainWindow(Adw.ApplicationWindow):
             run_async(fn, *args, callback=done)
 
         self._stack = Adw.ViewStack()
-        self._stack.add_titled(SamsungView(config, run_and_poll, notify), "samsung", "Samsung")
+        self._stack.add_titled(SamsungView(config, samsung_api, run_and_poll, notify), "samsung", "Samsung")
         self._stack.add_titled(RokuView(config, run_and_poll, notify), "roku", "Roku")
 
         menu = Gio.Menu()
@@ -160,18 +170,24 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _fetch(self, name: str) -> DeviceStatus:
         if name == "samsung":
-            if not (config.samsung_token and config.samsung_device_id):
+            api = samsung_api()
+            if api is None:
                 return DeviceStatus("Samsung TV", NOT_SET_UP, False)
-            api = SmartThingsAPI(config.samsung_token, config.samsung_device_id)
-            if config.samsung_device_id not in self._labels:
+            if not config.samsung_mac:
                 try:
-                    self._labels[config.samsung_device_id] = api.label() or ""
-                except requests.RequestException:
-                    pass
-            return samsung_status(api, self._labels.get(config.samsung_device_id, ""))
+                    mac = api.device_info().get("wifiMac", "")
+                except (requests.RequestException, ValueError):
+                    mac = ""
+                if mac:
+                    GLib.idle_add(self._learn_mac, mac)
+            return samsung_status(api)
         if not config.roku_ip:
             return DeviceStatus("Roku", NOT_SET_UP, False)
         return roku_status(RokuAPI(config.roku_ip))
+
+    def _learn_mac(self, mac: str):
+        config.samsung_mac = mac
+        config.save()
 
     def _on_status(self, name: str, result, seq: int):
         if name != self._stack.get_visible_child_name():
@@ -182,7 +198,7 @@ class MainWindow(Adw.ApplicationWindow):
         if isinstance(result, Exception):
             result = DeviceStatus(name.title(), "", False)
         self._header.set_device(result)
-        self._stack.get_child_by_name(name).set_sensitive(result.online)
+        self._stack.get_child_by_name(name).set_online(result.online)
 
     def _watch_tablet(self):
         path = cover_path()

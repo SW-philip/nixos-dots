@@ -54,6 +54,7 @@ case "${1:-}" in
     else
       systemctl --user start niri-rotation.service
     fi ;;
+  desktop) "${TABLET_SURFACE_MODE:-surface-mode}" desktop ;;
   dnd)    swaync-client -d >/dev/null ;;
   notif)  "$EWW" close tablet-sheet >/dev/null 2>&1; swaync-client -t >/dev/null ;;
   profile)

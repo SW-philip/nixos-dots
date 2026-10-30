@@ -10,9 +10,20 @@ let
   # Dropping to DP-2 alone *before* capture starts, and back after, makes DP-2
   # the captured monitor and keeps the mode from changing under it.
   kanshictl = "${pkgs.kanshi}/bin/kanshictl";
+  # The flag lets `settings` hide monitor switching mid-stream. Path must match
+  # STREAM_FLAG in scripts/settings/display.sh. Sunshine is a user service, so
+  # XDG_RUNTIME_DIR is set.
+  streamBegin = pkgs.writeShellScript "stream-begin" ''
+    touch "$XDG_RUNTIME_DIR/sunshine-streaming"
+    exec ${kanshictl} switch desktop-stream
+  '';
+  streamEnd = pkgs.writeShellScript "stream-end" ''
+    rm -f "$XDG_RUNTIME_DIR/sunshine-streaming"
+    exec ${kanshictl} switch desktop-dual
+  '';
   soloWhileStreaming = [{
-    do = "${kanshictl} switch desktop-stream";
-    undo = "${kanshictl} switch desktop-dual";
+    do = "${streamBegin}";
+    undo = "${streamEnd}";
   }];
 in
 {

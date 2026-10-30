@@ -177,14 +177,12 @@ do_tpm2() {
   for uuid in "${!LUKS_DESCS[@]}"; do
     local dev="/dev/disk/by-uuid/${uuid}"
     local desc="${LUKS_DESCS[$uuid]}"
-    local mapper_name
 
     if [[ ! -e "$dev" ]]; then
       warn "Device not found (skipping): $dev ($desc)"
       continue
     fi
 
-    mapper_name=$(cryptsetup status 2>/dev/null | grep "^/dev/mapper" | head -1 || true)
     info "LUKS device: $dev"
     echo "  Description : $desc"
     echo "  UUID        : $uuid"

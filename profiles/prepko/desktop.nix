@@ -22,14 +22,21 @@
     ../../home/quivr.nix
     ../../home/go-librespot.nix
     ../../home/on.nix
+    ../../home/settings.nix
+    ../../home/commands.nix
+    ../../home/snark.nix
     ../../home/tunnel.nix
+    ../../home/dnslog.nix
     ../../home/polkit-agent.nix
     ../../home/shared-apps
     ../../home/pegasus
     ../../home/bluetooth-idle-notify.nix
+    ../../home/archive.nix
   ];
 
   home.pointerCursor.size = lib.mkForce 24;
+
+  goodnight.deploy.enable = true;
 
   ########################################
   # Fix nrs alias — hostname SWphil != flake attr desktop.

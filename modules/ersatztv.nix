@@ -174,6 +174,18 @@ in
     ];
   };
 
+  # /srv is a nofail mount, so nothing orders the container after it; started
+  # first, podman binds the empty mountpoint and ErsatzTV scans an empty library
+  systemd.services.podman-ersatztv.unitConfig.RequiresMountsFor = [ "/srv/Videos" ];
+
+  # Off the boot transaction: WantedBy=multi-user.target made graphical.target
+  # wait on the HDD mount plus container init, and nothing needs it at login.
+  virtualisation.oci-containers.containers.ersatztv.autoStart = false;
+  systemd.timers.podman-ersatztv = {
+    wantedBy = [ "timers.target" ];
+    timerConfig.OnBootSec = "30s";
+  };
+
   # Channel logos, served for each channel's External Logo URL:
   # http://localhost:<ersatztv-logos>/<number>.png (1–10 are drawn: src/*.svg,
   # Nunito Black, rendered with rsvg-convert). Uploaded logos live in
@@ -190,6 +202,26 @@ in
       ExecStart = "${pkgs.python3}/bin/python3 -m http.server ${toString ports.ersatztv-logos} --bind 127.0.0.1 --directory ${logos}";
       DynamicUser = true;
       Restart = "on-failure";
+      CapabilityBoundingSet = "";
+      PrivateDevices = true;
+      ProtectHome = true;
+      ProtectClock = true;
+      ProtectHostname = true;
+      ProtectKernelLogs = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      ProtectControlGroups = true;
+      ProtectProc = "invisible";
+      ProcSubset = "pid";
+      RestrictAddressFamilies = [ "AF_INET" "AF_INET6" ];
+      RestrictNamespaces = true;
+      RestrictRealtime = true;
+      LockPersonality = true;
+      SystemCallArchitectures = "native";
+      SystemCallFilter = [ "@system-service" "~@privileged @resources" ];
+      IPAddressAllow = "localhost";
+      IPAddressDeny = "any";
+      UMask = "0077";
     };
   };
 

@@ -26,14 +26,18 @@ in
 
   # A deploy changes this unit (the revision is a restart trigger), so switch-to-configuration
   # restarts it and it pokes a fresh sample; a RemainAfterExit unit is what makes switch restart it.
+  # At boot the timer's OnBootSec takes the first sample, so skip here or it runs twice, once mid-boot.
   systemd.services.nixfetch-sample-activation = {
     description = "Refresh nixfetch's host.json after a deploy";
     wantedBy = [ "multi-user.target" ];
     restartTriggers = [ (toString config.system.configurationRevision) ];
+    path = [ config.systemd.package ];
+    script = ''
+      [ "$(systemctl is-system-running)" = starting ] || systemctl start --no-block nixfetch-sample.service
+    '';
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStart = "${config.systemd.package}/bin/systemctl start --no-block nixfetch-sample.service";
     };
   };
 }

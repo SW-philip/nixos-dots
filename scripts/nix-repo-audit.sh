@@ -157,7 +157,6 @@ fi
 section "5. git history (this is the one that bites)"
 
 # search all of history for the hard patterns
-hist_hits=0
 for pat in "${HARD_PATTERNS[@]}"; do
   matches=$(git log -p --all -S "$(echo "$pat" | sed 's/[].*+?()|\\^$[]/_/g; s/_\{2,\}/_/g; s/_/./g')" 2>/dev/null \
     | grep -E "$pat" | head -3 || true)

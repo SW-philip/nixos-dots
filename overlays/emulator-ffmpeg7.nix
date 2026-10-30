@@ -8,7 +8,7 @@
 # uses avcodec_get_supported_config; only stable's rpcs3 still needs the pin.
 # drop when: pcsx2 builds against ffmpeg 8 (and stable's rpcs3 is bumped).
 { ... }:
-final: prev: {
+_final: prev: {
   pcsx2 = prev.pcsx2.override { ffmpeg_8 = prev.ffmpeg_7; };
   rpcs3 =
     if prev.lib.versionAtLeast prev.lib.version "26.10" then prev.rpcs3

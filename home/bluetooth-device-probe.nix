@@ -4,7 +4,7 @@ let
 
   probeScript = pkgs.writeShellApplication {
     name = "bluetooth-device-probe";
-    runtimeInputs = [ pkgs.glib pkgs.bluez pkgs.coreutils pkgs.gnugrep ];
+    runtimeInputs = [ pkgs.glib pkgs.bluez pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.libnotify ];
     text = ''
       export PATH="${scriptsDir}:$PATH"
 
@@ -27,6 +27,36 @@ let
               bt-device-probe.sh refresh-battery "$mac" &
             done ; } || true
 
+      # BlueZ only reports a nearby paired device (RSSI) while discovering, and
+      # nothing else keeps discovery on. A short scan every couple of minutes
+      # is enough to see a device come into range without draining the tablet.
+      { while :; do
+          bluetoothctl --timeout 10 scan on >/dev/null 2>&1 || true
+          sleep 110
+        done ; } &
+
+      # "<name> is in range. Connect?" toast, once per device per cooldown. The
+      # Ember mug is excluded: its own poller connects and caches its state.
+      inrange_dir="''${XDG_RUNTIME_DIR:-/tmp}/bt-inrange"
+      mkdir -p "$inrange_dir"
+      announce_in_range() {
+        local mac=$1 info name last now
+        info=$(bluetoothctl info "$mac" 2>/dev/null) || return 0
+        grep -q 'Paired: yes' <<<"$info" || return 0
+        grep -q 'Connected: yes' <<<"$info" && return 0
+        name=$(sed -n 's/^[[:space:]]*Name: //p' <<<"$info" | head -n1)
+        [[ -n "$name" && "$name" != *Mug* && "$name" != *Ember* ]] || return 0
+        now=$(date +%s)
+        last=$(cat "$inrange_dir/$mac" 2>/dev/null || echo 0)
+        (( now - last > 1800 )) || return 0
+        echo "$now" > "$inrange_dir/$mac"
+        choice=$(timeout 60 notify-send -a bluetooth -A connect=Connect \
+          "$name is in range" "Connect?" 2>/dev/null) || true
+        if [[ "$choice" == connect ]]; then
+          bluetoothctl connect "$mac" >/dev/null 2>&1 || true
+        fi
+      }
+
       # Event source is `gdbus monitor` on org.bluez, NOT a long-lived bare
       # `bluetoothctl` REPL. With
       # BLE discovery running in the session -- blueman-applet keeps the adapter
@@ -48,6 +78,11 @@ let
                 "${scriptsDir}/bt-device-fields-menu.sh" "$mac"
               fi
             ) &
+            ;;
+          *dev_*"'org.bluez.Device1'"*"'RSSI'"*)
+            mac=$(mac_from_line "$line")
+            [[ "$mac" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] || continue
+            announce_in_range "$mac" &
             ;;
           # bluez restores a stale cached Battery1.Percentage on connect and
           # only updates it when the device pushes a GATT battery notification

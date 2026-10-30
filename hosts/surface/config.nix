@@ -145,6 +145,15 @@ in
     "monitor.bluez.properties"."bluez5.roles" = [ "a2dp_source" "hsp_hs" "hfp_hf" ];
   };
 
+  # Built-in analog sinks sit near priority.session 1000; any connected
+  # Bluetooth output outranks them so it becomes the default on connect.
+  services.pipewire.wireplumber.extraConfig."98-bt-priority" = {
+    "monitor.bluez.rules" = [{
+      matches = [{ "node.name" = "~bluez_output.*"; }];
+      actions.update-props."priority.session" = 3000;
+    }];
+  };
+
   ############################################################
   # Retro — /srv/roms itself stays a small LOCAL tree, not the NFS mount
   # directly. Each metadata.pegasus.txt has to resolve on the host reading

@@ -14,8 +14,10 @@ let
   # differing snapshot_preserve values would delete each other's snapshots.
   common = {
     timestamp_format = "long";
-    snapshot_preserve_min = "2d";
-    snapshot_preserve = "24h 7d";
+    # Local snapshots are only for quick undo; history lives on the backup disk.
+    # Every snapshot pins whatever was deleted after it, so keep few.
+    snapshot_preserve_min = "latest";
+    snapshot_preserve = "24h";
     target_preserve_min = "7d";
     target_preserve = "14d 8w 6m";
     snapshot_dir = ".snapshots";

@@ -10,6 +10,10 @@
   boot.initrd.systemd.enable = true;
   boot.initrd.kernelModules = [ "i915" ];
 
+  # INT347E (IR camera) never answers on I2C (-121 at probe) and nothing
+  # consumes the IR stream; the RGB sensors ov5693/ov8865 are unaffected.
+  boot.blacklistedKernelModules = [ "ov7251" ];
+
   boot.kernelParams = lib.mkAfter [
     "quiet" "loglevel=0"
     "rd.systemd.show_status=false"

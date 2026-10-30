@@ -11,7 +11,7 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin" "$TMP/fx"
 
 # Every stub logs its argv; query commands also print $FX/<name> if present.
-for t in wpctl brightnessctl nmcli bluetoothctl swaync-client powerprofilesctl sqlch toggle-osk waybar-sqlch niri launcher; do
+for t in wpctl brightnessctl nmcli bluetoothctl swaync-client powerprofilesctl sqlch toggle-osk waybar-sqlch niri launcher surface-mode; do
   cat > "$TMP/bin/$t" <<STUB
 #!/usr/bin/env bash
 echo "$t \$*" >> "$TMP/log"
@@ -40,7 +40,7 @@ chmod +x "$TMP/bin/systemctl"
 # act <args...>; the stub log is reset first, fixtures persist until reset.
 act() {
   : > "$TMP/log"
-  PATH="$TMP/bin:$PATH" XDG_RUNTIME_DIR="$TMP" TABLET_NOW_NS="${NOW_NS:-}" TABLET_EWW="$TMP/bin/eww" TABLET_TOGGLE_OSK="$TMP/bin/toggle-osk" \
+  PATH="$TMP/bin:$PATH" XDG_RUNTIME_DIR="$TMP" TABLET_NOW_NS="${NOW_NS:-}" TABLET_EWW="$TMP/bin/eww" TABLET_TOGGLE_OSK="$TMP/bin/toggle-osk" TABLET_SURFACE_MODE="$TMP/bin/surface-mode" \
     TABLET_SQLCH_STEP="$TMP/bin/waybar-sqlch" bash "$SCRIPT" "$@" >/dev/null 2>&1 || true
 }
 fxreset() { rm -f "$TMP"/fx/*; }
@@ -86,6 +86,7 @@ act rotate; expect "rotate inactive -> start" "systemctl --user start niri-rotat
 fxreset
 act osk;   expect "osk" "toggle-osk "
 act dnd;   expect "dnd" "swaync-client -d"
+act desktop; expect "desktop pins desktop mode" "surface-mode desktop"
 act notif; { saw "eww close tablet-sheet" && saw "swaync-client -t"; } && pass "notif closes the sheet then opens swaync" || fail "notif closes the sheet then opens swaync"
 act sheet; expect "sheet toggles" "eww open --toggle tablet-sheet"
 act suspend; { saw "eww close tablet-sheet" && saw "systemctl suspend"; } && pass "suspend closes the sheet first" || fail "suspend closes the sheet first"

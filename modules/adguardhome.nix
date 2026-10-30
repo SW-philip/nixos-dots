@@ -33,6 +33,12 @@ in
         id = 1;
         name = "AdGuard DNS filter";
         url = "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt";
+      } {
+        # Samsung TV ads/telemetry, so the TV can sit on the LAN for the local remote
+        enabled = true;
+        id = 2;
+        name = "Perflyst SmartTV";
+        url = "https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/SmartTV.txt";
       }];
       # The SD card is the live disk: the file lives on tmpfs and retro pulls it
       # (hosts/retro/dns-querylog.nix). Rotation keeps two intervals, so retro has
@@ -49,8 +55,9 @@ in
     };
   };
 
-  # Fixed address outside the gateway's DHCP pool (10.0.0.20-250): the xFi DNS
-  # setting points every client here, so it can't be a lease.
+  # Fixed address outside the gateway's DHCP pool (10.0.0.20-250). Only tailnet
+  # hosts reach this resolver (via MagicDNS): the XB7 can't hand out a custom DNS
+  # server, so LAN-only devices get Comcast's from its DHCP.
   networking.networkmanager.ensureProfiles.profiles.pi-ethernet = {
     connection = {
       id = "pi-ethernet";

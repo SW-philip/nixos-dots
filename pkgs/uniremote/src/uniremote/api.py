@@ -1,69 +1,88 @@
 from __future__ import annotations
 import socket
-import requests
+import threading
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
-ST_BASE = "https://api.smartthings.com/v1"
+import requests
+from samsungtvws import SamsungTVWS
+from samsungtvws.exceptions import ConnectionFailure, UnauthorizedError
+from websocket import WebSocketException
+
+SAMSUNG_WS_PORT = 8002  # TLS; 2016+ sets refuse remote keys on the plain 8001 socket
+SAMSUNG_REST_PORT = 8001
+WS_TIMEOUT = 5
 
 
-class SmartThingsAPI:
-    def __init__(self, token: str, device_id: str):
-        self.token = token
-        self.device_id = device_id
-        self._headers = {"Authorization": f"Bearer {token}"}
+class SamsungAPI:
+    """The TV's own LAN WebSocket. The TV asks once to allow the client; the
+    token it hands back lives in token_file and doesn't expire, unlike a
+    SmartThings token."""
 
-    def _command(self, capability: str, command: str, arguments: list | None = None):
-        cmd = {"component": "main", "capability": capability, "command": command}
-        if arguments:
-            cmd["arguments"] = arguments
-        resp = requests.post(
-            f"{ST_BASE}/devices/{self.device_id}/commands",
-            headers=self._headers,
-            json={"commands": [cmd]},
-            timeout=5,
-        )
-        resp.raise_for_status()
+    def __init__(self, ip: str, token_file: Path):
+        self.ip = ip
+        self.token_file = Path(token_file)
+        self._ws = SamsungTVWS(host=ip, port=SAMSUNG_WS_PORT,
+                               token_file=str(self.token_file), name="Uniremote",
+                               timeout=WS_TIMEOUT, key_press_delay=0)
+        # one socket, shared by the GUI's worker threads
+        self._lock = threading.Lock()
+
+    @property
+    def paired(self) -> bool:
+        return self.token_file.exists() and self.token_file.stat().st_size > 0
+
+    def pair(self, timeout: float = 30):
+        """Open the socket so the TV shows its allow prompt; waits up to
+        timeout for someone to accept it."""
+        self.token_file.parent.mkdir(parents=True, exist_ok=True)
+        with self._lock:
+            self._ws.close()
+            self._ws.timeout = timeout
+            try:
+                self._ws.open()
+            finally:
+                self._ws.timeout = WS_TIMEOUT
 
     def send_key(self, key: str):
-        self._command("samsungvd.remoteControl", "sendKey", [key])
+        with self._lock:
+            try:
+                self._ws.send_key(key)
+            except UnauthorizedError:
+                raise
+            except (OSError, WebSocketException, ConnectionFailure):
+                # the TV drops idle sockets; reconnect once
+                self._ws.close()
+                self._ws.send_key(key)
 
-    def power(self, state: str):  # state: "on" or "off"
-        self._command("switch", state)
-
-    def volume_up(self):
-        self._command("audioVolume", "volumeUp")
-
-    def volume_down(self):
-        self._command("audioVolume", "volumeDown")
-
-    def channel_up(self):
-        self._command("tvChannel", "channelUp")
-
-    def channel_down(self):
-        self._command("tvChannel", "channelDown")
-
-    def label(self) -> str | None:
-        resp = requests.get(f"{ST_BASE}/devices/{self.device_id}",
-                            headers=self._headers, timeout=5)
+    def device_info(self) -> dict:
+        resp = requests.get(f"http://{self.ip}:{SAMSUNG_REST_PORT}/api/v2/", timeout=3)
         resp.raise_for_status()
-        return resp.json().get("label")
+        return resp.json().get("device", {})
 
-    def status(self) -> dict:
-        resp = requests.get(f"{ST_BASE}/devices/{self.device_id}/status",
-                            headers=self._headers, timeout=5)
-        resp.raise_for_status()
-        return resp.json().get("components", {}).get("main", {})
+    def power(self, state: str, mac: str = ""):  # state: "on" or "off"
+        try:
+            current = self.device_info().get("PowerState", "on")
+        except requests.RequestException:
+            current = None  # off the network: only Wake-on-LAN reaches it
+        if state == "on":
+            if current is None:
+                if not mac:
+                    raise RuntimeError("TV is off the network and no MAC is set for Wake-on-LAN")
+                wake_on_lan(mac)
+            elif current == "standby":
+                self.send_key("KEY_POWER")
+        elif current == "on":
+            self.send_key("KEY_POWER")
 
-    @staticmethod
-    def fetch_devices(token: str) -> list[tuple[str, str]]:
-        resp = requests.get(
-            f"{ST_BASE}/devices",
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=5,
-        )
-        resp.raise_for_status()
-        items = resp.json().get("items", [])
-        return [(d["deviceId"], d.get("label", d["deviceId"])) for d in items]
+
+def wake_on_lan(mac: str, broadcast: str = "255.255.255.255"):
+    raw = bytes.fromhex(mac.replace(":", "").replace("-", ""))
+    if len(raw) != 6:
+        raise ValueError(f"not a MAC address: {mac!r}")
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.sendto(b"\xff" * 6 + raw * 16, (broadcast, 9))
 
 
 class RokuAPI:
@@ -98,27 +117,31 @@ class RokuAPI:
 SSDP_ADDR = "239.255.255.250"
 SSDP_PORT = 1900
 SSDP_MX = 2
-SSDP_ST = "roku:ecp"
-SSDP_MSG = (
-    "M-SEARCH * HTTP/1.1\r\n"
-    f"HOST: {SSDP_ADDR}:{SSDP_PORT}\r\n"
-    "MAN: \"ssdp:discover\"\r\n"
-    f"MX: {SSDP_MX}\r\n"
-    f"ST: {SSDP_ST}\r\n"
-    "\r\n"
-).encode()
+ROKU_ST = "roku:ecp"
+SAMSUNG_ST = "urn:samsung.com:device:RemoteControlReceiver:1"
 
 
-def discover_roku(timeout: int = 3) -> str | None:
+def _ssdp_msg(st: str) -> bytes:
+    return (
+        "M-SEARCH * HTTP/1.1\r\n"
+        f"HOST: {SSDP_ADDR}:{SSDP_PORT}\r\n"
+        "MAN: \"ssdp:discover\"\r\n"
+        f"MX: {SSDP_MX}\r\n"
+        f"ST: {st}\r\n"
+        "\r\n"
+    ).encode()
+
+
+def _ssdp_discover(st: str, timeout: int) -> str | None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     try:
         sock.settimeout(timeout)
-        sock.sendto(SSDP_MSG, (SSDP_ADDR, SSDP_PORT))
+        sock.sendto(_ssdp_msg(st), (SSDP_ADDR, SSDP_PORT))
         while True:
             try:
                 data, _ = sock.recvfrom(1024)
                 response = data.decode(errors="ignore")
-                if "roku:ecp" in response.lower():
+                if st.lower() in response.lower():
                     for line in response.splitlines():
                         if line.lower().startswith("location:"):
                             url = line.split(":", 1)[1].strip()
@@ -129,3 +152,11 @@ def discover_roku(timeout: int = 3) -> str | None:
                 return None
     finally:
         sock.close()
+
+
+def discover_roku(timeout: int = 3) -> str | None:
+    return _ssdp_discover(ROKU_ST, timeout)
+
+
+def discover_samsung(timeout: int = 3) -> str | None:
+    return _ssdp_discover(SAMSUNG_ST, timeout)

@@ -106,6 +106,11 @@ def bt_info(dev: str | None) -> tuple[str, str, str] | None:
 
 # ── Rendering ─────────────────────────────────────────────────
 
+def snark_quiet() -> bool:
+    """`snark off` creates this file; mirrors snark_quiet in waybar-lib.sh."""
+    state = os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state")
+    return os.path.exists(os.path.join(state, "snark-off"))
+
 class Renderer:
     def __init__(self) -> None:
         self.palette = Palette()
@@ -113,6 +118,8 @@ class Renderer:
         self._snark = "Volume exists."
 
     def snark(self, bucket: str) -> str:
+        if snark_quiet():
+            return ""
         # Re-roll only when the bucket changes, not on every heartbeat refresh.
         if bucket != self._snark_bucket:
             self._snark_bucket = bucket
@@ -140,7 +147,8 @@ class Renderer:
                           f"<span foreground='{p['SEVENTH']}'>{codec}</span>") if codec else ""
             lines.append(f"<span foreground='{p['SOTTO']}'>󰓃 {alias}</span>  "
                          f"<span foreground='{p['FIFTH']}'>{state}</span>{codec_span}")
-        lines += [rule, f"<span foreground='{p['ROOT']}'>{self.snark(bucket)}</span>"]
+        if not snark_quiet():
+            lines += [rule, f"<span foreground='{p['ROOT']}'>{self.snark(bucket)}</span>"]
         return {"text": f"{GLYPH} {vol}%", "tooltip": "\n".join(lines),
                 "class": [cls, f"vol-{vol // 5 * 5}"]}
 

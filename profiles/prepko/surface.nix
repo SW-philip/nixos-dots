@@ -28,7 +28,11 @@ in
     ../../home/quivr.nix
     ../../home/go-librespot.nix
     ../../home/on.nix
+    ../../home/settings.nix
+    ../../home/commands.nix
+    ../../home/snark.nix
     ../../home/tunnel.nix
+    ../../home/dnslog.nix
     ../../home/polkit-agent.nix
     ../../home/shared-apps
     ../../home/network-notify.nix
@@ -67,6 +71,20 @@ in
     ManagedOOMMemoryPressure=kill
     ManagedOOMMemoryPressureLimit=50%
     MemoryHigh=5G
+  '';
+
+  # Warm Ghostty daemon: with --gtk-single-instance, `ghostty` from Mod+Return
+  # becomes a D-Bus request to this process instead of a cold GTK start. The
+  # package ships the unit but nothing enables it, and its [Install] has no niri
+  # guard — hence the wants symlink plus the guard drop-in (unit owned by the
+  # ghostty package, so a drop-in rather than config.lib.niri.unit).
+  xdg.configFile."systemd/user/graphical-session.target.wants/app-com.mitchellh.ghostty.service".source =
+    "${pkgs.ghostty}/share/systemd/user/app-com.mitchellh.ghostty.service";
+  xdg.configFile."systemd/user/app-com.mitchellh.ghostty.service.d/niri-guard.conf".text = ''
+    [Unit]
+    ConditionEnvironment=WAYLAND_DISPLAY
+    ConditionEnvironment=XDG_CURRENT_DESKTOP=niri
+    PartOf=graphical-session.target
   '';
 
   xdg.configFile."autostart/org.kde.kdeconnect.daemon.desktop".text = ''

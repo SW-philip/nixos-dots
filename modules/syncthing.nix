@@ -7,8 +7,8 @@ let
   self = if config.networking.hostName == inventory.desktop.nick then "desktop" else "surface";
 
   ids = {
-    desktop = "4I2JNFZ-TV7TPBL-TGK7EQS-IXO2T76-OGJXBEI-WPPQ446-JLRMHIP-KTDKJQZ";
-    surface = "MKDT6NZ-QZUGSFS-7TUSEXT-NHXU7KO-RBN2ZEQ-R6YOENF-WFG6XTR-XCPL2QP";
+    desktop = "DC4OU4E-7SEHYZG-3PBCEXA-ATTVWHM-RWANARJ-CF6UZDM-IGYOADZ-U6M6RQJ";
+    surface = "TJUDMUW-5WC5LZV-4X4ROEJ-RIY7SQH-RV54LM7-HIVSXAK-MEY53CJ-Y7BSPAP";
   };
   peers = lib.mapAttrs (n: id: { name = inventory.${n}.nick; inherit id; inherit (inventory.${n}) ip; }) ids;
   others = lib.filterAttrs (n: _: n != self) peers;
@@ -31,8 +31,9 @@ let
     '');
 in
 {
-  sops.secrets.syncthing_key  = { sopsFile = ../secrets/shared.yaml; key = "syncthing_${self}_key";  owner = user; };
-  sops.secrets.syncthing_cert = { sopsFile = ../secrets/shared.yaml; key = "syncthing_${self}_cert"; owner = user; };
+  # syncthing copies these in only at start (syncthing-copy-keys), so a new key needs a restart.
+  sops.secrets.syncthing_key  = { sopsFile = ../secrets/shared.yaml; key = "syncthing_${self}_key";  owner = user; restartUnits = [ "syncthing.service" ]; };
+  sops.secrets.syncthing_cert = { sopsFile = ../secrets/shared.yaml; key = "syncthing_${self}_cert"; owner = user; restartUnits = [ "syncthing.service" ]; };
 
   services.syncthing = {
     enable = true;

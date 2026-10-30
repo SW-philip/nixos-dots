@@ -15,6 +15,12 @@ in
   systemd.tmpfiles.rules = [
     "d /srv/jellyfin       0750 jellyfin jellyfin -"
     "d /srv/jellyfin/data  0750 jellyfin jellyfin -"
+    # "Save artwork into media folders" + the Nfo saver: ErsatzTV only sees
+    # artwork and metadata sitting next to the media, so the guide's
+    # thumbnails depend on Jellyfin writing poster.jpg/tvshow.nfo there.
+    # The default ACL covers folders added later. The masks are explicit:
+    # tmpfiles keeps an existing mask, and the hand-set r-x ones clamp the grant.
+    "A+ /srv/Videos - - - - group:jellyfin:rwX,mask::rwX,default:group:jellyfin:rwX,default:mask::rwX"
   ];
 
   systemd.services.jellyfin = {

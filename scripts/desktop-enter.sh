@@ -25,8 +25,9 @@ sudo cryptsetup open "/dev/disk/by-uuid/$LUKS_UUID" "$LUKS_NAME"
 echo "==> Mounting filesystems..."
 sudo mkdir -p "$MOUNT"
 sudo mount -t btrfs -o subvol=@ /dev/mapper/"$LUKS_NAME" "$MOUNT"
-sudo mkdir -p "$MOUNT"/{home,persist,boot}
+sudo mkdir -p "$MOUNT"/{home,nix,persist,boot}
 sudo mount -t btrfs -o subvol=@home    /dev/mapper/"$LUKS_NAME" "$MOUNT/home"
+sudo mount -t btrfs -o subvol=@nix     /dev/mapper/"$LUKS_NAME" "$MOUNT/nix"
 sudo mount -t btrfs -o subvol=@persist /dev/mapper/"$LUKS_NAME" "$MOUNT/persist"
 sudo mount "/dev/disk/by-uuid/$EFI_UUID" "$MOUNT/boot"
 

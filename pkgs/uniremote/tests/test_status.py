@@ -1,48 +1,56 @@
 import requests
-from uniremote.api import RokuAPI, SmartThingsAPI
+from unittest.mock import patch
+
+from uniremote.api import RokuAPI, SamsungAPI
 from uniremote.status import DeviceStatus, roku_status, samsung_status
 
-ST = "https://api.smartthings.com/v1/devices/dev1/status"
 IP = "192.168.1.100"
 
 
-def test_samsung_online_full(requests_mock):
-    requests_mock.get(ST, json={"components": {"main": {
-        "switch": {"switch": {"value": "on"}},
-        "audioVolume": {"volume": {"value": 14}},
-        "mediaInputSource": {"inputSource": {"value": "HDMI2"}},
-    }}})
-    got = samsung_status(SmartThingsAPI("t", "dev1"), "Living Room TV")
-    assert got == DeviceStatus("Living Room TV", "on · vol 14 · HDMI2", True)
+INFO = f"http://{IP}:8001/api/v2/"
 
 
-def test_samsung_missing_capabilities(requests_mock):
-    requests_mock.get(ST, json={"components": {"main": {"switch": {"switch": {"value": "off"}}}}})
-    got = samsung_status(SmartThingsAPI("t", "dev1"), "")
-    assert got == DeviceStatus("Samsung TV", "off", True)
+def _samsung(tmp_path, paired=True):
+    token = tmp_path / "samsung-token"
+    if paired:
+        token.write_text("12345678")
+    with patch("uniremote.api.SamsungTVWS"):
+        return SamsungAPI(IP, token)
 
 
-def test_samsung_http_error_is_offline(requests_mock):
-    requests_mock.get(ST, status_code=500)
-    got = samsung_status(SmartThingsAPI("t", "dev1"), "Living Room TV")
-    assert got == DeviceStatus("Living Room TV", "", False)
+def test_samsung_online_full(requests_mock, tmp_path):
+    requests_mock.get(INFO, json={"device": {
+        "name": "[TV] Living Room", "PowerState": "on", "modelName": "QN55Q60",
+    }})
+    got = samsung_status(_samsung(tmp_path))
+    assert got == DeviceStatus("Living Room", "on · QN55Q60", True)
 
 
-def test_samsung_401_reports_token_rejected(requests_mock):
-    requests_mock.get(ST, status_code=401)
-    got = samsung_status(SmartThingsAPI("t", "dev1"), "Living Room TV")
-    assert got == DeviceStatus("Living Room TV", "token rejected · ⋯ → Preferences", False)
+def test_samsung_name_is_unescaped(requests_mock, tmp_path):
+    requests_mock.get(INFO, json={"device": {"name": "[TV] Phil&#39;s TV", "PowerState": "standby"}})
+    got = samsung_status(_samsung(tmp_path))
+    assert got == DeviceStatus("Phil's TV", "standby", True)
 
 
-def test_samsung_403_reports_token_rejected(requests_mock):
-    requests_mock.get(ST, status_code=403)
-    got = samsung_status(SmartThingsAPI("t", "dev1"), "TV")
-    assert got == DeviceStatus("TV", "token rejected · ⋯ → Preferences", False)
+def test_samsung_missing_fields(requests_mock, tmp_path):
+    requests_mock.get(INFO, json={"device": {}})
+    assert samsung_status(_samsung(tmp_path)) == DeviceStatus("Samsung TV", "on", True)
 
 
-def test_samsung_timeout_is_offline(requests_mock):
-    requests_mock.get(ST, exc=requests.exceptions.ConnectTimeout)
-    assert samsung_status(SmartThingsAPI("t", "dev1"), "TV").online is False
+def test_samsung_unreachable_is_offline(requests_mock, tmp_path):
+    requests_mock.get(INFO, exc=requests.ConnectionError)
+    assert samsung_status(_samsung(tmp_path)) == DeviceStatus("Samsung TV", "", False)
+
+
+def test_samsung_http_error_is_offline(requests_mock, tmp_path):
+    requests_mock.get(INFO, status_code=500)
+    assert samsung_status(_samsung(tmp_path)) == DeviceStatus("Samsung TV", "", False)
+
+
+def test_samsung_unpaired_says_so(requests_mock, tmp_path):
+    requests_mock.get(INFO, json={"device": {"name": "[TV] Living Room", "PowerState": "on"}})
+    got = samsung_status(_samsung(tmp_path, paired=False))
+    assert got == DeviceStatus("Living Room", "not paired · ⋯ → Preferences", True)
 
 
 def test_roku_online(requests_mock):

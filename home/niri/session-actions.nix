@@ -5,7 +5,6 @@
 { pkgs, lib, config }:
 
 let
-  user = config.home.username;
 
   # Desktop's Tailscale IPv4. Not the `desktop`
   # MagicDNS name: that also resolves to a Tailscale IPv6 which wlvncc may

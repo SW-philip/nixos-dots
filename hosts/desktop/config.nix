@@ -69,7 +69,13 @@ in
   ############################################################
   sops = {
     defaultSopsFile = ../../secrets/shared.yaml;
-    age.sshKeyPaths = [ "/persist/etc/ssh/ssh_host_ed25519_key" ];
+    # Not the SSH host key: a 0644 copy of it sat in ~ for months, and regenerating
+    # host keys would orphan every secret. Empty, not unset: the default derives
+    # from services.openssh.hostKeys, i.e. that same key.
+    age.keyFile = "/persist/var/lib/sops-nix/key.txt";
+    # A missing key must fail loudly, not mint a new one that decrypts nothing.
+    age.generateKey = false;
+    age.sshKeyPaths = [ ];
     # neededForUsers: decrypted before user creation, since mutableUsers = false.
     secrets.prepko_password_hash = { sopsFile = ../../secrets/passwords.yaml; neededForUsers = true; };
     secrets.protonvpn_ny_conf = {};

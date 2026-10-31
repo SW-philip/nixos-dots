@@ -5,6 +5,9 @@
                                     record metadata and fingerprints of every source file
   photo-merge group                 find copies of one photo/video across sources, pick the
                                     best of each, write <state>/groups.json
+  photo-merge review                decide in fzf which copies to keep where the best one
+                                    isn't obvious: a group holding an edit, or a burst
+  photo-merge build [--dry-run]     reflink every kept file into <pictures>/Library
 
 Sources (SOURCES below) are read only. State lives in <pictures>/.photo-merge/index.sqlite,
 keyed by path and re-read only when a file's size or mtime changes, so re-running after a
@@ -20,11 +23,27 @@ shots a second apart stay separate. Undated images link only on near-identical p
 Videos link on capture time plus duration. The best copy of a group is the one with the
 most pixels, then the original format (raw, HEIC), then GPS, a capture date, bytes, and
 iCloud over Google over the rest.
+
+Review asks only about groups where keeping the best copy alone could lose something: an
+edit (the edit and the original are both choices) or a burst (one source holding several
+different prints in one group). Decisions live in <state>/review.json, keyed by the group's
+paths, so a group whose membership changes is asked again.
+
+Build reflinks (btrfs FICLONE: no extra space, independent files) the best copy of each
+group, the reviewed choices, and every ungrouped file outside LIBRARY_SKIP into
+Library/YYYY/YYYY-MM-DD/, undated ones into Library/undated/<source>/. <state>/library.tsv
+maps each library file to its source; a source already in it is skipped, so build resumes
+and re-runs add only what's new. Build never deletes: a library file whose source is no
+longer chosen is listed in <state>/library-stale.tsv.
 """
 import argparse
+import fcntl
+import hashlib
 import json
 import os
 import re
+import shlex
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -33,13 +52,16 @@ from datetime import datetime
 
 PICTURES = "/srv/prepko/Pictures"
 STATE = os.path.join(PICTURES, ".photo-merge")
+LIBRARY = os.path.join(PICTURES, "Library")
+# Ungrouped files from these sources stay out of the library.
+LIBRARY_SKIP = {"screenshots"}
+FICLONE = 0x40049409
 # name -> (path, recursive). Dot-directories (staging, quarantine) are always skipped.
 SOURCES = {
     "google": (os.path.join(PICTURES, "Google Photos"), True),
     "icloud": (os.path.join(PICTURES, "icloud"), True),
     "drive": ("/srv/prepko/Drive", True),
     "takeout-partial": (os.path.join(PICTURES, "takeout-partial-2026-05-21"), True),
-    "drost-wedding": (os.path.join(PICTURES, "Drost Wedding"), True),
     "gmail-saves": (os.path.join(PICTURES, "gmail saves"), True),
     "screenshots": (os.path.join(PICTURES, "Screenshots"), True),
     "loose": (PICTURES, False),
@@ -58,11 +80,15 @@ UNDATED_PHASH_MAX, UNDATED_DHASH_MAX = 2, 4
 CLOCK_SLACK = 2
 # A fingerprint chunk shared by this many images is a flat frame (black, white), not a photo.
 BUCKET_CAP = 200
+# A phash with this few bits set (or unset) is a blank frame, not a fingerprint.
+FLAT_BITS = 4
 VIDEO_DURATION_SLACK = 1.0
 FORMAT_RANK = {".dng": 3, ".cr2": 3, ".nef": 3, ".arw": 3, ".heic": 2, ".heif": 2}
 SOURCE_RANK = {"icloud": 0, "google": 1}
-# Copy markers a file picks up on its way through Takeout, Drive and photo editors.
-COPY_MARKS = re.compile(r"(\(\d+\)|-edited|-bearbeitet|-modifié|-editado| \([A-Za-z0-9_-]{8}\)|-original)+$", re.IGNORECASE)
+# Copy markers a file picks up on its way through Takeout, Drive, iCloud export (_HEVC on
+# a Live Photo's motion clip) and photo editors.
+COPY_MARKS = re.compile(r"(\(\d+\)|-edited|-bearbeitet|-modifié|-editado| \([A-Za-z0-9_-]{8}\)|[-_]original|_hevc)+$",
+                        re.IGNORECASE)
 CAMERA_COUNTER = re.compile(r"\d{3,}$")
 SCHEMA = """
 create table if not exists files (
@@ -223,9 +249,19 @@ def times_agree(a, b):
     return d <= CLOCK_SLACK or (d <= 14 * 3600 and min(d % 3600, 3600 - d % 3600) <= CLOCK_SLACK)
 
 
+def conflict(a, b):
+    return not names_allow(a, b) or times_agree(a["t"], b["t"]) is False
+
+
 class Union:
-    def __init__(self, n):
-        self.p = list(range(n))
+    """Union-find that refuses a join putting two conflicting files in one group: an undated
+    or counterless copy can match two burst shots that don't match each other, and plain
+    transitivity would merge the burst through it."""
+
+    def __init__(self, files):
+        self.files = files
+        self.p = list(range(len(files)))
+        self.members = {i: [i] for i in range(len(files))}
 
     def find(self, i):
         while self.p[i] != i:
@@ -234,7 +270,11 @@ class Union:
         return i
 
     def join(self, i, j):
-        self.p[self.find(i)] = self.find(j)
+        ri, rj = self.find(i), self.find(j)
+        if ri == rj or any(conflict(self.files[x], self.files[y]) for x in self.members[ri] for y in self.members[rj]):
+            return
+        self.p[ri] = rj
+        self.members[rj] += self.members.pop(ri)
 
 
 def by_clock(files):
@@ -254,9 +294,12 @@ def by_clock(files):
 
 def by_print(files):
     """Pairs of indices sharing a 16-bit chunk of phash: every pair within UNDATED_PHASH_MAX
-    bits shares at least two of the four chunks, so none is missed."""
+    bits shares at least two of the four chunks, so none is missed. Flat frames are left
+    out: every black screenshot prints the same, and one undated one would chain them all."""
     buckets = {}
     for i, f in enumerate(files):
+        if not FLAT_BITS < int(f["phash"], 16).bit_count() < 64 - FLAT_BITS:
+            continue
         for b in range(4):
             buckets.setdefault((b, f["phash"][b * 4:b * 4 + 4]), []).append(i)
     seen = set()
@@ -271,7 +314,7 @@ def by_print(files):
 
 
 def link_images(files):
-    u = Union(len(files))
+    u = Union(files)
     for i, j in by_clock(files):
         a, b = files[i], files[j]
         if names_allow(a, b) and times_agree(a["t"], b["t"]) and bits(a["phash"], b["phash"]) <= PHASH_MAX \
@@ -287,7 +330,7 @@ def link_images(files):
 
 
 def link_videos(files):
-    u = Union(len(files))
+    u = Union(files)
     for i, j in by_clock(files):
         a, b = files[i], files[j]
         if names_allow(a, b) and times_agree(a["t"], b["t"]) and a["duration"] and b["duration"] \
@@ -356,6 +399,216 @@ def group():
         print(f"  {n:>6} groups  {k}")
 
 
+def load_groups():
+    try:
+        with open(os.path.join(STATE, "groups.json")) as fh:
+            return json.load(fh)
+    except OSError:
+        sys.exit("photo-merge: no groups; run `photo-merge group` first")
+
+
+def gkey(g):
+    return hashlib.sha1("\n".join(sorted(f["path"] for f in g)).encode()).hexdigest()[:16]
+
+
+def is_edit(f):
+    return re.search(r"-edited", os.path.basename(f["path"]), re.IGNORECASE) is not None
+
+
+def burst(g):
+    """One source holding two different prints of one format. A screenshot's PNG and the
+    JPG Google re-encoded from it also differ by a bit or two, but never share a format."""
+    prints = {}
+    for f in g:
+        prints.setdefault((f["source"], os.path.splitext(f["path"])[1].lower()), set()).add(f["phash"])
+    return all(f["phash"] for f in g) and any(len(p) > 1 for p in prints.values())
+
+
+def needs_review(g):
+    return g[0]["edited"] or burst(g)
+
+
+def suggest(g):
+    """Paths review pre-selects: the best original and best edit, and with a burst the best
+    copy of each distinct print. g is sorted best first, so the first of each kind wins."""
+    keep = {f["path"] for f in (next((f for f in g if is_edit(f) == e), None) for e in (False, True)) if f}
+    if burst(g):
+        seen = set()
+        for f in g:
+            if f["phash"] not in seen:
+                seen.add(f["phash"])
+                keep.add(f["path"])
+    return keep
+
+
+def load_review():
+    try:
+        with open(os.path.join(STATE, "review.json")) as fh:
+            return json.load(fh)
+    except FileNotFoundError:
+        return {}
+
+
+def save_review(decided):
+    tmp = os.path.join(STATE, "review.json.part")
+    with open(tmp, "w") as fh:
+        json.dump(decided, fh, indent=1)
+    os.replace(tmp, os.path.join(STATE, "review.json"))
+
+
+def fzf_args(g, n, total, why, pre, preview):
+    start = "+".join(["toggle+down"] * pre + ["first"])
+    return [
+        "fzf", "--multi", "--layout=reverse", "--delimiter=\t", "--with-nth=2", "--expect=ctrl-s",
+        (f"--header=[{n}/{total}] {why}, {len(g)} files\n"
+         "tab: toggle keep   enter: keep selected (none: the highlighted one)   ctrl-s: skip   esc: stop"),
+        # Full screen, whatever FZF_DEFAULT_OPTS says: an inline (--height) fzf sits at the
+        # terminal's bottom, where an image one row too tall scrolls the whole screen.
+        "--no-height", "--header-first", f"--preview={preview} {{1}}", "--preview-window=right,55%,nowrap",
+        f"--bind=load:{start}",
+    ]
+
+
+def review():
+    groups = [g for g in load_groups() if needs_review(g)]
+    decided = load_review()
+    todo = [g for g in groups if gkey(g) not in decided]
+    preview = f"{shlex.quote(sys.executable)} {shlex.quote(os.path.abspath(__file__))} preview"
+    for n, g in enumerate(todo, 1):
+        keep = suggest(g)
+        # Suggested keeps first: the load binding pre-selects that many rows from the top.
+        files = sorted(g, key=lambda f: f["path"] not in keep)
+        lines = [f"{f['path']}\t{f['source']:<15} {f['taken'] or 'undated':<19} {f['width']}x{f['height']:<5}"
+                 f" {human(f['size']):>5}  {os.path.basename(f['path'])}" for f in files]
+        why = " + ".join(w for w, on in (("edit", g[0]["edited"]), ("burst", burst(g))) if on)
+        r = subprocess.run(fzf_args(g, n, len(todo), why, len(keep), preview), input="\n".join(lines),
+                           stdout=subprocess.PIPE, text=True, check=False)
+        if r.returncode == 130:
+            print(f"stopped at {n}/{len(todo)}; run review again to continue")
+            return
+        out = r.stdout.splitlines()
+        if out and out[0] == "ctrl-s":
+            continue
+        kept = sorted(ln.split("\t", 1)[0] for ln in out[1:] if ln)
+        if kept:
+            decided[gkey(g)] = kept
+            save_review(decided)
+    left = sum(gkey(g) not in decided for g in groups)
+    print(f"{len(groups) - left}/{len(groups)} groups decided" + (f", {left} skipped" if left else ""))
+
+
+def preview(path):
+    import pillow_heif
+    from PIL import Image
+
+    cols = int(os.environ.get("FZF_PREVIEW_COLUMNS", "80"))
+    rows = int(os.environ.get("FZF_PREVIEW_LINES", "40"))
+    # One line, never wrapped, so the image sized below it fits the pane exactly. Flushed:
+    # chafa writes straight to the terminal, ahead of anything buffered.
+    print(os.path.basename(path)[:cols], flush=True)
+    if media_kind(path) != "image":
+        print("(no preview for video)")
+        return
+    # chafa can't read HEIC; a small PNG decoded once serves every redraw.
+    thumb = os.path.join(STATE, "thumbs", hashlib.sha1(path.encode()).hexdigest() + ".png")
+    if not os.path.exists(thumb):
+        pillow_heif.register_heif_opener()
+        os.makedirs(os.path.dirname(thumb), exist_ok=True)
+        try:
+            with Image.open(path) as im:
+                im.draft("RGB", (1024, 1024))
+                im = im.convert("RGB")
+                im.thumbnail((1024, 1024))
+                im.save(thumb)
+        except Exception as e:  # noqa: BLE001 - a preview that fails is just a missing picture
+            print(f"(no preview: {type(e).__name__}: {e})")
+            return
+    subprocess.run(["chafa", f"--size={cols}x{rows - 1}", thumb], check=False)
+
+
+def library_path(f):
+    if f["taken"]:
+        day = f["taken"][:10].replace(":", "-")
+        return os.path.join(day[:4], day, os.path.basename(f["path"]))
+    return os.path.join("undated", f["source"], os.path.basename(f["path"]))
+
+
+def free_name(rel, taken):
+    stem, ext = os.path.splitext(rel)
+    k = 1
+    while rel in taken or os.path.lexists(os.path.join(LIBRARY, rel)):
+        k += 1
+        rel = f"{stem}-{k}{ext}"
+    return rel
+
+
+def reflink(src, dst):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    tmp = os.path.join(os.path.dirname(dst), "." + os.path.basename(dst) + ".part")
+    with open(src, "rb") as s, open(tmp, "wb") as d:
+        fcntl.ioctl(d.fileno(), FICLONE, s.fileno())
+    shutil.copystat(src, tmp)
+    os.replace(tmp, dst)
+
+
+def chosen():
+    """Every file the library should hold, and the number of unreviewed groups."""
+    db = sqlite3.connect(os.path.join(STATE, "index.sqlite"))
+    rows, _, _ = load(db)
+    groups, decided = load_groups(), load_review()
+    grouped, keep, unreviewed = set(), set(), 0
+    for g in groups:
+        grouped |= {f["path"] for f in g}
+        if not needs_review(g):
+            keep.add(g[0]["path"])
+        elif gkey(g) in decided:
+            keep |= set(decided[gkey(g)])
+        else:
+            unreviewed += 1
+    out = [r for r in rows if r["path"] in keep or (r["path"] not in grouped and r["source"] not in LIBRARY_SKIP)]
+    return out, unreviewed
+
+
+def build(dry_run):
+    files, unreviewed = chosen()
+    if unreviewed:
+        sys.exit(f"photo-merge: {unreviewed} groups unreviewed; run `photo-merge review` first")
+    manifest = os.path.join(STATE, "library.tsv")
+    placed = {}
+    if os.path.exists(manifest):
+        with open(manifest) as fh:
+            placed = dict(reversed(ln.rstrip("\n").split("\t", 1)) for ln in fh if ln.strip())
+    want = {f["path"] for f in files}
+    todo = [f for f in files if f["path"] not in placed]
+    missing = [f for f in todo if not os.path.exists(f["path"])]
+    todo = [f for f in todo if os.path.exists(f["path"])]
+    print(f"library: {len(files)} files ({human(sum(f['size'] for f in files))}), {len(placed)} placed,"
+          f" {len(todo)} to place" + (f", {len(missing)} gone from their source" if missing else ""))
+    if dry_run:
+        claimed = set(placed.values())
+        for f in todo[:10]:
+            rel = free_name(library_path(f), claimed)
+            claimed.add(rel)
+            print(f"  {rel}  <-  {f['path']}")
+        return
+    claimed = set(placed.values())
+    with open(manifest, "a") as fh:
+        for i, f in enumerate(todo, 1):
+            rel = free_name(library_path(f), claimed)
+            claimed.add(rel)
+            reflink(f["path"], os.path.join(LIBRARY, rel))
+            # Written per file, so an interrupted build resumes where it stopped.
+            fh.write(f"{rel}\t{f['path']}\n")
+            fh.flush()
+            if i % 2000 == 0:
+                print(f"  {i}/{len(todo)}", flush=True)
+    stale = sorted((rel, src) for src, rel in placed.items() if src not in want)
+    with open(os.path.join(STATE, "library-stale.tsv"), "w") as fh:
+        fh.writelines(f"{rel}\t{src}\n" for rel, src in stale)
+    print(f"placed {len(todo)}" + (f"; {len(stale)} library files no longer chosen, listed in library-stale.tsv"
+                                   if stale else ""))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -363,11 +616,20 @@ def main():
     ix.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     ix.add_argument("--source", action="append", choices=sorted(SOURCES), help="only these (repeatable)")
     sub.add_parser("group")
+    sub.add_parser("review")
+    sub.add_parser("preview").add_argument("path")
+    sub.add_parser("build").add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
     if args.cmd == "index":
         index(args.jobs, set(args.source or ()))
     elif args.cmd == "group":
         group()
+    elif args.cmd == "review":
+        review()
+    elif args.cmd == "preview":
+        preview(args.path)
+    elif args.cmd == "build":
+        build(args.dry_run)
 
 
 if __name__ == "__main__":

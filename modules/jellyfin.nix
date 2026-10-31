@@ -54,6 +54,9 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      # tailscaled is "started" before its backend leaves NoState, which serve rejects at boot.
+      ExecStartPre = "${config.services.tailscale.package}/bin/tailscale wait";
+      TimeoutStartSec = "2min";
       ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --https=${https} http://127.0.0.1:${toString ports.jellyfin}";
       ExecStop = "${config.services.tailscale.package}/bin/tailscale serve --https=${https} off";
       Restart = "on-failure";

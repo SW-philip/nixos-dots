@@ -55,6 +55,7 @@
       "^sudo: .* : (a password is required|1 incorrect password attempt)"  # one typo or a timed-out prompt; 2+ still surface
       "^systemd: Failed to start Refresh NetworkManager WiFi scan cache"  # wired desktop, nothing to scan
       "^[A-Za-z0-9_-]+: [0-9]+K( \\.{1,10})+"  # wget progress bars on stderr from one-off containers
+      "^ersatztv: .*Broken pipe|^ersatztv: \\[out#.*\\] Error muxing a packet"  # a viewer closed the stream mid-segment
     ];
 
     knownIssues = [
@@ -95,7 +96,7 @@
         note = "Harmless on shutdown or reboot.";
       }
       {
-        pattern = "^sshd-session: mm_reap: child terminated by signal 15";
+        pattern = "^sshd-session: (error: )?mm_reap: child terminated by signal 15";
         verdict = "benign";
         note = "Normal SSH disconnect.";
       }

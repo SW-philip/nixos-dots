@@ -206,11 +206,16 @@ in
     };
   };
 
+  # Default deps put a path unit Before=paths.target, which with After=graphical-session.target
+  # is an ordering cycle; the After= is still needed so the niri condition sees the env.
   config.systemd.user.paths.retro-tile-art = {
     wantedBy = [ "graphical-session.target" ];
     after = [ "graphical-session.target" ];
     partOf = [ "graphical-session.target" ];
-    unitConfig.ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
+    unitConfig = {
+      ConditionEnvironment = "XDG_CURRENT_DESKTOP=niri";
+      DefaultDependencies = false;
+    };
     pathConfig = {
       PathChanged = "%h/.local/state/wallpaper";
       TriggerLimitIntervalSec = 0;

@@ -20,7 +20,21 @@
     nvidiaPersistenced = true;
     open = false;
     nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    # patchelf 0.19.2 setting interpreter and rpath in one call leaves .dynamic read-only, so
+    # nvidia-smi/powerd/mps-control segfault in ld.so. Re-patch from origBin in two calls.
+    # Drop once nixpkgs-unstable is past nixpkgs issue 576397.
+    package = config.boot.kernelPackages.nvidiaPackages.stable.overrideAttrs (old: {
+      postFixup = (old.postFixup or "") + ''
+        for orig in $bin/origBin/*; do
+          b=$bin/bin/$(basename "$orig")
+          rpath=$(patchelf --print-rpath "$b")
+          interp=$(patchelf --print-interpreter "$b")
+          install -m755 "$orig" "$b"
+          patchelf --set-rpath "$rpath" "$b"
+          patchelf --interpreter "$interp" "$b"
+        done
+      '';
+    });
   };
 
   boot.kernelParams = lib.mkAfter [

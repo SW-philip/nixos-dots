@@ -45,6 +45,8 @@ in
         2>/dev/null \
       | awk '
           /^-- /  { next }
+          # continuation lines of a multi-line message (stack traces, HTML bodies)
+          /^[ \t]/ { next }
           NF < 6  { next }
           {
             unit = $5

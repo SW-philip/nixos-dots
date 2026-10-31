@@ -123,6 +123,8 @@ let
     runtimeInputs = [
       (pkgs.python3.withPackages (p: with p; [ pillow pillow-heif imagehash ]))
       pkgs.exiftool
+      pkgs.fzf
+      pkgs.chafa
     ];
     text = ''exec python3 ${../scripts/photo-merge.py} "$@"'';
   };

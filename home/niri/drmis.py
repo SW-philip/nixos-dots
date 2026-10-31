@@ -264,7 +264,8 @@ def do_set(slug, theme_map):
     do_let(slug, theme_map)
     subprocess.run(["systemctl", "--user", "restart", "swaybg", "wallpaper-card", "wallpaper-follow"], stderr=subprocess.DEVNULL)
     subprocess.run(["pkill", "-USR1", "zsh"],                      stderr=subprocess.DEVNULL)
-    subprocess.run(["pkill", "-SIGUSR1", "waybar"],                stderr=subprocess.DEVNULL)
+    # -x: a bare "waybar" also matches (and kills) the waybar-cache-* helpers
+    subprocess.run(["pkill", "-SIGUSR1", "-x", r"\.?waybar(-wrapped)?"], stderr=subprocess.DEVNULL)
     subprocess.run(["swaync-client", "-R"],                        stderr=subprocess.DEVNULL)
     subprocess.run(["swaync-client", "-rs"],                       stderr=subprocess.DEVNULL)
     subprocess.run(["systemctl", "--user", "try-restart", "squeekboard.service"], stderr=subprocess.DEVNULL)

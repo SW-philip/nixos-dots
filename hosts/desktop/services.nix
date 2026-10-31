@@ -17,6 +17,11 @@ in
     RandomizedDelaySec = "1d";
   };
 
+  # Opens TCP+UDP 1714-1764 on every interface. Unlike surface, desktop keeps
+  # the package's /etc/xdg/autostart entry: it's always on, so kdeconnectd
+  # should be up to answer the phone's discovery broadcasts.
+  programs.kdeconnect.enable = true;
+
   # acpid is switched on unconditionally by the nvidia driver module and has no
   # handlers here; keep it to its unix socket + acpi netlink events. No
   # ProtectSystem/syscall filter: a future handler script would need a normal

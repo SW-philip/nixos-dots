@@ -42,6 +42,7 @@ in
     ../../modules/retro-tiles.nix
     ../../modules/niri-bridge.nix
     ../../modules/btrbk.nix
+    ../../modules/overnight-notify.nix
     ../../modules/transmission.nix
     ./myln.nix
     ./impermanence.nix
@@ -244,4 +245,8 @@ in
   # Builds the pi host (aarch64): its image and --build-host deploys run
   # aarch64 derivations through qemu-user.
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
+  # Overnight jobs that report in (scripts/overnight.sh); the user-side ones are in the profile.
+  overnight.notify.units = [ "btrbk-daily" "jellyfin-whisper" "nix-optimise" "nh-clean" "fstrim" "myln-diagnose" ];
+
 }

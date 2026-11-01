@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # goodnight: the nightly fleet batch. Runs on desktop from a user timer (home/goodnight.nix).
-#   goodnight run [--dry-run] [phase...]   phases: wake deploy audit housekeeping backups (default: all)
+#   goodnight run [--dry-run] [phase...]   phases: wake deploy reboot audit housekeeping backups (default: all)
 #   goodnight status                       last report: hosts and phases
 #   goodnight hold | release               skip (or stop skipping) tonight's deploy
 # Deploy only acts when GOODNIGHT_DEPLOY=1; otherwise it reports what it would do. It deploys the
@@ -11,6 +11,9 @@
 #   GOODNIGHT_WAKE_WAIT=s    how long to keep retrying an unreachable host (default 300)
 #   GOODNIGHT_STREAM_WAIT=s  how long to wait out a live Sunshine stream before skipping (default 10800)
 #   GOODNIGHT_NOTIFY=1       desktop notification when a phase fails
+#   GOODNIGHT_REBOOT=1       reboot the hosts the planner says are worth it (else the phase only reports)
+#   GOODNIGHT_REBOOT_WAIT=s  how long a rebooted host has to come back before the run stops (default 600)
+#   GOODNIGHT_REBOOT_SETTLE=s  pause after a host is back, before the next one goes down (default 120)
 set -euo pipefail
 
 state=${GOODNIGHT_STATE:-$HOME/.local/state/goodnight}
@@ -19,7 +22,10 @@ repo=${GOODNIGHT_REPO:-$HOME/nixos}
 checkout=$state/main
 wake_wait=${GOODNIGHT_WAKE_WAIT:-300}
 stream_wait=${GOODNIGHT_STREAM_WAIT:-10800}
-all_phases=(wake deploy audit housekeeping backups)
+reboot_wait=${GOODNIGHT_REBOOT_WAIT:-600}
+reboot_settle=${GOODNIGHT_REBOOT_SETTLE:-120}
+reboot_poll=${GOODNIGHT_REBOOT_POLL:-5}
+all_phases=(wake deploy reboot audit housekeeping backups)
 
 here=$(cd "$(dirname "$0")" && pwd)
 FLEET_JSON=${FLEET_JSON:-/etc/fleet.json}
@@ -29,6 +35,7 @@ nick_of() { jq -r --arg h "$1" '.[$h].nick' "$FLEET_JSON"; }
 me=$(fleet_self "$(hostname)")
 
 audit_cmd=${GOODNIGHT_AUDIT:-$(command -v goodnight-audit || echo "$here/goodnight-audit.sh")}
+reboot_cmd=${GOODNIGHT_REBOOT_PLAN:-$(command -v goodnight-reboot || echo "$here/goodnight-reboot.sh")}
 
 run_on() { # host cmd — locally if it is this host
   if [[ $1 == "$me" ]]; then bash -c "$2"
@@ -145,6 +152,77 @@ phase_deploy() {
   fi
 }
 
+# 0 = the host answered with a new boot id within reboot_wait. A sudo refusal exits 1 at once; a
+# dropped ssh connection (255) is just the reboot taking the link down.
+reboot_and_wait() {
+  local h=$1 before after rc=0
+  before=$(run_on "$h" 'cat /proc/sys/kernel/random/boot_id' 2>/dev/null) || return 1
+  run_on "$h" "${GOODNIGHT_REBOOT_CMD:-sudo -n /run/current-system/sw/bin/systemctl reboot}" >>"$log" 2>&1 || rc=$?
+  (( rc == 0 || rc == 255 )) || return 1
+  local deadline=$((SECONDS + reboot_wait))
+  while (( SECONDS < deadline )); do
+    sleep "$reboot_poll"
+    after=$(run_on "$h" 'cat /proc/sys/kernel/random/boot_id' 2>/dev/null) || continue
+    if [[ -n $after && $after != "$before" ]]; then sleep "$reboot_settle"; return 0; fi
+  done
+  return 1
+}
+
+# Hosts go one at a time, each back and settled before the next goes down: surface and desktop
+# hang each other's soft NFS mounts when they are down together. This host goes last, after the
+# report is written (see cmd_run), because rebooting it ends the run.
+phase_reboot() {
+  local plans lines=() would=() waiting=() notes=() h again
+  if ! plans=$("$reboot_cmd" plan --json 2>>"$log"); then
+    finish reboot fail "the reboot planner itself failed (see log)"
+    return 0
+  fi
+  mapfile -t lines < <(jq -r '.[] | "\(.host): \(.action)" + (if .action == "skip" then " (\(.blocks | join(", ")))"
+    elif .action == "fine" then " (up \(.facts.uptime_days)d)"
+    else " (\(.reasons | join("; ")))" + (if (.blocks | length) > 0 then " [blocked: \(.blocks | join(", "))]" else "" end) end)' <<<"$plans")
+  mapfile -t would < <(jq -r '.[] | select(.action == "reboot") | .host' <<<"$plans")
+  mapfile -t waiting < <(jq -r '.[] | select(.action == "wait") | .host' <<<"$plans")
+
+  if [[ ${GOODNIGHT_REBOOT:-0} != 1 || ${GOODNIGHT_DRY} == 1 ]]; then
+    finish reboot ok "would reboot: ${would[*]:-none}; blocked tonight: ${waiting[*]:-none} (report only, nothing rebooted)" "${lines[@]}"
+    return 0
+  fi
+
+  local rebooted=()
+  for h in "${would[@]}"; do
+    if [[ $h == "$me" ]]; then : > "$sums/self-reboot"; continue; fi
+    # the plan is minutes old by now: a deploy or a stream may have changed the answer
+    again=$("$reboot_cmd" plan --json "$h" 2>>"$log" | jq -r '.[0].action // "unknown"')
+    if [[ $again != reboot ]]; then notes+=("$h: not rebooted, now $again"); continue; fi
+    if reboot_and_wait "$h"; then rebooted+=("$h"); notes+=("$h: rebooted and back")
+    else
+      finish reboot fail "$h did not come back within ${reboot_wait}s; no further host rebooted" "${lines[@]}" "${notes[@]}" "$h: rebooted, no answer (or sudo refused; see log)"
+      return 0
+    fi
+  done
+  [[ ! -e $sums/self-reboot ]] || notes+=("$me: reboots after the report is written")
+  finish reboot ok "rebooted: ${rebooted[*]:-none}${waiting[*]:+; blocked tonight: ${waiting[*]}}" "${lines[@]}" "${notes[@]}"
+}
+
+# Last act of a run. Only reached with the report already on disk, and only when the reboot phase
+# did not fail; refuses while another host is still booting (surface's NFS mounts of this host).
+reboot_self() {
+  [[ -e $sums/self-reboot ]] || return 0
+  local h up
+  [[ $(rank "$(jq -r .status "$sums/reboot.json")") -lt 3 ]] || return 0
+  [[ $("$reboot_cmd" plan --json "$me" 2>>"$log" | jq -r '.[0].action // "unknown"') == reboot ]] \
+    || { echo "goodnight: $me no longer worth rebooting, left up"; return 0; }
+  for h in $(jq -r 'keys[]' "$FLEET_JSON"); do
+    [[ $h == "$me" ]] && continue
+    up=$(run_on "$h" 'cut -d. -f1 /proc/uptime' 2>/dev/null || echo "")
+    if [[ -z $up ]] || (( up < reboot_settle )); then
+      echo "goodnight: $me not rebooted: $h is down or still booting"; return 0
+    fi
+  done
+  echo "goodnight: rebooting $me"
+  sudo -n /run/current-system/sw/bin/systemctl reboot || echo "goodnight: reboot refused"
+}
+
 phase_audit() {
   local rc=0
   "$audit_cmd" >> "$log" 2>&1 || rc=$?
@@ -250,7 +328,7 @@ cmd_run() {
   for a in "$@"; do
     case $a in
       --dry-run) GOODNIGHT_DRY=1 ;;
-      wake|deploy|audit|housekeeping|backups) phases+=("$a") ;;
+      wake|deploy|reboot|audit|housekeeping|backups) phases+=("$a") ;;
       *) echo "goodnight: unknown argument: $a" >&2; exit 2 ;;
     esac
   done
@@ -290,6 +368,7 @@ cmd_run() {
   if [[ $worst == fail && ${GOODNIGHT_NOTIFY:-} == 1 ]] && command -v notify-send >/dev/null; then
     notify-send -u critical "goodnight: a phase failed" "$(jq -r '.phases | to_entries[] | select(.value.status == "fail") | "\(.key): \(.value.summary)"' "$report")" || true
   fi
+  reboot_self
   [[ $worst != fail ]]
 }
 

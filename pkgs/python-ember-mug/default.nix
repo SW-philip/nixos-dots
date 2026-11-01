@@ -83,6 +83,10 @@ python3Packages.buildPythonApplication rec {
 
   build-system = with python3Packages; [ hatchling ];
 
+  # upstream pins bleak<2.2.0; unstable ships 3.x.
+  # drop when: python-ember-mug supports bleak 3.
+  pythonRelaxDeps = [ "bleak" ];
+
   dependencies = with python3Packages; [
     bleak
     bleak-retry-connector

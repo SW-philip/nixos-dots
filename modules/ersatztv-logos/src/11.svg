@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="290" viewBox="0 0 1100 290"><g transform="translate(130 150)" stroke="#22223b" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M-6 -78 C-8 -100 0 -118 18 -126" fill="none" stroke="#3cc04a" stroke-width="18"/>
+  <ellipse cx="-52" cy="8" rx="62" ry="86" fill="#ff8a1f"/>
+  <ellipse cx="52" cy="8" rx="62" ry="86" fill="#ff8a1f"/>
+  <ellipse cx="0" cy="8" rx="56" ry="90" fill="#ff8a1f"/>
+  <path d="M-62 -24 L-28 -24 L-45 -54 Z" fill="#ffd21f"/>
+  <path d="M28 -24 L62 -24 L45 -54 Z" fill="#ffd21f"/>
+  <path d="M-8 2 L8 2 L0 -14 Z" fill="#ffd21f" stroke-width="6"/>
+  <path d="M-74 22 Q0 70 74 22 L56 30 L46 48 L30 36 L14 56 L0 40 L-14 56 L-30 36 L-46 48 L-56 30 Z" fill="#ffd21f"/>
+</g><text x="267" y="187" font-family="Nunito" font-weight="900" font-size="112" letter-spacing="2" fill="#22223b" stroke="#22223b" stroke-width="16" stroke-linejoin="round">HALLOWEEN</text><text x="260" y="180" font-family="Nunito" font-weight="900" font-size="112" letter-spacing="2" stroke="#22223b" stroke-width="16" stroke-linejoin="round" paint-order="stroke"><tspan fill="#ff8a1f">H</tspan><tspan fill="#8a4dff">A</tspan><tspan fill="#3cc04a">L</tspan><tspan fill="#ff8a1f">L</tspan><tspan fill="#8a4dff">O</tspan><tspan fill="#3cc04a">W</tspan><tspan fill="#ff8a1f">E</tspan><tspan fill="#8a4dff">E</tspan><tspan fill="#3cc04a">N</tspan></text></svg>

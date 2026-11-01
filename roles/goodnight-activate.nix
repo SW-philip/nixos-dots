@@ -1,6 +1,7 @@
 # The privileged half of the nightly deploy (scripts/goodnight-activate.sh): one NOPASSWD rule for
-# a wrapper that only switches this host to its own system closure. Every host, so deploy-all can
-# activate non-interactively and surface can be deployed from desktop.
+# a wrapper that only switches this host to its own system closure, plus a plain `systemctl
+# reboot` for goodnight's reboot phase. Every host, so deploy-all can activate non-interactively
+# and surface can be deployed from desktop.
 { config, pkgs, ... }:
 let
   activate = pkgs.writeShellApplication {
@@ -14,9 +15,10 @@ in
 
   security.sudo.extraRules = [{
     users = [ "prepko" ];
-    commands = [{
-      command = "/run/current-system/sw/bin/goodnight-activate";
-      options = [ "NOPASSWD" ];
-    }];
+    commands = [
+      { command = "/run/current-system/sw/bin/goodnight-activate"; options = [ "NOPASSWD" ]; }
+      # goodnight's reboot phase; sudoers matches the arguments exactly, so only a plain reboot
+      { command = "/run/current-system/sw/bin/systemctl reboot"; options = [ "NOPASSWD" ]; }
+    ];
   }];
 }

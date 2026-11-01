@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# yt-curate.sh <collection> — download a hand-picked list of videos into a
+# yt-curate.sh <collection> [--dry-run] [url...] — download a hand-picked list of videos into a
 # Jellyfin library folder. The list is plain text, one URL per line ('#'
 # comments and blank lines ignored), at $LIST_DIR/<collection>.txt.
 # Put "# dest: bumpers/foo" in the list to file it under $DEST_ROOT/bumpers/foo
@@ -11,6 +11,9 @@
 #   yt-curate.sh clem-brain-breaks
 #   yt-curate.sh hen-music-videos --dry-run
 #
+# Given URLs, only those lines of the list are fetched (tv-add passes the
+# ones it just listed, so a rerun doesn't walk every playlist again).
+#
 # Only URLs on the list are fetched (--no-playlist unless the line is itself
 # a playlist you chose). Whole videos use a per-collection download archive;
 # cuts skip when <label>.mkv already exists. A failed line is reported and
@@ -20,8 +23,13 @@ set -euo pipefail
 LIST_DIR="${LIST_DIR:-$HOME/nixos/assets/yt-curate}"
 DEST_ROOT="${DEST_ROOT:-/srv/Videos/kid_and_henry}"
 
-collection="${1:?usage: yt-curate.sh <collection> [--dry-run]}"
-dry="${2:-}"
+collection="${1:?usage: yt-curate.sh <collection> [--dry-run] [url...]}"
+shift
+dry=""
+only=()
+for arg; do
+  [[ "$arg" == "--dry-run" ]] && dry="$arg" || only+=("$arg")
+done
 list="$LIST_DIR/$collection.txt"
 # a "# dest: bumpers/monster-jam" line in the list picks the subfolder
 sub="$(sed -nE 's/^#\s*dest:\s*(\S+).*/\1/p' "$list" | head -1)"
@@ -49,6 +57,9 @@ while IFS= read -r line; do
   label="${line#*#}"; [[ "$line" == *'#'* ]] || label=""
   read -r url span _ <<<"${line%%#*}"
   [[ -n "$url" ]] || continue
+  if ((${#only[@]})); then
+    printf '%s\n' "${only[@]}" | grep -qxF -- "$url" || continue
+  fi
   label="$(sed -E 's/^\s+|\s+$//g' <<<"$label")"
 
   if [[ "${span:-}" =~ ^[0-9]+-[0-9]+$ ]]; then

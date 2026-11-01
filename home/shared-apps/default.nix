@@ -119,7 +119,7 @@ in
         name = "Kdenlive";
         icon = "kdenlive";
         exec = [ "kdenlive" ];
-        hosts = [ "surface" ];
+        hosts = [ "desktop" "surface" ];
       };
       # zed forwards a second launch to the running instance over its own IPC; a separate data dir avoids that
       "dev.zed.Zed" = {

@@ -42,6 +42,8 @@ let
       ads = anyFolder [ "spots-90s" "spots-2000s" "spots-october" ];
       adCount = 3;
     };
+    # the channel is already songs and brain breaks, so ads alone
+    halloween.ads = anyFolder [ "spots-halloween" ];
     # "coming attractions" between movies: VHS-tape preview reels, split
     cinema = {
       ads = folder "trailers";
@@ -78,6 +80,14 @@ let
       filler = "big";
     };
     "10" = { name = "Español"; query = folder "spanish"; };
+    # NOT commercials: the unsplit compilations sit in commercials/halloween.
+    # other_video: NFO tags are tags too, and Are You Afraid of the Dark?'s
+    # tvshow.nfo carries `halloween`
+    "11" = {
+      name = "Halloween";
+      query = "type:other_video AND ${folder "halloween"} AND NOT ${folder "commercials"}";
+      filler = "halloween";
+    };
 
     # grown-ups: library 1 is kid_and_henry/movies
     "21" = { name = "Movie Night"; query = "type:movie AND NOT library_id:1"; filler = "cinema"; };
@@ -187,7 +197,7 @@ in
   };
 
   # Channel logos, served for each channel's External Logo URL:
-  # http://localhost:<ersatztv-logos>/<number>.png (1–10 are drawn: src/*.svg,
+  # http://localhost:<ersatztv-logos>/<number>.png (1–11 are drawn: src/*.svg,
   # Nunito Black, rendered with rsvg-convert). Uploaded logos live in
   # ErsatzTV's artwork cache, and its hourly orphaned-artwork cleanup deleted
   # them twice; an external URL never enters the cache.

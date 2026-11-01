@@ -553,13 +553,12 @@ in
     btop.enable      = true;
     yazi = { enable = true; shellWrapperName = "yy"; };
     zoxide.enable    = true;
-    # Atuin owns Ctrl-R. On release-26.05 (surface) this falls out of
-    # load order: fzf's zsh integration runs at mkOrder 910, before atuin's
-    # default-order (1000) init, so atuin's bindkey wins. home-manager-unstable
-    # (desktop) additionally warns unless fzf's own Ctrl-R binding is disabled
-    # explicitly, so state the ownership outright rather than rely on ordering.
+    # Atuin owns Ctrl-R. Load order already lets atuin's bindkey win (fzf's zsh
+    # init is mkOrder 910, atuin's 1000), but home-manager warns unless fzf's
+    # own binding is disabled, so state the ownership outright.
     fzf = {
       enable = true;
+      historyWidget.command = "";
     };
     gpg.enable       = true;
   };

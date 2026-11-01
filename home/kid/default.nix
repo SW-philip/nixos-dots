@@ -97,6 +97,7 @@ in
   dconf.settings."org/gnome/epiphany".ask-for-default = false;
 
   home.pointerCursor = {
+    enable     = true;
     name       = "posys_cursor_scalable";
     package    = inputs.posys-cursor.packages.${pkgs.stdenv.hostPlatform.system}.default;
     size       = 32;   # logical px; niri renders the seat cursor at 48 on the 2.0 panel

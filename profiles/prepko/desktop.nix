@@ -32,11 +32,19 @@
     ../../home/pegasus
     ../../home/bluetooth-idle-notify.nix
     ../../home/archive.nix
+    ../../home/overnight-notify.nix
   ];
 
   home.pointerCursor.size = lib.mkForce 24;
 
   goodnight.deploy.enable = true;
+  goodnight.reboot.enable = true;
+
+  # archive.nix wires icloud-pull and drive-pull itself (they carry a failure hint)
+  overnight.notify = {
+    enable = true;
+    units = [ "goodnight" "claude-tidy" "flake-check" "pi-git-mirror" ];
+  };
 
   ########################################
   # Fix nrs alias — hostname SWphil != flake attr desktop.
@@ -79,17 +87,13 @@
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  # home-manager-unstable's fzf module (unlike surface's release-26.05
-  # pin) warns unless fzf's own Ctrl-R binding is disabled explicitly, even
-  # though load order already lets atuin win — see base.nix's programs.fzf
-  # comment for the full ownership rationale.
-  programs.fzf.historyWidget.command = "";
-
   # pasted YouTube URLs carry ? and &, which zsh would glob
   programs.zsh.shellAliases.tv-add = "noglob tv-add";
+  programs.zsh.shellAliases.tv-ads = "noglob tv-ads";
 
   home.packages = with pkgs; [
     orch
+    kdePackages.kdenlive
     wayland-utils
     ydotool
     vulkan-tools
@@ -100,6 +104,9 @@
     helio-workstation hydrogen
     (writeShellScriptBin "tv-add" ''
       exec ~/nixos/scripts/tv-add.sh "$@"
+    '')
+    (writeShellScriptBin "tv-ads" ''
+      exec ~/nixos/scripts/tv-ads.sh "$@"
     '')
   ];
 }

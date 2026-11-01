@@ -4,6 +4,8 @@
 # between ads. Spots land in <outdir>/<source name>/NNN.mkv. Segments shorter
 # than MIN or longer than MAX seconds are skipped (slates, joined programmes).
 # Already-split sources (their folder exists) are skipped; delete it to redo.
+# CUTS=silence cuts at audio gaps instead, for uploads that edited the black
+# out and run ads back to back.
 #
 #   split-commercials.sh /srv/Videos/kid_and_henry/commercials-split/spots-kids \
 #     /srv/Videos/kid_and_henry/commercials/nick-cn
@@ -11,6 +13,7 @@ set -euo pipefail
 
 MIN="${MIN:-4}"
 MAX="${MAX:-180}"
+CUTS="${CUTS:-black}"
 
 out="${1:?usage: split-commercials.sh <outdir> <video|dir>...}"
 shift
@@ -40,12 +43,20 @@ split() {
   [[ -d "$dir" ]] && { echo "skip (done): $name"; return; }
 
   dur="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$src" </dev/null)"
-  # midpoint of each black gap is the cut
-  mapfile -t cuts < <(
-    ffmpeg -hide_banner -nostats -nostdin -i "$src" -vf "blackdetect=d=0.08:pix_th=0.12" -an -f null - 2>&1 |
-      grep -oE 'black_start:[0-9.]+ black_end:[0-9.]+' |
-      awk -F'[: ]' '{ printf "%.3f\n", ($2 + $4) / 2 }'
-  )
+  # midpoint of each black (or silent) gap is the cut
+  if [[ "$CUTS" == silence ]]; then
+    mapfile -t cuts < <(
+      ffmpeg -hide_banner -nostats -nostdin -i "$src" -vn -af "silencedetect=noise=-40dB:d=0.25" -f null - 2>&1 |
+        grep -oE 'silence_end: [0-9.]+ \| silence_duration: [0-9.]+' |
+        awk '{ printf "%.3f\n", $2 - $5 / 2 }'
+    )
+  else
+    mapfile -t cuts < <(
+      ffmpeg -hide_banner -nostats -nostdin -i "$src" -vf "blackdetect=d=0.08:pix_th=0.12" -an -f null - 2>&1 |
+        grep -oE 'black_start:[0-9.]+ black_end:[0-9.]+' |
+        awk -F'[: ]' '{ printf "%.3f\n", ($2 + $4) / 2 }'
+    )
+  fi
   cuts=(0 "${cuts[@]}" "$dur")
 
   # work in .partial so an interrupted source isn't skipped as done next run

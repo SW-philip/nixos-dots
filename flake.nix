@@ -1,5 +1,5 @@
 {
-  description = "NixOS flake: desktop (unstable) + surface, retro, pi (26.05)";
+  description = "NixOS flake: desktop + surface (unstable), retro + pi (26.05)";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -109,7 +109,7 @@
     };
     checks.aarch64-linux.pi = self.nixosConfigurations.pi.config.system.build.toplevel;
     nixosConfigurations = {
-      surface = nixpkgs.lib.nixosSystem {
+      surface = nixpkgs-unstable.lib.nixosSystem {
         inherit system;
         specialArgs = {
           inherit inputs;
@@ -123,7 +123,7 @@
           inputs.nirinit.nixosModules.nirinit
           ./hosts/surface/config.nix
           ./cachix.nix
-          home-manager.nixosModules.home-manager
+          home-manager-unstable.nixosModules.home-manager
           hmBase
           hmPrepkoSurface
           hmKid

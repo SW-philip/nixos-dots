@@ -4,6 +4,8 @@ let
   # sops, not literals: make-public.sh's leak gate rejects any gmail address in the tree.
   secret = name: osConfig.sops.secrets.${name}.path;
 
+  overnight = import ../modules/overnight-package.nix { inherit pkgs; };
+
   # Re-runnable: icloudpd skips anything already on disk.
   icloud-pull = pkgs.writeShellApplication {
     name = "icloud-pull";
@@ -144,6 +146,7 @@ let
       Unit = {
         Description = desc;
         OnFailure = "${name}-failed.service";
+        OnSuccess = "overnight-ok@${name}.service";
         StartLimitIntervalSec = 3600;
         StartLimitBurst = 6;
       };
@@ -164,10 +167,10 @@ let
       Install.WantedBy = [ "timers.target" ];
     };
     services."${name}-failed" = {
-      Unit.Description = "Notify that ${name} failed";
+      Unit.Description = "Record that ${name} failed";
       Service = {
         Type = "oneshot";
-        ExecStart = "${pkgs.libnotify}/bin/notify-send -u critical ${name} '${failMsg}'";
+        ExecStart = "${overnight}/bin/overnight record user ${name} fail ${lib.escapeShellArg failMsg}";
       };
     };
   };

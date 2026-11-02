@@ -35,6 +35,8 @@ in
   sops.secrets.syncthing_key  = { sopsFile = ../secrets/shared.yaml; key = "syncthing_${self}_key";  owner = user; restartUnits = [ "syncthing.service" ]; };
   sops.secrets.syncthing_cert = { sopsFile = ../secrets/shared.yaml; key = "syncthing_${self}_cert"; owner = user; restartUnits = [ "syncthing.service" ]; };
 
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ ports.syncthing-sync ];
+
   services.syncthing = {
     enable = true;
     user = user;

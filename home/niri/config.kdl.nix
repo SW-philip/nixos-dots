@@ -270,7 +270,7 @@ window-rule {
 window-rule {
     match app-id="dev.prepko.quivr"
     open-floating true
-    default-column-width { fixed 880; }
+    default-column-width { fixed 1100; }
     default-window-height { fixed 520; }
     geometry-corner-radius 0
     clip-to-geometry true

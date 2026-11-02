@@ -12,6 +12,7 @@ let
     ./emulator-ffmpeg7.nix
     ./niri-session-env.nix
     ./go-librespot.nix
+    ./squeekboard.nix
   ];
 in
 prev.lib.composeManyExtensions overlays final prev

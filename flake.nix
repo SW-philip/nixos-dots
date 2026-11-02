@@ -102,6 +102,7 @@
       dsa-plymouth     = (pkgsFor system).dsa-plymouth;
       niri-bridge      = (pkgsFor system).niri-bridge;
     };
+    formatter.${system} = (pkgsFor system).nixfmt;
     checks.${system} = {
       surface = self.nixosConfigurations.surface.config.system.build.toplevel;
       desktop = self.nixosConfigurations.desktop.config.system.build.toplevel;

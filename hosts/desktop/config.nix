@@ -215,7 +215,7 @@ in
   # /srv/game-saves are both world-readable/writable so the exact numbers
   # don't matter) gives every NFS client a consistent identity regardless of
   # its own local uid/gid mapping. No firewall rule needed — tailscale0 is
-  # already a trustedInterface (modules/tailscale.nix).
+  # opened on tailscale0 below.
   #
   # /srv/game-saves is exported read-WRITE (unlike roms) so surface's two
   # accounts write shared saves back to the single copy here. Same
@@ -232,6 +232,7 @@ in
   # /srv is nofail so local-fs.target doesn't wait for it, and its spinning-disk
   # mount takes ~3s: without this nfs-server came up ~1.4s before /srv existed.
   systemd.services.nfs-server.after = [ "srv.mount" ];
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 2049 ];
   services.nfs.server = {
     enable = true;
     exports = ''

@@ -82,6 +82,12 @@ in
     };
   };
 
+  # Offsets are Sunshine's fixed layout from the base port (see `derived` in hosts/ports.nix).
+  networking.firewall.interfaces.tailscale0 = {
+    allowedTCPPorts = map (o: ports.sunshine + o) [ (-5) 0 1 21 ];
+    allowedUDPPorts = map (o: ports.sunshine + o) [ 9 10 11 13 ];
+  };
+
   services.sunshine = {
     enable = true;
     autoStart = true;
@@ -89,8 +95,7 @@ in
     # hands frames to NVENC via CUDA), so it falls back to hevc_vulkan, which
     # was giving wrong colours.
     package = pkgs.sunshine.override { cudaSupport = true; };
-    # tailscale0 is a trustedInterface (modules/tailscale.nix, same model as
-    # every other remote service here) -- no LAN/WAN ports needed.
+    # Opened on tailscale0 only (above); never on the LAN.
     openFirewall = false;
 
     # niri's portal config (home/niri/default.nix's niri-portals.conf) never

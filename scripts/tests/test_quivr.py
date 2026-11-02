@@ -31,6 +31,12 @@ class Once(unittest.TestCase):
         self.assertIn("alpha", r.stdout)
         self.assertIn("reconnecting", r.stdout)
 
+    def test_once_draws_a_two_column_grid_with_history(self):
+        r = self.run_once("alpha beta", f'echo "{LINE}"\necho "{LINE}"\nexec sleep 30\n')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(any("alpha" in ln and "beta" in ln for ln in r.stdout.split("\n")), r.stdout)
+        self.assertRegex(r.stdout, "cpu +[▁▂▃▄▅▆▇█]")
+
 
 DETAIL = """@frame 1000
 core 0 20
@@ -99,5 +105,37 @@ class TopCommand(unittest.TestCase):
         self.assertEqual(cmd[:2], ["sh", "-c"])
 
 
+class FirstSampleSkipped(unittest.TestCase):
+    def setUp(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+    def test_first_sample_of_a_stream_is_shown_not_recorded(self):
+        import quivr
+        from test_quivr_view import LINE
+        h = quivr.History()
+        r = quivr.SampleReader(h)
+        self.assertIsNotNone(r.feed(LINE))
+        self.assertEqual(len(h.snapshot()["cpu"]), 0)
+        r.feed(LINE)
+        self.assertEqual(len(h.snapshot()["cpu"]), 1)
+        r.new_stream()
+        self.assertIsNotNone(r.feed(LINE))
+        self.assertEqual(h.snapshot()["cpu"], [38, None])
+
+    def test_reconnect_leaves_a_gap_marker(self):
+        import quivr
+        from test_quivr_view import LINE
+        h = quivr.History()
+        r = quivr.SampleReader(h)
+        r.new_stream()
+        r.feed(LINE)
+        r.feed(LINE)
+        r.new_stream()
+        r.feed(LINE)
+        r.feed(LINE)
+        self.assertEqual(h.snapshot()["cpu"], [38, None, 38])
+
+
 if __name__ == "__main__":
     unittest.main()
+

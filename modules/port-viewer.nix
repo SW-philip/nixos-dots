@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, options, pkgs, ... }:
 let
   # Fixed read-only command run as root via pkexec. Takes no arguments and
   # ignores its environment; the store path is immutable, so the polkit action
@@ -32,12 +32,17 @@ in
   ];
 
   # auth_admin (not _keep): every run asks again. Local, active, wheel only.
-  security.polkit.extraConfig = ''
-    polkit.addRule(function(action, subject) {
-      if (action.id === "${action}" &&
-          !(subject.local && subject.active && subject.isInGroup("wheel"))) {
-        return polkit.Result.NO;
-      }
-    });
-  '';
+  security.polkit = {
+    extraConfig = ''
+      polkit.addRule(function(action, subject) {
+        if (action.id === "${action}" &&
+            !(subject.local && subject.active && subject.isInGroup("wheel"))) {
+          return polkit.Result.NO;
+        }
+      });
+    '';
+  } // lib.optionalAttrs (options.security.polkit ? enablePkexecWrapper) {
+    # newer nixpkgs made the setuid pkexec wrapper opt-in; without it pkexec dies "must be setuid root"
+    enablePkexecWrapper = true;
+  };
 }

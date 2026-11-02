@@ -12,8 +12,9 @@ import threading
 import time
 import tty
 
+from quivr_cards import History, render_frame
 from quivr_detail import FrameReader, handle_key, parse_key, render_detail
-from quivr_view import make_colours, parse_sample, render_frame
+from quivr_view import make_colours, parse_sample
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOSTS = os.environ.get("QUIVR_HOSTS", "desktop surface retro pi").split()
@@ -50,8 +51,22 @@ def top_command(host):
 
 
 class SampleReader:
+    def __init__(self, history):
+        self.history = history
+        self.first = True
+
+    def new_stream(self):
+        self.first = True
+        self.history.mark_gap()
+
     def feed(self, line):
-        return parse_sample(line)
+        s = parse_sample(line)
+        if s is not None:
+            # The sampler's first line spans a 0.2 s window, so its net/cpu are not comparable.
+            if not self.first:
+                self.history.push(s)
+            self.first = False
+        return s
 
 
 class StreamFeed(threading.Thread):
@@ -79,6 +94,8 @@ class StreamFeed(threading.Thread):
         delay = 2
         while not self.stopping.is_set():
             cmd, stdin = self.command()
+            if hasattr(self.reader, "new_stream"):
+                self.reader.new_stream()
             try:
                 self.proc = subprocess.Popen(cmd, stdin=stdin or subprocess.DEVNULL, stdout=subprocess.PIPE,
                                              stderr=subprocess.DEVNULL, text=True)
@@ -109,13 +126,13 @@ class StreamFeed(threading.Thread):
 
 class HostFeed(StreamFeed):
     def __init__(self, host):
-        super().__init__(host, SAMPLER, SampleReader())
+        self.history = History()
+        super().__init__(host, SAMPLER, SampleReader(self.history))
 
     def row(self, now):
         s, at = self.latest()
-        if s is not None and now - at <= STALE_S:
-            return (self.host, "up", s)
-        return (self.host, "wait", None)
+        state = "up" if s is not None and now - at <= STALE_S else "wait"
+        return (self.host, state, s if state == "up" else None, self.history.snapshot())
 
 
 class DetailFeed(StreamFeed):

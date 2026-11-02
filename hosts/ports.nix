@@ -22,6 +22,7 @@ let
     syncthing-sync = 22000;
     sunshine = 47989; # base port; the derived ones are below
     kid-dashboard = 47823;
+    niri-bridge = 42420; # upstream default; desktop<->surface edge hand-off over the tailnet
   };
 
   # Ports a service takes implicitly. Not referenced elsewhere; listed so a

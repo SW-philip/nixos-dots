@@ -115,7 +115,7 @@ in
   ############################################################
   # Firewall
   # Jellyfin and iptv-serve are NOT in global allowedTCPPorts — access is via:
-  #   tailscale0 (trusted interface, all ports open)
+  #   tailscale0 (per-service ports: syncthing, sunshine, nfs, niri-bridge)
   #   enp4s0 (LAN, explicit allow below; jellyfin only from the Rokus)
   ############################################################
   networking.firewall.interfaces."enp4s0".allowedTCPPorts =

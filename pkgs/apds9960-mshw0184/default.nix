@@ -1,7 +1,7 @@
 # Out-of-tree build of the in-tree apds9960 driver with MSHW0184 fixes (see
 # mshw0184.patch). Built as its own module so the stock apds9960 can be
 # blacklisted instead of relying on depmod search order.
-{ stdenv, lib, kernel }:
+{ stdenv, lib, kernel, kernelModuleMakeFlags }:
 
 stdenv.mkDerivation {
   pname = "apds9960-mshw0184";
@@ -24,13 +24,16 @@ stdenv.mkDerivation {
 
   hardeningDisable = [ "pic" ];
 
-  buildPhase = ''
-    make -C ${kernel.dev}/lib/modules/${kernel.modDirVersion}/build M=$PWD modules
-  '';
-
-  installPhase = ''
-    install -D -t $out/lib/modules/${kernel.modDirVersion}/extra apds9960_mshw0184.ko
-  '';
+  # modules_install, not a hand-copied .ko: nixpkgs signs modules with kmodigest
+  # and the modules tree expects a .ko.cer next to every module.
+  makeFlags = kernelModuleMakeFlags ++ [
+    "-C"
+    "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
+    "M=$(PWD)"
+    "INSTALL_MOD_PATH=${placeholder "out"}"
+  ];
+  buildFlags = [ "modules" ];
+  installTargets = [ "modules_install" ];
 
   meta = {
     description = "apds9960 ALS driver fixed for the Surface MSHW0184 sensor";

@@ -19,6 +19,7 @@ python3Packages.buildPythonApplication {
     pygobject3
     requests
     samsungtvws
+    yarl  # samsungtvws 3.x imports it but nixpkgs does not propagate it
   ];
 
   buildInputs = [ gtk4 libadwaita adwaita-icon-theme ];

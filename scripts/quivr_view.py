@@ -1,6 +1,5 @@
-"""quivr pure view code: sample parsing, formatting, heat colours, overview rendering."""
+"""quivr pure view code: sample parsing, formatting, heat colours."""
 import re
-import time
 
 PALETTE_TOKENS = {"dim": "REST", "accent": "ROOT", "warm": "FERMATA", "loud": "FORTE"}
 HEAT_STOPS = (("dim", 0.0), ("accent", 0.35), ("warm", 0.70), ("loud", 1.0))
@@ -107,35 +106,3 @@ def bar(pct, width=10, c=None):
 
 def heat_text(text, pos, c):
     return f"{c.heat(pos)}{text}{c.rs}"
-
-
-def render_row(name, state, s, c, compact=False, selected=False):
-    marker = f"{c.accent}▸{c.rs} " if selected else "  "
-    label = f"{name:<8}"
-    if state != "up" or s is None:
-        text = "reconnecting…" if state == "wait" else "no data"
-        return f"{marker}{c.dim}○ {label} {text}{c.rs}"
-    mem_pct = 100 * s["mem_used"] // max(1, s["mem_total"])
-    cpu = f"{bar(s['cpu'], 10, c)} {heat_text(f'{s['cpu']:>3}%', s['cpu'] / 100, c)}"
-    mem = f"{bar(mem_pct, 10, c)} {heat_text(f'{fmt_mem(s['mem_used'], s['mem_total']):<9}', mem_pct / 100, c)}"
-    load = heat_text(f"{s['load']:>5.2f}", norm(s["load"] / s["cpus"], 0, 1), c)
-    if s["temp"] is None:
-        temp = f"{c.dim} —{c.rs}"
-    else:
-        temp = heat_text(f"{s['temp']:>3}°", norm(s["temp"], 30, 90), c)
-    name_col = f"{c.bold if selected else ''}{label}{c.rs if selected else ''}"
-    parts = [f"{marker}{c.accent}●{c.rs} {name_col}", f"cpu {cpu}", f"mem {mem}", f"load {load}", temp]
-    if not compact:
-        parts += [f"↓{fmt_rate(s['rx']):>5} ↑{fmt_rate(s['tx']):>5}",
-                  f"disk {heat_text(f'{s['disk']:>3}%', s['disk'] / 100, c)}"]
-    parts.append(f"up {fmt_uptime(s['up']):>3}")
-    return " ".join(parts)
-
-
-def render_frame(rows, now, c, width, selected=None):
-    compact = width < 105
-    lines = [f"{c.accent}quivr{c.rs}  {c.dim}{time.strftime('%H:%M:%S', time.localtime(now))}{c.rs}", ""]
-    lines += [render_row(name, state, s, c, compact, selected == i) for i, (name, state, s) in enumerate(rows)]
-    lines += ["", f"{c.dim}↑↓ select  ⏎ detail  q quit{c.rs}",
-              f"{c.accent}1{c.rs} ship  {c.dim}→{c.rs}  {c.accent}2{c.rs} deploy  {c.dim}→{c.rs}  {c.accent}3{c.rs} release"]
-    return "\n".join(lines)

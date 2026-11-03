@@ -5,24 +5,16 @@
     default = "Welcome.";
   };
 
-  options.greetd.greeterPalette = lib.mkOption {
-    type    = lib.types.enum [ "theme" "dsa" ];
-    default = "theme";
-    description = ''
-      Palette for the greeter: "theme" follows the live desktop palette
-      (palette.sh, same as the lock screen), "dsa" is the fixed
-      cream/charcoal/rust DSA preset. tuigreet remains the last-resort
-      fallback regardless of this setting -- see tuigreetLaunch below.
-    '';
+  options.greetd.tvOutput = lib.mkOption {
+    type    = lib.types.nullOr lib.types.str;
+    default = null;
+    description = "Connector of a 4K TV the greeter scales to 3, so GTK4 renders at couch-readable size.";
   };
 
   config =
     let
-      # Fallback greeter — KEEP THIS DEFINED. To recover from a broken
-      # greeter: set default_session.command =
-      # "${tuigreetLaunch}" and nrs (or boot the previous generation /
-      # Ctrl+Alt+F2 -> tty2 to revert).
-
+      home = config.users.users.${config.myConfig.user}.home;
+      nvidia = config.hardware.nvidia.enabled;
       # The Surface panel is HiDPI but the greeter's outputs stay at scale 1 (GDK_SCALE
       # only supersamples, it doesn't enlarge). So pass a real UI multiplier that
       # scales the greeter's logical sizes. Desktop stays 1x.
@@ -52,7 +44,7 @@
       # so point it here directly — new sessions then appear with no greeter change.
       sessionsDir = "${config.services.displayManager.sessionData.desktops}/share/wayland-sessions";
       # The greeter session: wrapped with idle/DPMS via swayidle+wlopm, the
-      # HDMI-A-1 scale-3 workaround, cursor env, WLR_DRM_NO_ATOMIC, and
+      # desktop TV's scale-3 workaround, cursor env, the NVIDIA workarounds, and
       # systemd-cat journaling.
       greeterSession = pkgs.writeShellScript "greeter-session" ''
         # -d logs every timeout/resume trigger + command it runs to the
@@ -63,12 +55,12 @@
           timeout 120 '${pkgs.wlopm}/bin/wlopm --off "*"' \
           resume     '${pkgs.wlopm}/bin/wlopm --on  "*"' \
           ${suspendIdle}&
-        # Set the 4K TV to scale 3 so GTK4 renders at couch-readable size.
-        # wlr-randr uses wlr_output_management_v1; exits silently if not connected.
-        ${pkgs.wlr-randr}/bin/wlr-randr --output HDMI-A-1 --scale 3 2>/dev/null || true
-        ${lib.getExe pkgs.greeter} --scale ${uiScale} --field-scale ${fieldScale} \
-          --palette ${config.greetd.greeterPalette} \
-          --sessions-dir ${sessionsDir} --default-user prepko
+        ${lib.optionalString (config.greetd.tvOutput != null) ''
+          # wlr-randr uses wlr_output_management_v1; exits silently if not connected.
+          ${pkgs.wlr-randr}/bin/wlr-randr --output ${config.greetd.tvOutput} --scale 3 2>/dev/null || true
+        ''}        ${lib.getExe pkgs.greeter} --scale ${uiScale} --field-scale ${fieldScale} \
+          --palette theme \
+          --sessions-dir ${sessionsDir} --default-user ${config.myConfig.user}
       '';
       # Kiosk sway: no bar, no xwayland, the greeter is the only client. When the
       # greeter exits (successful login) sway must exit too, or greetd never
@@ -83,24 +75,24 @@
         export XCURSOR_THEME=posys_cursor_scalable
         export XCURSOR_PATH=${posysCursor}/share/icons
         export XCURSOR_SIZE=${cursorSize}
-        # NVIDIA multi-head: atomic DRM commits time out (~40s per connector) when
-        # more than one monitor is connected, causing the compositor to spin until
-        # greetd kills it. Legacy drmModeSetCrtc per-connector is reliable.
-        export WLR_DRM_NO_ATOMIC=1
-        # greetd hands this script the bare login VT as stderr, so sway's
+        ${lib.optionalString nvidia ''
+          # NVIDIA multi-head: atomic DRM commits time out (~40s per connector) when
+          # more than one monitor is connected, causing the compositor to spin until
+          # greetd kills it. Legacy drmModeSetCrtc per-connector is reliable.
+          export WLR_DRM_NO_ATOMIC=1
+        ''}        # greetd hands this script the bare login VT as stderr, so sway's
         # wlroots startup logs and the greeter's output print onto the
         # handover screen before sway grabs DRM. systemd-cat routes both to
         # the journal (journalctl -t greeter) instead — sway opens
         # DRM via libseat/logind, not stdio, so redirecting stderr is harmless.
         # --unsupported-gpu: sway refuses the proprietary NVIDIA driver without it.
         exec ${pkgs.systemd}/bin/systemd-cat -t greeter \
-          ${pkgs.sway}/bin/sway --unsupported-gpu -c ${swayConfig}
+          ${pkgs.sway}/bin/sway ${lib.optionalString nvidia "--unsupported-gpu "}-c ${swayConfig}
       '';
     in
     {
       # world-writable so drmis (running as the login user) can update them
       systemd.tmpfiles.rules = [
-        "f /run/tuigreet-theme 0666 greeter greeter -"
         "d /run/greeter 0755 greeter greeter -"
         "f /run/greeter/palette.sh 0666 greeter greeter -"
       ];
@@ -115,12 +107,12 @@
         wantedBy = [ "multi-user.target" ];
         before   = [ "greetd.service" ];
         after    = [ "systemd-tmpfiles-setup.service" "local-fs.target" ];
-        unitConfig.ConditionPathExists = "/home/${config.myConfig.user}/.config/waybar/palette.sh";
+        unitConfig.ConditionPathExists = "${home}/.config/waybar/palette.sh";
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           ExecStart = "${pkgs.coreutils}/bin/install -m0666 -o greeter -g greeter "
-            + "/home/${config.myConfig.user}/.config/waybar/palette.sh /run/greeter/palette.sh";
+            + "${home}/.config/waybar/palette.sh /run/greeter/palette.sh";
         };
       };
 
@@ -130,12 +122,12 @@
         before   = [ "greetd.service" ];
         after    = [ "systemd-tmpfiles-setup.service" "local-fs.target" ];
         unitConfig.ConditionPathExists =
-          "/home/${config.myConfig.user}/.local/state/wallpaper-img";
+          "${home}/.local/state/wallpaper-img";
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
           ExecStart = "${pkgs.coreutils}/bin/install -m0644 -o greeter -g greeter "
-            + "/home/${config.myConfig.user}/.local/state/wallpaper-img /run/greeter/wallpaper-img";
+            + "${home}/.local/state/wallpaper-img /run/greeter/wallpaper-img";
         };
       };
 
@@ -144,8 +136,8 @@
         settings.default_session = {
           # greetd provides no compositor; run the GTK greeter inside sway (kiosk).
           # greeterLaunch wraps sway to set the per-host display scale.
-          # To recover from a broken greeter: set this to "${tuigreetLaunch}"
-          # and nrs (or boot the previous generation / Ctrl+Alt+F2 -> tty2).
+          # To recover from a broken greeter: boot the previous generation, or
+          # Ctrl+Alt+F2 -> tty2 and revert.
           command = "${greeterLaunch}";
           user = "greeter";
         };

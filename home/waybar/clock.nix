@@ -1,8 +1,7 @@
 { config, pkgs, lib, ... }:
 
 let
-  bar = if config.waybar.barName != "" then config.waybar.barName
-        else config.waybar.secondaryBar;
+  bar = config.waybar.secondaryBar;
 
   clockScript = pkgs.writeShellScriptBin "quantum-clock" ''
     exec ${pkgs.python3}/bin/python3 ${config.home.homeDirectory}/.config/waybar/scripts/quantum_clock.py "$@"

@@ -431,7 +431,6 @@ let
       firefoxCss     = pkgs.writeText "firefox-chrome-${slug}.css"      (import ../firefox/userChrome.css.nix  t.palette);
       userContentCss = pkgs.writeText "firefox-content-${slug}.css"     (import ../firefox/userContent.css.nix t.palette);
       pandora        = pkgs.writeText "pandora-${slug}.kdl"             (mkPandoraCfg pandoraWallpaper);
-      tuigreetTheme  = mkTuigreetTheme t.palette;
       inherit wallpaperFallback wallpaperLiveDir;
       fastfetchLogo   = mkFastfetchLogo   { inherit t pkgs lib; };
       nixMark         = mkNixMark        { inherit t pkgs lib; };
@@ -446,7 +445,7 @@ let
 
   mkPandoraCfg = wallpaper:
     if config.myConfig.isDesktop then ''
-      output "DP-1" {
+      output "DP-3" {
           image "${wallpaper}"
           mode "scroll-vertical"
       }
@@ -462,8 +461,6 @@ let
       }
       animation {}
     '';
-
-  mkTuigreetTheme = import ../../lib/tuigreet-theme.nix;
 
   # Where each per-theme rendered file lands, relative to $HOME. A new
   # deployable file is one entry here plus its themeConfigs key; drmis needs
@@ -499,7 +496,7 @@ let
   # themeConfigs keys that are not table-deployed: drmis reads them directly
   # (firefox's two files go per profile) or they are baked elsewhere (pandora).
   themeDataKeys = [
-    "firefoxCss" "userContentCss" "pandora" "tuigreetTheme"
+    "firefoxCss" "userContentCss" "pandora"
     "wallpaperFallback" "wallpaperLiveDir" "isLight" "pair"
   ];
 
@@ -647,33 +644,33 @@ in
       { profile = {
           name = "desktop-dual";
           outputs = [
-            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
+            { criteria = "DP-3"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
             { criteria = "DP-2"; status = "enable"; mode = "1920x1080@60.000"; position = "1536,0"; scale = 1.25; }
           ];
-          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-1" ];
+          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-3" ];
         };
       }
       { profile = {
           name = "desktop-solo";
           outputs = [
-            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
+            { criteria = "DP-3"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
             { criteria = "DP-2"; status = "disable"; }
           ];
-          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-1" ];
+          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-3" ];
         };
       }
       { profile = {
           name = "desktop-single";
           outputs = [
-            { criteria = "DP-1"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
+            { criteria = "DP-3"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
           ];
-          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-1" ];
+          exec = [ "${s.setWaybarMode} dual" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-3" ];
         };
       }
       { profile = {
           name = "desktop-single-dp2";
           outputs = [
-            { criteria = "DP-1"; status = "disable"; }
+            { criteria = "DP-3"; status = "disable"; }
             { criteria = "DP-2"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.25; }
           ];
           exec = [ "${s.setWaybarMode} single-dp2" "${s.setDefaultSink} ${spdifSink}" "${s.setBridgeEdge} DP-2" ];
@@ -685,7 +682,7 @@ in
           # TV (modules/sunshine.nix). The 1080p capture is blown up to a 65" panel
           # viewed from a couch, so it gets a bigger scale than the desk profiles.
           outputs = [
-            { criteria = "DP-1"; status = "disable"; }
+            { criteria = "DP-3"; status = "disable"; }
             { criteria = "DP-2"; status = "enable"; mode = "1920x1080@60.000"; position = "0,0"; scale = 1.75; }
           ];
           # No setDefaultSink: Sunshine owns the default sink for the stream, and

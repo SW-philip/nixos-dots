@@ -131,6 +131,7 @@ in
   imports = [
     ../modules/home-options.nix
     ../home/niri-service.nix
+    ../home/downloaders.nix
     ../home/waybar
     ../home/niri/swaync
     ../home/eww
@@ -143,6 +144,26 @@ in
     ../home/bluetooth-battery-notify.nix
     ../home/bluetooth-device-probe.nix
     ../home/sqlch-sync.nix
+    ../home/niri-bridge
+    ../home/claude-tidy.nix
+    ../home/goodnight-jobs.nix
+    ../home/tree-sync.nix
+    ../home/theme-sync.nix
+    ../home/fleet-status.nix
+    ../home/whats-new.nix
+    ../home/nixfetch.nix
+    ../home/sync-status.nix
+    ../home/pass-through.nix
+    ../home/quivr.nix
+    ../home/go-librespot.nix
+    ../home/on.nix
+    ../home/settings.nix
+    ../home/commands.nix
+    ../home/snark.nix
+    ../home/tunnel.nix
+    ../home/dnslog.nix
+    ../home/polkit-agent.nix
+    ../home/shared-apps
     inputs.sqlch.homeManagerModules.default
   ];
 
@@ -253,7 +274,7 @@ in
   home.stateVersion = "25.11";
   home.sessionPath = [ "$HOME/.local/bin" ];
   home.sessionVariables.CLAUDE_ENV_FILE = "$HOME/.claude/.env";
-  home.file.".local/bin/zed".source = "${pkgs.zed-editor}/bin/zeditor";
+  home.file.".local/bin/zed".source = config.lib.file.mkOutOfStoreSymlink "${config.home.profileDirectory}/bin/zeditor";
 
   ########################################
   # systemd user services
@@ -290,20 +311,6 @@ in
         ExecStart = "${sqlchHttpBridge}";
         Restart = "on-failure";
         RestartSec = "3s";
-      };
-      Install.WantedBy = [ "graphical-session.target" ];
-    };
-
-    protonmail-bridge = {
-      Unit = {
-        Description = "Proton Mail Bridge";
-        After = [ "network-online.target" "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${pkgs.protonmail-bridge}/bin/protonmail-bridge --noninteractive";
-        Restart = "on-failure";
-        RestartSec = 5;
       };
       Install.WantedBy = [ "graphical-session.target" ];
     };
@@ -541,6 +548,15 @@ in
 
   programs.hyprlock.enable = true;
 
+  # Language servers on zeditor's PATH: Zed's own ruff download is a generic
+  # dynamically linked binary that can't run here (no nix-ld). The settings
+  # merge keeps drmis's theme key.
+  programs.zed-editor = {
+    enable = true;
+    extraPackages = with pkgs; [ nixd ruff basedpyright shellcheck bash-language-server ];
+    userSettings.languages.Nix.language_servers = [ "nixd" "!nil" ];
+  };
+
   ########################################
   # Programs
   ########################################
@@ -638,17 +654,18 @@ in
   # Packages
   ########################################
   home.packages = with pkgs; [
-    git neovim wget rsync
+    git neovim wget
     jq ripgrep fd bat
     gitleaks unzip resvg
     ouch
     mame-tools pythonEnv claude-code
+    sqlch            # prepko only: it has a YouTube source, so never system-wide
     grim slurp wl-clipboard
     fuzzel cliphist
     ffmpeg mediainfo vlc playerctl libnotify
 
-    thunderbird libreoffice
-    nemo zed-editor ghostty
+    libreoffice
+    nemo ghostty
 
     eza sshfs yt-dlp aria2 imagemagick
     delta lazygit gh tealdeer nix-your-shell comma
@@ -656,7 +673,9 @@ in
     easyeffects nwg-look uv
 
     # MIDI songwriting: vmpk sends notes, fluidsynth (see `synth`) makes sound
-    vmpk fluidsynth qpwgraph
+    vmpk fluidsynth qpwgraph qsynth soundfont-fluid
+    helio-workstation hydrogen
+    kdePackages.kdenlive
 
     (writeShellScriptBin "synth" ''
       exec ${fluidsynth}/bin/fluidsynth -a pipewire -m alsa_seq \

@@ -275,7 +275,12 @@ done < <(lsblk -dno NAME,TYPE | awk '$2 == "disk" && $1 !~ /^(zram|mmcblk|loop)/
 echo "── Services & Custom Daemons"
 ########################################
 services=("NetworkManager" "sshd")
-$IS_GRAPHICAL && services+=("pipewire")
+# pipewire and sqlch-daemon hang off graphical-session.target, so they only exist once
+# someone logs in. After goodnight reboots a host it sits at greetd until then.
+SESSION_UP=false
+$IS_GRAPHICAL && [ -n "$(loginctl show-user "$(id -un)" -p Display --value 2>/dev/null)" ] && SESSION_UP=true
+$IS_GRAPHICAL && ! $SESSION_UP && unk "session services unchecked (nobody logged in)"
+$SESSION_UP && services+=("pipewire")
 $IS_DESKTOP && services+=("smartd" "iptv-serve")
 
 # iptv-serve is off on purpose unless iptv.enable is set (hosts/desktop/iptv.nix).
@@ -292,7 +297,7 @@ for svc in "${services[@]}"; do
 done
 
 # Checking your custom internet radio daemon
-if $IS_GRAPHICAL; then
+if $SESSION_UP; then
   if systemctl --user is-active --quiet sqlch-daemon 2>/dev/null; then
     pass "sqlch-daemon running"
   else

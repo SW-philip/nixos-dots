@@ -1,29 +1,34 @@
-{ config, pkgs, lib, options, ... }:
+{ config, pkgs, lib, ... }:
 let
   ports = import ../hosts/ports.nix;
 in
 {
-  imports = [ ../cachix.nix ../modules/host-options.nix ];
+  imports = [ ./common.nix ../cachix.nix ../modules/host-options.nix ];
 
-  options.myConfig.user = lib.mkOption {
-    type        = lib.types.str;
-    default     = "prepko";
-    description = "Primary user account name, used wherever a literal username is needed.";
+  ############################################################
+  # Secrets (SOPS) + login password
+  ############################################################
+  sops = {
+    # Not the SSH host key: a 0644 copy of it sat in ~ for months, and regenerating
+    # host keys would orphan every secret. Empty, not unset: the default derives
+    # from services.openssh.hostKeys, i.e. that same key.
+    age.keyFile = "/persist/var/lib/sops-nix/key.txt";
+    # A missing key must fail loudly, not mint a new one that decrypts nothing.
+    age.generateKey = false;
+    age.sshKeyPaths = [ ];
+    # neededForUsers: decrypted before user creation, since mutableUsers = false.
+    secrets."${config.myConfig.user}_password_hash" = { sopsFile = ../secrets/passwords.yaml; neededForUsers = true; };
   };
+  users.mutableUsers = false;
+  users.users.${config.myConfig.user}.hashedPasswordFile =
+    config.sops.secrets."${config.myConfig.user}_password_hash".path;
 
-  config = {
   ############################################################
   # Documentation
   ############################################################
   documentation.doc.enable = false;
 
-  # Fleet name map for scripts (scripts/fleet-status.sh, reaper, nixfetch, quivr).
-  environment.etc."fleet.json".source = ../hosts/inventory.json;
-
-  time.timeZone = "America/New_York";
-
   i18n = {
-    defaultLocale = "en_US.UTF-8";
     extraLocaleSettings.LC_ALL = "en_US.UTF-8";
     inputMethod.enable = false;
   };
@@ -90,18 +95,6 @@ in
     CapabilityBoundingSet = [ ];
   };
   services.openssh = {
-    enable = true;
-    settings = {
-      UseDns = false;
-      PermitRootLogin = "no";
-      PasswordAuthentication = false;
-      # With UsePAM, keyboard-interactive still prompts for the account password.
-      KbdInteractiveAuthentication = false;
-      X11Forwarding = false;
-      AllowTcpForwarding = false;
-      ClientAliveInterval = 300;
-      ClientAliveCountMax = 2;
-    };
     # `waypipe ssh` needs a -R unix-socket forward and sshd refuses it under
     # AllowTcpForwarding no (AllowStreamLocalForwarding can't override). Tailnet only;
     # -L is limited by PermitOpen to ErsatzTV's loopback-only web UI.
@@ -111,33 +104,14 @@ in
         PermitOpen 127.0.0.1:${toString ports.ersatztv}
     '';
   };
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ ports.ssh ];
-  };
-
   ############################################################
   # Journal limits
   ############################################################
-  # desktop tracks nixos-unstable (journald.settings.Journal) and surface
-  # tracks nixos-26.05 (journald.extraConfig only) — this repo shares one
-  # nixpkgs-version-straddling profile across both, so branch on whichever
-  # form the pinned channel actually declares instead of hardcoding one.
-  services.journald = if options.services.journald ? settings
-    then {
-      settings.Journal = {
-        SystemMaxUse = "500M";
-        RuntimeMaxUse = "64M";
-        MaxFileSec = "1month";
-      };
-    }
-    else {
-      extraConfig = ''
-        SystemMaxUse=500M
-        RuntimeMaxUse=64M
-        MaxFileSec=1month
-      '';
-    };
+  services.journald.settings.Journal = {
+    SystemMaxUse = "500M";
+    RuntimeMaxUse = "64M";
+    MaxFileSec = "1month";
+  };
 
 
 
@@ -145,7 +119,6 @@ in
   # Base system packages
   ############################################################
   environment.systemPackages = with pkgs; [
-    curl
     pciutils
     usbutils
     sbctl
@@ -168,7 +141,6 @@ in
     iotop            # Disk I/O monitoring
     lsof             # List open files
 
-    iputils          # ping, tracepath, etc.
     iw               # nl80211 wireless configuration
   ];
 
@@ -183,12 +155,7 @@ in
     nerd-fonts.symbols-only
     eb-garamond
     # Josefin Sans (waybar + hyprlock clock/date) — variable TTF (wght 100..700) from google/fonts.
-    (runCommand "josefin-sans" { } ''
-      install -Dm644 ${fetchurl {
-        url    = "https://github.com/google/fonts/raw/main/ofl/josefinsans/JosefinSans%5Bwght%5D.ttf";
-        sha256 = "sha256-klWr2185O8UeEBq70Hpxapd/0+FUcrG4SyYPQmo0K/0=";
-      }} $out/share/fonts/truetype/JosefinSans-Variable.ttf
-    '')
+    (callPackage ../pkgs/josefin-sans.nix { })
   ];
 
   ############################################################
@@ -225,7 +192,6 @@ in
   security.sudo.extraConfig = "Defaults lecture = never";
 
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
     http-connections = 25;
     connect-timeout = 10;
     stalled-download-timeout = 90;
@@ -264,22 +230,6 @@ in
   # /run/wrappers/bin/sudo). Narrow NOPASSWD rules live next to the service
   # they serve (tailscale.nix, protonvpn.nix).
 
-  # Also sets kexec_load_disabled and adds `nohibernate` (no swap-backed resume is configured).
-  security.protectKernelImage = true;
-  boot.kernel.sysctl = {
-    "kernel.kptr_restrict" = 2;
-    "kernel.dmesg_restrict" = 1;
-    "kernel.unprivileged_bpf_disabled" = 1;
-    "fs.protected_fifos" = 2;
-    "fs.protected_regular" = 2;
-    "net.ipv4.conf.all.accept_redirects" = 0;
-    "net.ipv4.conf.default.accept_redirects" = 0;
-    "net.ipv6.conf.all.accept_redirects" = 0;
-    "net.ipv4.conf.all.send_redirects" = 0;
-    "net.ipv4.conf.all.accept_source_route" = 0;
-  };
-
-  hardware.enableRedistributableFirmware = true;
 
   ############################################################
   # Bluetooth
@@ -296,5 +246,28 @@ in
     alsa.enable = true;
     wireplumber.enable = true;
   };
-  }; # end config
+
+  ############################################################
+  # Firmware, phone, drives, games — hosts add smartd devices and their own tweaks
+  ############################################################
+  services.fwupd.enable = true;
+  # Upstream timer is hourly + Persistent, so it also fires right after boot.
+  systemd.timers.fwupd-refresh.timerConfig = {
+    OnCalendar = [ "" "monthly" ];
+    RandomizedDelaySec = "1d";
+  };
+
+  # KDE Connect pairs with the S21+; opens TCP+UDP 1714-1764 on every interface.
+  programs.kdeconnect.enable = true;
+
+  services.smartd = {
+    enable = true;
+    autodetect = false;
+    notifications.wall.enable = true;
+  };
+
+  programs.steam = {
+    enable = true;
+    extraCompatPackages = [ pkgs.proton-ge-bin ];
+  };
 }

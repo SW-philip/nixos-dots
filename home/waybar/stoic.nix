@@ -79,7 +79,6 @@ let
 
   cacheTools = import ./cache-tools.nix { inherit pkgs; };
   cachePollScript = cacheTools.cachePoll;
-  cacheReadScript = cacheTools.cacheRead;
 in
 {
   options.waybar.stoicQuote.enable = lib.mkEnableOption "Stoic quote module";
@@ -89,7 +88,7 @@ in
   # ~/.cache/waybar/stoic-quote.json this poll writes), not a waybar bar
   # module.
   config = lib.mkIf config.waybar.stoicQuote.enable {
-    home.packages = [ quoteScript cachePollScript cacheReadScript ];
+    home.packages = [ quoteScript ];
 
     systemd.user.services."waybar-${cacheName}-poll" = {
       Unit = config.lib.niri.unit { wayland = true; } {

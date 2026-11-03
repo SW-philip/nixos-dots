@@ -1,4 +1,5 @@
-# The nightly fleet batch (scripts/goodnight.sh) and its audit (scripts/goodnight-audit.sh).
+# The nightly fleet batch (scripts/goodnight.sh) and its audit (scripts/goodnight-audit.sh). It runs
+# every overnight job in the fleet itself (goodnight.jobs, modules/goodnight-jobs.nix).
 # A user timer like fleet-status, desktop only: it already has working unattended ssh to the
 # other hosts, and the one privileged step is the sudo -n goodnight-activate wrapper
 # (roles/goodnight-activate.nix). Deploy is off until goodnight.deploy.enable is set, so a
@@ -30,7 +31,7 @@ in
     home.packages = [ audit reboot goodnight ];
 
     systemd.user.services.goodnight = {
-      Unit.Description = "Nightly fleet batch: wake, deploy, reboot check, audit, housekeeping, backups";
+      Unit.Description = "Nightly fleet batch: wake, deploy, overnight jobs, reboots, audit, backups";
       Service = {
         Type = "oneshot";
         ExecStart = "${goodnight}/bin/goodnight run";
@@ -41,8 +42,8 @@ in
           ++ lib.optional config.goodnight.reboot.enable "GOODNIGHT_REBOOT=1";
         Nice = 19;
         IOSchedulingClass = "idle";
-        # a night with a stream-wait is long, but never unbounded
-        TimeoutStartSec = "6h";
+        # a stream-wait (3 h) plus a monthly scrub (3 h) on top of the jobs is long, but never unbounded
+        TimeoutStartSec = "10h";
       };
     };
 

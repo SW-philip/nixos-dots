@@ -245,10 +245,6 @@ def do_let(slug, theme_map):
     with open(zed_settings_path, "w") as f:
         json.dump(zed_settings, f, indent=2)
     try:
-        Path("/run/tuigreet-theme").write_text(cfgs["tuigreetTheme"])
-    except OSError:
-        pass
-    try:
         publish_greeter_palette(Path(theme_file(cfgs, "waybarSh")).read_text())
     except OSError:
         pass

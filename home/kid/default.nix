@@ -116,21 +116,37 @@ in
   # via ../emulation-light. pegasus-frontend itself is a surface system
   # package (hosts/surface/config.nix).
   home.packages = with pkgs; [
-    foliate              # ebook reader
     tuxpaint             # drawing for young kids
     krita                # drawing / stylus
     gcompris             # activity suite (ages 2–10)
-    nwg-drawer           # big fullscreen touch app grid (the kid's launcher, Mod+Space)
-    ghostty              # terminal — available, not foregrounded
     swaybg               # paints the kid's static ice-cream wallpaper
-    epiphany             # chrome-less dashboard browser (home workspace)
   ];
+  # No terminal, epiphany or foliate on their PATH: each was a way around the
+  # Firefox allowlist. The dashboard runs epiphany and a network-less foliate
+  # by store path (dashboard-server.nix).
 
-  xdg.configFile."nwg-drawer/drawer.css".text = ''
-    window { background-color: alpha(${moon.HALL}, 0.92); }
-    #searchbox, #button, #label { color: ${moon.SCORE}; font-size: 18px; }
-    button { background: transparent; border-radius: 12px; padding: 8px; }
-    button:hover { background-color: ${moon.STAGE}; }
+  # The dashboard is their only launcher: nwg-drawer runs any `:command` typed
+  # into its search and can't be told not to. These system entries are still
+  # masked (Hidden=true in their XDG_DATA_HOME) so nothing hands their a steam:// or
+  # kdeconnect handler either.
+  xdg.dataFile = lib.genAttrs' [
+    "steam"
+    "syncthing-ui"
+    "org.kde.kdeconnect.app"
+    "org.kde.kdeconnect.sms"
+    "org.kde.kdeconnect.nonplasma"
+    "org.kde.kdeconnect.handler"
+  ] (id: lib.nameValuePair "applications/${id}.desktop" {
+    text = "[Desktop Entry]\nType=Application\nName=${id}\nHidden=true\n";
+  });
+
+  # Appended to the shared emulation-light retroarch.cfg, hers only. No
+  # downloads or netplay; the Settings tab goes too so they can't re-show them.
+  xdg.configFile."retroarch/retroarch.cfg".text = lib.mkAfter ''
+    menu_show_online_updater = "false"
+    menu_show_core_updater = "false"
+    content_show_netplay = "false"
+    content_show_settings = "false"
   '';
 
   programs.bash = {
@@ -171,21 +187,9 @@ in
           # doesn't have.
           "https://vikidia.org/*"
           "https://*.vikidia.org/*"
-          # <all_urls> in the Block rule follows the WebExtension match-
-          # pattern spec, which explicitly includes file:// alongside http/
-          # https — so without this, their own homepage (file://sitesHtml,
-          # below) would get blocked by the very policy meant to open it.
-          # Harmless to allow broadly: file:// can only reach local files,
-          # never a remote site like youtube.com.
-          #
-          # Confirmed live that "file://*" is NOT the same pattern and does
-          # NOT match — file:// URLs have no host component (file:///path,
-          # empty string between the 2nd and 3rd slash), and match-pattern
-          # syntax requires <scheme>://<host><path>. "file://*" tries to
-          # match "*" against that empty host and fails; the actual
-          # "all local files" pattern collapses the host entirely:
-          # file:///*  (three slashes, wildcard starts the path).
-          "file:///*"
+          # <all_urls> includes file://, so their start page needs its own exception.
+          # Only that one page: a bare file:///* lets their browse the filesystem.
+          "file://${sitesHtml}"
         ];
       };
 
@@ -195,6 +199,7 @@ in
       Homepage = {
         URL = "file://${sitesHtml}";
         StartPage = "homepage";
+        Locked = true;
       };
       NewTabPage = false;
 
@@ -212,6 +217,18 @@ in
       };
 
       # Lock it down so a sharp, frustrated 5yo can't wander out.
+      # Family filtering at the browser, independent of the port-53 redirect
+      # (hosts/surface/config.nix) and of whatever DNS ProtonVPN pushes.
+      DNSOverHTTPS = {
+        Enabled = true;
+        ProviderURL = "https://family.cloudflare-dns.com/dns-query";
+        Fallback = false;
+        Locked = true;
+      };
+      ExtensionSettings."*".installation_mode = "blocked";
+      BlockAboutAddons = true;
+      DisableFirefoxAccounts = true;
+      PasswordManagerEnabled = false;
       DisablePrivateBrowsing = true;
       DisableDeveloperTools = true;
       BlockAboutConfig = true;

@@ -78,7 +78,7 @@ in
         name = "top-left";
         layer = "top";
         position = "top";
-        output = "DP-1";
+        output = "DP-3";
         height = desktopBarThickness;
         modules-left   = [ ];
         modules-center = [ ];

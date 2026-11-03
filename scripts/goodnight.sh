@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # goodnight: the nightly fleet batch. Runs on desktop from a user timer (home/goodnight.nix).
-#   goodnight run [--dry-run] [phase...]   phases: wake deploy reboot audit housekeeping backups (default: all)
+#   goodnight run [--dry-run] [phase...]   phases: wake deploy data upkeep reboot audit backups long (default: all)
 #   goodnight status                       last report: hosts and phases
 #   goodnight hold | release               skip (or stop skipping) tonight's deploy
 # Deploy only acts when GOODNIGHT_DEPLOY=1; otherwise it reports what it would do. It deploys the
@@ -10,7 +10,7 @@
 #   GOODNIGHT_REPO=dir       the repo to fetch and take the main checkout from (default ~/nixos)
 #   GOODNIGHT_WAKE_WAIT=s    how long to keep retrying an unreachable host (default 300)
 #   GOODNIGHT_STREAM_WAIT=s  how long to wait out a live Sunshine stream before skipping (default 10800)
-#   GOODNIGHT_NOTIFY=1       desktop notification when a phase fails
+#   GOODNIGHT_NOTIFY=1       one summary notification at the end (critical when a phase failed)
 #   GOODNIGHT_REBOOT=1       reboot the hosts the planner says are worth it (else the phase only reports)
 #   GOODNIGHT_REBOOT_WAIT=s  how long a rebooted host has to come back before the run stops (default 600)
 #   GOODNIGHT_REBOOT_SETTLE=s  pause after a host is back, before the next one goes down (default 120)
@@ -18,6 +18,7 @@ set -euo pipefail
 
 state=${GOODNIGHT_STATE:-$HOME/.local/state/goodnight}
 report=$state/report.json
+jobs_state=$state/jobs.json
 repo=${GOODNIGHT_REPO:-$HOME/nixos}
 checkout=$state/main
 wake_wait=${GOODNIGHT_WAKE_WAIT:-300}
@@ -25,7 +26,7 @@ stream_wait=${GOODNIGHT_STREAM_WAIT:-10800}
 reboot_wait=${GOODNIGHT_REBOOT_WAIT:-600}
 reboot_settle=${GOODNIGHT_REBOOT_SETTLE:-120}
 reboot_poll=${GOODNIGHT_REBOOT_POLL:-5}
-all_phases=(wake deploy reboot audit housekeeping backups)
+all_phases=(wake deploy data upkeep reboot audit backups long)
 
 here=$(cd "$(dirname "$0")" && pwd)
 FLEET_JSON=${FLEET_JSON:-/etc/fleet.json}
@@ -52,7 +53,7 @@ finish() { # name status summary [detail...]
   jq -n --arg s "$status" --arg m "$summary" '{status: $s, summary: $m, details: $ARGS.positional}' --args "$@" > "$sums/$name.json"
 }
 
-# One checkout of origin/main to deploy from and to run flake-check in; never the working tree.
+# One checkout of origin/main to deploy from; never the working tree.
 ensure_checkout() {
   # explicit `|| return 1`: callers use this in an `if`, where set -e does not apply
   git -C "$repo" fetch -q origin main || return 1
@@ -233,41 +234,61 @@ phase_audit() {
   esac
 }
 
-phase_housekeeping() {
-  local problems=() h u res units checked=0
+# The overnight jobs (modules/goodnight-jobs.nix, home/goodnight-jobs.nix), one stage per phase:
+# every due job of that stage on every reachable host, one at a time. Due is judged from the
+# last success, ours or a hand-started run systemd still remembers, so a missed night catches up.
+job_age() { case $1 in day) echo 72000 ;; week) echo 561600 ;; month) echo 2505600 ;; esac; }
+
+run_stage() { # stage
+  local stage=$1 lines=() worst=ok h scope sc f unit every key last sd res rc t0 dur ran=0 jobs=()
+  note() { lines+=("$2"); [[ $(rank "$1") -gt $(rank "$worst") ]] && worst=$1; return 0; }
+  [[ -r $jobs_state ]] || echo '{}' > "$jobs_state"
   for h in pi retro desktop surface; do
     grep -qx "$h" "$sums/unreachable" 2>/dev/null && continue
-    case $h in
-      desktop|surface) units="nh-clean.service nix-optimise.service" ;;
-      retro) units="nix-gc.service nix-optimise.service" ;;
-      pi) units="nix-gc.service" ;;
-    esac
-    for u in $units; do
-      res=$(run_on "$h" "systemctl show -p Result --value $u" 2>/dev/null || echo "unreadable")
-      checked=$((checked + 1))
-      [[ -z $res || $res == success ]] || problems+=("$h $u: $res")
+    if [[ $stage == long && $h == "$me" && -e $sums/self-reboot ]]; then
+      note ok "$h: long jobs wait for a night $h is not rebooting"; continue
+    fi
+    for scope in system user; do
+      # shellcheck disable=SC2016 # $HOME expands on the host that runs it
+      if [[ $scope == system ]]; then sc=""; f=/etc/goodnight/jobs.json; else sc="--user"; f='$HOME/.config/goodnight/jobs.json'; fi
+      mapfile -t jobs < <(run_on "$h" "cat $f 2>/dev/null" </dev/null | jq -r --arg s "$stage" 'to_entries[]? | select(.value.stage == $s) | "\(.key) \(.value.every)"' 2>/dev/null)
+      for unit in "${jobs[@]}"; do
+        [[ -n $unit ]] || continue
+        every=${unit#* }; unit=${unit%% *}; key="$h/$unit"
+        last=$(jq -r --arg k "$key" '.[$k].ok // 0' "$jobs_state")
+        sd=$(run_on "$h" "systemctl $sc show -p Result -p ExecMainExitTimestamp --timestamp=unix --value $unit.service" </dev/null 2>/dev/null | paste -sd' ' || true)
+        # kept, since systemd forgets it at the next boot
+        if [[ $sd =~ ^success\ @([0-9]+) ]] && (( BASH_REMATCH[1] > last )); then
+          last=${BASH_REMATCH[1]}
+          jq --arg k "$key" --argjson t "$last" '.[$k].ok = $t' "$jobs_state" > "$jobs_state.tmp" && mv "$jobs_state.tmp" "$jobs_state"
+        fi
+        (( $(date +%s) - last >= $(job_age "$every") )) || continue
+        if [[ ${GOODNIGHT_DRY} == 1 ]]; then note ok "$h $unit: due (dry run, not started)"; continue; fi
+        t0=$SECONDS; rc=0
+        echo "jobs: $h $unit" >> "$log"
+        run_on "$h" "systemctl $sc start --wait $unit.service" </dev/null >> "$log" 2>&1 || rc=$?
+        dur=$(fmt_secs $((SECONDS - t0))); ran=$((ran + 1))
+        if (( rc == 0 )); then
+          note ok "$h $unit: ok in $dur"
+          jq --arg k "$key" --argjson now "$(date +%s)" '.[$k].ok = $now' "$jobs_state" > "$jobs_state.tmp" && mv "$jobs_state.tmp" "$jobs_state"
+        else
+          res=$(run_on "$h" "systemctl $sc show -p Result --value $unit.service" </dev/null 2>/dev/null || echo "unreachable")
+          note warn "$h $unit: FAILED (${res:-exit $rc}) after $dur; overnight log $unit"
+        fi
+      done
     done
   done
-
-  local fc=""
-  if [[ ${GOODNIGHT_FLAKE_CHECK:-0} == 1 || $(date +%u) == 7 ]]; then
-    if ! ensure_checkout >/dev/null 2>&1; then
-      problems+=("flake-check skipped: could not prepare the main checkout")
-    elif [[ -x $checkout/scripts/flake-check.sh ]]; then
-      if (cd "$checkout" && ./scripts/flake-check.sh) >> "$log" 2>&1; then
-        fc="flake-check ran: ${XDG_STATE_HOME:-$HOME/.local/state}/flake-check/latest.md"
-      else
-        problems+=("flake-check failed (see log)")
-      fi
-    fi
-  fi
-
-  if (( ${#problems[@]} == 0 )); then
-    finish housekeeping ok "$checked maintenance units succeeded${fc:+; $fc}"
-  else
-    finish housekeeping warn "${#problems[@]} problem(s)" "${problems[@]}"
-  fi
+  local bad
+  bad=$(printf '%s\n' "${lines[@]}" | grep -c 'FAILED' || true)
+  if (( ${#lines[@]} == 0 )); then finish "$stage" ok "nothing due"
+  elif (( bad == 0 )); then finish "$stage" ok "$ran job(s) ran" "${lines[@]}"
+  else finish "$stage" "$worst" "$bad of $ran job(s) failed" "${lines[@]}"; fi
 }
+phase_data() { run_stage data; }
+phase_upkeep() { run_stage upkeep; }
+phase_long() { run_stage long; }
+
+fmt_secs() { local s=$1; if (( s >= 3600 )); then printf '%dh%02dm' $((s / 3600)) $((s % 3600 / 60)); elif (( s >= 60 )); then printf '%dm%02ds' $((s / 60)) $((s % 60)); else printf '%ds' "$s"; fi; }
 
 # `age_hours` of a YYYYMMDDTHHMM stamp
 age_hours() { local d=$1; echo $(( ($(date +%s) - $(date -d "${d:0:4}-${d:4:2}-${d:6:2} ${d:9:2}:${d:11:2}" +%s)) / 3600 )); }
@@ -328,7 +349,7 @@ cmd_run() {
   for a in "$@"; do
     case $a in
       --dry-run) GOODNIGHT_DRY=1 ;;
-      wake|deploy|reboot|audit|housekeeping|backups) phases+=("$a") ;;
+      wake|deploy|data|upkeep|reboot|audit|backups|long) phases+=("$a") ;;
       *) echo "goodnight: unknown argument: $a" >&2; exit 2 ;;
     esac
   done
@@ -361,12 +382,16 @@ cmd_run() {
     [[ -e $f ]] || continue
     ph_json=$(jq -c --arg n "$(basename "$f" .json)" --slurpfile v "$f" --argjson now "$(date +%s)" '.[$n] = ($v[0] + {ts: $now})' <<<"$ph_json")
   done
-  jq -n --argjson base "$base" --argjson ph "$ph_json" '$base + {phases: (($base.phases // {}) + $ph)}' > "$report.tmp"
+  # phases that no longer exist (housekeeping) drop out
+  jq -n --argjson base "$base" --argjson ph "$ph_json" --args '$base + {phases: (($base.phases // {} | with_entries(select(.key | IN($ARGS.positional[])))) + $ph)}' "${all_phases[@]}" > "$report.tmp"
   mv "$report.tmp" "$report"
 
   find "$state/log" -name '*.log' | sort | head -n -30 | xargs -r rm --
-  if [[ $worst == fail && ${GOODNIGHT_NOTIFY:-} == 1 ]] && command -v notify-send >/dev/null; then
-    notify-send -u critical "goodnight: a phase failed" "$(jq -r '.phases | to_entries[] | select(.value.status == "fail") | "\(.key): \(.value.summary)"' "$report")" || true
+  if [[ ${GOODNIGHT_NOTIFY:-} == 1 ]] && command -v notify-send >/dev/null; then
+    local urgency=low title="goodnight: all ok" body
+    case $worst in fail) urgency=critical title="goodnight: a phase failed" ;; warn) urgency=normal title="goodnight: needs a look" ;; esac
+    body=$(for ph in "${phases[@]}"; do jq -r --arg n "$ph" '"\(.status)  \($n): \(.summary)"' "$sums/$ph.json"; done)
+    notify-send -a goodnight -u "$urgency" "$title" "$body" || true
   fi
   reboot_self
   [[ $worst != fail ]]

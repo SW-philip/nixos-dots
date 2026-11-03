@@ -34,7 +34,6 @@ in
     ../../modules/jellyfin.nix
     ../../modules/jellyfin-whisper.nix
     ../../modules/ersatztv.nix
-    ../../modules/sqlch.nix
     ../../modules/greetd.nix
     ../../modules/tailscale.nix
     ../../modules/syncthing.nix
@@ -54,6 +53,9 @@ in
   networking.hostName = "SWphil";
   greetd.greeting = "Welcome back, Phil.";
 
+  # The Samsung TV, when it's the greeter's screen.
+  greetd.tvOutput = "HDMI-A-1";
+
   # Auto-login straight into niri so sunshine.service (graphical-session.target,
   # modules/sunshine.nix) is always up for remote streaming, even right after a
   # cold boot with nobody at the console. greetd falls back to the normal
@@ -69,19 +71,8 @@ in
   # Secrets (SOPS)
   ############################################################
   sops = {
+    # sops basics, the login password and protonvpn: roles/base.nix, modules/protonvpn.nix
     defaultSopsFile = ../../secrets/shared.yaml;
-    # Not the SSH host key: a 0644 copy of it sat in ~ for months, and regenerating
-    # host keys would orphan every secret. Empty, not unset: the default derives
-    # from services.openssh.hostKeys, i.e. that same key.
-    age.keyFile = "/persist/var/lib/sops-nix/key.txt";
-    # A missing key must fail loudly, not mint a new one that decrypts nothing.
-    age.generateKey = false;
-    age.sshKeyPaths = [ ];
-    # neededForUsers: decrypted before user creation, since mutableUsers = false.
-    secrets.prepko_password_hash = { sopsFile = ../../secrets/passwords.yaml; neededForUsers = true; };
-    secrets.protonvpn_ny_conf = {};
-    secrets.protonvpn_au_conf = {};
-    secrets.protonvpn_ca_conf = {};
     # scrape (scripts/skyscraper-scrape.sh) appends this to a throwaway copy
     # of ~/.skyscraper/config.ini for the igdb pass, so the creds never sit
     # in that plain file or in Skyscraper's argv (`-u` would expose them).
@@ -95,9 +86,6 @@ in
       '';
     };
   };
-
-  users.mutableUsers = false;
-  users.users.prepko.hashedPasswordFile = config.sops.secrets.prepko_password_hash.path;
 
   ############################################################
   # Audio — BT headset priority (MAC specific to this machine)
@@ -138,14 +126,6 @@ in
     ];
   };
 
-  ############################################################
-  # ProtonVPN
-  ############################################################
-  protonvpn.configs = {
-    protonvpn-ny = config.sops.secrets.protonvpn_ny_conf.path;
-    protonvpn-au = config.sops.secrets.protonvpn_au_conf.path;
-    protonvpn-ca = config.sops.secrets.protonvpn_ca_conf.path;
-  };
 
   ############################################################
   # Swap / zram
@@ -159,11 +139,8 @@ in
     "vm.swappiness" = 100;
     "vm.page-cluster" = 0;
     # rp_filter is left loose on purpose (tailscale and wireguard route
-    # asymmetrically); the rest of the hardening sysctls live in roles/base.nix.
+    # asymmetrically); the rest of the hardening sysctls live in roles/common.nix.
   };
-
-  # No modem here; NetworkManager pulls ModemManager in by default.
-  networking.modemmanager.enable = false;
 
   ############################################################
   # Retro — ROM storage + Pegasus collection metadata (one directory
@@ -182,7 +159,7 @@ in
   # the all_squash NFS client — group/other-writable regardless of the
   # writer's umask (RetroArch writes .srm 0644), so any account can
   # overwrite any save. Per-account ~/.config/retroarch/saves/ trees stay
-  # in place as backups after the one-time scripts/game-save-merge.sh.
+  # in place as backups after the one-time game-save-merge.sh (archived).
   # See docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md.
   ############################################################
   systemd.tmpfiles.rules =
@@ -247,7 +224,17 @@ in
   # aarch64 derivations through qemu-user.
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
-  # Overnight jobs that report in (scripts/overnight.sh); the user-side ones are in the profile.
-  overnight.notify.units = [ "btrbk-daily" "jellyfin-whisper" "nix-optimise" "nh-clean" "fstrim" "myln-diagnose" ];
+  # goodnight runs these instead of their timers (modules/goodnight-jobs.nix) and overnight records
+  # them (modules/overnight-notify.nix); user-side ones in the profile
+  goodnight.jobs = {
+    btrbk-daily = { every = "day"; stage = "data"; };
+    jellyfin-whisper.every = "day";
+    myln-diagnose.every = "day";
+    nix-optimise.every = "day";
+    nh-clean.every = "week";
+    fstrim.every = "week";
+    "btrfs-scrub@-" = { every = "month"; stage = "long"; timer = "btrfs-scrub@"; };
+    "btrfs-scrub@mnt-backup" = { every = "month"; stage = "long"; timer = "btrfs-scrub@"; };
+  };
 
 }

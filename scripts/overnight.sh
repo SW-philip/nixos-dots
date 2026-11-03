@@ -11,6 +11,7 @@
 # session picks the records up (immediately, or at next login).
 #   OVERNIGHT_STATE=dir         user state dir (default ~/.local/state/overnight)
 #   OVERNIGHT_SYSTEM_SPOOL=dir  where system-scope units record (default /var/lib/overnight)
+#   OVERNIGHT_POPUPS=0          record runs for `list`/`log` but notify about none (goodnight sends the summary)
 set -euo pipefail
 
 state=${OVERNIGHT_STATE:-${HOME:-/nonexistent}/.local/state/overnight}
@@ -92,7 +93,7 @@ consume() {
     grep -qxF -- "$key" "$seen" && continue
     echo "$key" >> "$seen"
     jq -c . "$f" >> "$history"
-    systemd-run --user --collect --quiet "$self" notify "$(jq -c . "$f")" || true
+    [[ ${OVERNIGHT_POPUPS:-1} == 0 ]] || systemd-run --user --collect --quiet "$self" notify "$(jq -c . "$f")" || true
   done
   find "$user_spool" -name '*.json' -mtime +7 -delete
   tail -n 500 "$seen" > "$seen.tmp" && mv "$seen.tmp" "$seen"

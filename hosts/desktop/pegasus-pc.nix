@@ -1,5 +1,5 @@
 # Pegasus collection for the Windows games in /srv/roms/pc, run through the
-# system wine (gpu-nvidia.nix) in the default ~/.wine prefix. Not a
+# desktop wine (profiles/prepko/desktop.nix) in the default ~/.wine prefix. Not a
 # retro-systems.nix entry: every game dir holds several .exe files (steam-emu
 # loaders, crash handlers, _Redist installers), so an `extensions` scan would
 # list junk. Each game names its real entry point here instead, which means a

@@ -1,4 +1,4 @@
-# Not in nixpkgs on either channel; same fetch as roles/base.nix so the store path is shared.
+# Not in nixpkgs on either channel. Used by the workstation fonts (roles/base.nix) and retro's kiosk and tiles.
 { runCommand, fetchurl }:
 runCommand "josefin-sans" { } ''
   install -Dm644 ${fetchurl {

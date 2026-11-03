@@ -1,12 +1,11 @@
-# Store and footprint hygiene shared by the headless/appliance hosts (retro,
-# pi). desktop and surface get theirs from roles/base.nix instead (nh clean,
+# Store and footprint hygiene for the headless hosts (via roles/headless.nix). desktop and surface get theirs from roles/base.nix instead (nh clean,
 # bigger free-space thresholds); the two don't mix.
-{ lib, ... }:
+{ config, lib, ... }:
 {
   nix.settings = {
-    allowed-users = [ "prepko" ];
+    allowed-users = [ config.myConfig.user ];
     # nixos-rebuild --build-host copies unsigned closures from desktop.
-    trusted-users = [ "root" "prepko" ];
+    trusted-users = [ "root" config.myConfig.user ];
   };
 
   nix.gc = {

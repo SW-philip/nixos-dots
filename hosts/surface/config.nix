@@ -1,4 +1,4 @@
-{ inputs, config, pkgs, lib, ... }:
+{ inputs, config, options, pkgs, lib, ... }:
 let
   desktopIp = (import ../inventory.nix).desktop.ip;
   # The subset of hosts/retro-systems.nix this Surface's Intel iGPU can run —
@@ -39,13 +39,11 @@ in
     ../../modules/syncthing.nix
     ../../modules/niri-bridge.nix
     ../../modules/protonvpn.nix
-    ../../modules/sqlch.nix
     ../../modules/bluetooth-idle-off.nix
     ../../modules/transmission.nix
     ./hardware.nix
     ./boot.nix
     ./features.nix
-    ./msmtp.nix
     ./power.nix
     ./als.nix
     ./gpu-intel.nix
@@ -62,29 +60,13 @@ in
   ############################################################
   # Secrets (SOPS)
   ############################################################
-  sops = {
-    age.keyFile = "/persist/var/lib/sops-nix/key.txt";
-    secrets.protonvpn_ny_conf = { sopsFile = ../../secrets/shared.yaml; };
-    secrets.protonvpn_au_conf = { sopsFile = ../../secrets/shared.yaml; };
-    secrets.protonvpn_ca_conf = { sopsFile = ../../secrets/shared.yaml; };
-    # neededForUsers: decrypted before user creation, since mutableUsers = false.
-    secrets.prepko_password_hash    = { sopsFile = ../../secrets/passwords.yaml; neededForUsers = true; };
-    secrets.kid_password_hash = { sopsFile = ../../secrets/passwords.yaml; neededForUsers = true; };
-  };
-
-  ############################################################
-  # ProtonVPN
-  ############################################################
-  protonvpn.configs = {
-    protonvpn-ny = config.sops.secrets.protonvpn_ny_conf.path;
-    protonvpn-au = config.sops.secrets.protonvpn_au_conf.path;
-    protonvpn-ca = config.sops.secrets.protonvpn_ca_conf.path;
-  };
-
-  users.mutableUsers = false;
-  # Per-host override of the base account declared in identities/prepko.nix.
-  users.users.prepko.hashedPasswordFile = config.sops.secrets.prepko_password_hash.path;
+  # sops basics, prepko's password and protonvpn: roles/base.nix, modules/protonvpn.nix.
+  # neededForUsers: decrypted before user creation, since mutableUsers = false.
+  sops.secrets.kid_password_hash = { sopsFile = ../../secrets/passwords.yaml; neededForUsers = true; };
   users.users.kid.hashedPasswordFile = config.sops.secrets.kid_password_hash.path;
+
+  # Their account is reachable only at the device; prepko's sudo covers remote help.
+  services.openssh.settings.DenyUsers = [ "kid" ];
 
   ############################################################
   # Retro — ROM storage. The ROM *data* is desktop's export, mounted
@@ -243,11 +225,23 @@ in
 
   ############################################################
   # Safe-DNS (Cloudflare for Families) for kid only. System DNS stays
-  # whatever DHCP hands out (the pi's AdGuard at home). Their port-53
+  # Tailscale MagicDNS and its upstreams, none of which filter. Their port-53
   # traffic (v4 and v6) is DNATed by uid; 1.1.1.3 also forces Google
-  # SafeSearch via CNAME. ProtonVPN overrides DNS while connected; the real
-  # lock is the Firefox allowlist in home/kid.
+  # SafeSearch via CNAME. DoT (853) is rejected for their, and their Firefox uses
+  # locked family DoH. ProtonVPN overrides DNS while connected; the real lock
+  # is the Firefox allowlist in home/kid.
   ############################################################
+  # nscd resolves hosts under its own uid, so the skuid rule below never saw
+  # their lookups. With the hosts cache off glibc resolves in their process.
+  # passwd/group stay cached (roles/base.nix explains why nscd stays on).
+  services.nscd.config =
+    let
+      on  = "enable-cache            hosts           yes";
+      off = "enable-cache            hosts           no";
+      def = options.services.nscd.config.default;
+    in
+    assert lib.hasInfix on def;
+    builtins.replaceStrings [ on ] [ off ] def;
   networking.nftables.enable = true;
   networking.nftables.tables.clem-safedns = {
     family = "inet";
@@ -256,6 +250,19 @@ in
         type nat hook output priority dstnat; policy accept;
         meta skuid kid meta nfproto ipv4 meta l4proto { tcp, udp } th dport 53 dnat ip to 1.1.1.3:53
         meta skuid kid meta nfproto ipv6 meta l4proto { tcp, udp } th dport 53 dnat ip6 to [2606:4700:4700::1113]:53
+      }
+      # The system resolver is MagicDNS, so their query was routed via tailscale0 with
+      # the tailnet source address; after the dnat it leaves on wifi still carrying
+      # it and no reply ever comes back. Rewrite the source to the egress interface.
+      chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        meta skuid kid ip daddr 1.1.1.3 meta l4proto { tcp, udp } th dport 53 masquerade
+        meta skuid kid ip6 daddr 2606:4700:4700::1113 meta l4proto { tcp, udp } th dport 53 masquerade
+      }
+      # DNS-over-TLS can't be redirected like port 53, so refuse it outright.
+      chain filter_output {
+        type filter hook output priority filter; policy accept;
+        meta skuid kid meta l4proto { tcp, udp } th dport 853 reject
       }
     '';
   };
@@ -285,4 +292,9 @@ in
   # default 30 s lets the machine thrash first.
   systemd.oomd.settings.OOM.DefaultMemoryPressureDurationSec = "20s";
 
+  # goodnight runs these instead of their timers (modules/goodnight-jobs.nix)
+  goodnight.jobs = {
+    nix-optimise.every = "day";
+    nh-clean.every = "week";
+  };
 }

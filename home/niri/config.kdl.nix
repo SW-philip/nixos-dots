@@ -59,7 +59,7 @@ input {
 
 // ── Outputs ────────────────────────────────────────────────
 // Desktop: dual 1080p
-output "DP-1" {
+output "DP-3" {
     mode "1920x1080@60.000"
     position x=0 y=0
     scale 1.25
@@ -320,13 +320,8 @@ window-rule {
 }
 
 // Emulators: niri-fullscreen (compositor-level, no waybar strip or gaps, so
-// no top/bottom bars), still not the emulators' own exclusive fullscreen.
-// xemu/azahar/eden used to launch with their own -full-screen/-f flags
-// (hosts/desktop/config.nix); on this box that coincided with the Bluetooth
-// adapter dropping its connected device, so those flags stay dropped and
-// RetroArch's video_fullscreen is pinned to false (home/emulation/default.nix):
-// every emulator opens windowed, then niri fullscreens it here. If the
-// Bluetooth drop returns, swap open-fullscreen back to open-maximized.
+// no top/bottom bars), not the emulators' own exclusive fullscreen: every
+// emulator opens windowed and niri fullscreens it here.
 // App-ids confirmed live via `niri msg windows` on 2026-08-09 — re-check the
 // same way after any emulator update, since at least one (eden) didn't match
 // its own .desktop file's declared StartupWMClass.

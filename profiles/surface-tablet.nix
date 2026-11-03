@@ -14,15 +14,14 @@ in
   # Screen auto-rotation
   ########################################
   systemd.user.services.niri-rotation = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Auto-rotate niri output via iio-niri";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
     };
     Service = {
       Type = "simple";
       ExecStart = "${pkgs.iio-niri}/bin/iio-niri listen -m eDP-1";
-      Restart = "on-failure";
+      # A timed-out accelerometer claim exits 0, so on-failure never retries.
+      Restart = "always";
       RestartSec = "3s";
     };
     Install.WantedBy = [ "graphical-session.target" ];
@@ -51,9 +50,8 @@ in
   # Squeekboard shows itself on text-field focus (input-method-v2) while running.
   ########################################
   systemd.user.services.squeekboard = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = true; } {
       Description = "On-screen keyboard (squeekboard)";
-      PartOf = [ "graphical-session.target" ];
     };
     Service = {
       Type = "simple";
@@ -120,10 +118,8 @@ in
   # Type Cover keyboard monitor
   ########################################
   systemd.user.services.surface-kbd-monitor = {
-    Unit = {
+    Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Run squeekboard only while the Surface Type Cover is detached";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
     };
     Service = {
       Type = "simple";

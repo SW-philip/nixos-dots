@@ -25,34 +25,49 @@ let
   # a Music Videos library, so no folder tags
   musicVideos = "type:music_video";
 
-  # a break after every episode: two ads, then a bumper. Ads are spots cut by
-  # scripts/split-commercials.sh.
+  # full kids-movie trailers (assets/yt-curate/previews.txt)
+  previews = folder "previews";
+  # VHS-tape preview reels, split
+  vhsTrailers = folder "trailers";
+
+  # a break after every episode, each taken in turn from `cycle`: a list of
+  # pools to play, one item apiece. No commercials: the spots-* pools cut by
+  # scripts/tv-ads.sh stay on disk, unaired, until they're hand-curated.
   breaks = {
+    # a trailer every third break
     little = {
-      ads = anyFolder [ "spots-preschool" ];
-      # kid-shorts: songs, quick facts, home-made spots (scripts/tv-add.sh)
-      bumpers = "${anyFolder [ "brain-breaks" "brain-break-tv" "ms-rachel" "kid-shorts" ]} OR ${musicVideos}";
+      pools = {
+        # kid-shorts: songs, quick facts, home-made spots (scripts/tv-add.sh)
+        bumpers = "${anyFolder [ "brain-breaks" "brain-break-tv" "ms-rachel" "kid-shorts" ]} OR ${musicVideos}";
+        inherit previews;
+      };
+      cycle = [ [ "bumpers" ] [ "bumpers" ] [ "previews" "bumpers" ] ];
     };
     big = {
-      ads = anyFolder [ "spots-kids" "spots-halloween" ];
-      bumpers = "${folder "monster-jam"} OR ${musicVideos}";
+      pools = {
+        bumpers = "${folder "monster-jam"} OR ${musicVideos}";
+        inherit previews;
+      };
+      cycle = [ [ "bumpers" ] [ "bumpers" ] [ "previews" "bumpers" ] ];
     };
-    # mom_and_dad/commercials-split; no bumpers, and a longer break
-    grown = {
-      ads = anyFolder [ "spots-90s" "spots-2000s" "spots-october" ];
-      adCount = 3;
+    # "coming attractions" between movies
+    kidsMovies = {
+      pools = { inherit previews; };
+      cycle = [ [ "previews" "previews" ] ];
     };
-    # the channel is already songs and brain breaks, so ads alone
-    halloween.ads = anyFolder [ "spots-halloween" ];
-    # "coming attractions" between movies: VHS-tape preview reels, split
     cinema = {
-      ads = folder "trailers";
-      adCount = 3;
+      pools.trailers = vhsTrailers;
+      cycle = [ [ "trailers" "trailers" "trailers" ] ];
+    };
+    # mom_and_dad has no bumpers or music, so a lone preview every other episode
+    grown = {
+      pools.trailers = vhsTrailers;
+      cycle = [ [ ] [ "trailers" ] ];
     };
   };
 
   channels = {
-    "1" = { name = "Kids Movies"; query = "type:movie AND library_id:1"; };
+    "1" = { name = "Kids Movies"; query = "type:movie AND library_id:1"; filler = "kidsMovies"; };
     "2" = {
       name = "Little Kids";
       query = shows [ "Bluey" "Sesame Street" "Eureeka's Castle" "Frog & Toad" "Sago Mini Friends" "Toca Life Stories" ];
@@ -86,7 +101,6 @@ let
     "11" = {
       name = "Halloween";
       query = "type:other_video AND ${folder "halloween"} AND NOT ${folder "commercials"}";
-      filler = "halloween";
     };
 
     # grown-ups: library 1 is kid_and_henry/movies
@@ -135,14 +149,13 @@ let
             search = "";
             inherit key query;
             order = "shuffle";
-          }) (removeAttrs breaks.${c.filler} [ "adCount" ]));
+          }) breaks.${c.filler}.pools);
           playout =
-            (if c ? filler then [
-              { count = 1; content = "main"; }
+            (if c ? filler then lib.concatMap (brk:
+              [ { count = 1; content = "main"; } ]
               # postroll folds the break into the episode's guide slot
-              { count = breaks.${c.filler}.adCount or 2; content = "ads"; filler_kind = "postroll"; }
-            ] ++ lib.optional (breaks.${c.filler} ? bumpers)
-              { count = 1; content = "bumpers"; filler_kind = "postroll"; }
+              ++ map (pool: { count = 1; content = pool; filler_kind = "postroll"; }) brk
+            ) breaks.${c.filler}.cycle
             else [
               { all = ""; content = "main"; }
             ])

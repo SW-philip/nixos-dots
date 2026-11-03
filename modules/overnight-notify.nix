@@ -16,7 +16,10 @@ in
 {
   options.overnight.notify.units = lib.mkOption {
     type = lib.types.listOf lib.types.str;
-    default = [ ];
+    # Template instances (btrfs-scrub@-) are left out: defining one here would write a full unit
+    # that shadows its NixOS-defined template.
+    default = lib.filter (n: !lib.hasInfix "@" n) (lib.attrNames config.goodnight.jobs);
+    defaultText = lib.literalExpression "goodnight.jobs names without template instances";
     description = "Existing system services (names without .service) whose outcome is recorded.";
   };
 

@@ -71,12 +71,6 @@ in
     description = "Bar for clock/weather; same as primaryBar on single-bar hosts.";
   };
 
-  options.waybar.barName = lib.mkOption {
-    type = lib.types.str;
-    default = "";
-    description = "Override the waybar bar name for all modules. Empty = use per-module defaults.";
-  };
-
   options.myConfig.sidebarToggleScript = lib.mkOption {
     type = lib.types.package;
     description = "Script that toggles the swaync control center (defined in home/niri/default.nix as `sidebarToggleBin`); shared so other modules (e.g. the TV-bar hamburger) invoke the same toggle as the Mod+B keybind.";

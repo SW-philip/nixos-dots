@@ -50,9 +50,8 @@ let
   tabletPath = lib.makeBinPath [
     pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.jq pkgs.niri pkgs.wireplumber
     pkgs.brightnessctl pkgs.networkmanager pkgs.bluez pkgs.power-profiles-daemon
-    pkgs.swaynotificationcenter pkgs.systemd pkgs.eww
+    pkgs.swaynotificationcenter pkgs.systemd pkgs.eww pkgs.sqlch
   ];
-  # sqlch itself comes from /run/current-system/sw/bin
   tabletStateBin = pkgs.writeShellScriptBin "tablet-state" ''
     export PATH="${tabletPath}:/run/current-system/sw/bin"
     exec ${pkgs.bash}/bin/bash ${./scripts/tablet-state.sh} "$@"

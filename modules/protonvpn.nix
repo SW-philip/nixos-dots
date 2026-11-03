@@ -2,26 +2,24 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.protonvpn;
-  names = lib.attrNames cfg.configs;
+  secretOf = r: "protonvpn_${r}_conf";
+  # interface protonvpn-<region>; the waybar/eww scripts list these names too
+  names = map (r: "protonvpn-${r}") cfg.regions;
 in
 {
-  options.protonvpn.configs = lib.mkOption {
-    type = lib.types.attrsOf lib.types.path;
-    default = {};
-    description = "Attrset of interface name → wg-quick .conf file path";
-    example = lib.literalExpression ''
-      {
-        protonvpn    = config.sops.secrets.protonvpn_conf.path;
-        protonvpn-ca = config.sops.secrets.protonvpn_ca_conf.path;
-      }
-    '';
+  options.protonvpn.regions = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ "au" "ca" "ny" ];
+    description = "Regions with a wg-quick config in secrets/shared.yaml as protonvpn_<region>_conf.";
   };
 
-  config = lib.mkIf (names != []) {
-    networking.wg-quick.interfaces = lib.mapAttrs (_: confFile: {
-      configFile = confFile;
+  config = lib.mkIf (cfg.regions != []) {
+    sops.secrets = lib.genAttrs (map secretOf cfg.regions) (_: { sopsFile = ../secrets/shared.yaml; });
+
+    networking.wg-quick.interfaces = lib.listToAttrs (map (r: lib.nameValuePair "protonvpn-${r}" {
+      configFile = config.sops.secrets.${secretOf r}.path;
       autostart = false;
-    }) cfg.configs;
+    }) cfg.regions);
 
     # wg-quick's full-tunnel rules (priority ~5208) sit ahead of tailscale's (5210+), so with a
     # tunnel up even 100.x traffic and tailscaled's own marked packets go out the VPN and the

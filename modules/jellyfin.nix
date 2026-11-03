@@ -2,6 +2,7 @@
 let
   ports = import ../hosts/ports.nix;
   https = toString ports.tailscale-serve-https;
+  ts = "${config.services.tailscale.package}/bin/tailscale";
 in
 {
   services.jellyfin = {
@@ -52,15 +53,43 @@ in
     after = [ "tailscaled.service" "jellyfin.service" ];
     wants = [ "tailscaled.service" ];
     serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
       # tailscaled is "started" before its backend leaves NoState, which serve rejects at boot.
-      ExecStartPre = "${config.services.tailscale.package}/bin/tailscale wait";
-      TimeoutStartSec = "2min";
-      ExecStart = "${config.services.tailscale.package}/bin/tailscale serve --bg --https=${https} http://127.0.0.1:${toString ports.jellyfin}";
-      ExecStop = "${config.services.tailscale.package}/bin/tailscale serve --https=${https} off";
+      # The wait lives in ExecStart, not ExecStartPre, and Type=exec rather than oneshot,
+      # so it doesn't hold multi-user.target (and graphical) for ~5s every boot.
+      Type = "exec";
+      RemainAfterExit = true;
+      ExecStart = "${pkgs.bash}/bin/sh -c '${pkgs.coreutils}/bin/timeout 2m ${ts} wait && exec ${ts} serve --bg --https=${https} http://127.0.0.1:${toString ports.jellyfin}'";
+      ExecStop = "${ts} serve --https=${https} off";
       Restart = "on-failure";
       RestartSec = "30s";
+
+      # Talks to tailscaled's LocalAPI socket; `tailscale wait` also reads the
+      # interface's IPs over netlink and hangs forever without AF_NETLINK. Stays root
+      # (no capabilities): the LocalAPI grants serve config by peer uid.
+      CapabilityBoundingSet = "";
+      NoNewPrivileges = true;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      PrivateDevices = true;
+      ProtectClock = true;
+      ProtectHostname = true;
+      ProtectKernelLogs = true;
+      ProtectKernelModules = true;
+      ProtectKernelTunables = true;
+      ProtectControlGroups = true;
+      ProtectProc = "invisible";
+      ProcSubset = "pid";
+      RestrictAddressFamilies = [ "AF_UNIX" "AF_NETLINK" ];
+      IPAddressDeny = "any";
+      RestrictNamespaces = true;
+      RestrictRealtime = true;
+      RestrictSUIDSGID = true;
+      LockPersonality = true;
+      MemoryDenyWriteExecute = true;
+      SystemCallArchitectures = "native";
+      SystemCallFilter = [ "@system-service" "~@privileged @resources" ];
+      UMask = "0077";
     };
   };
 }

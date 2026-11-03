@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 {
   ############################################################
   # Libvirt / KVM
@@ -40,16 +40,13 @@
   ############################################################
   # User access
   ############################################################
-  users.users.prepko.extraGroups = [ "libvirtd" "kvm" ];
+  users.users.${config.myConfig.user}.extraGroups = [ "libvirtd" "kvm" ];
 
   ############################################################
   # Packages
   ############################################################
   environment.systemPackages = with pkgs; [
-    virt-manager
     virt-viewer    # remote-viewer — SPICE client
-    spice-gtk      # SPICE GTK widget / libraries
     virtiofsd      # host-side virtiofs daemon for shared folders
-    qemu_kvm       # qemu-img, qemu-system-x86_64, etc.
   ];
 }

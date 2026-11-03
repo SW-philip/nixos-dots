@@ -1,7 +1,7 @@
-# go-librespot is not in nixos-26.05, so it comes from nixpkgs-unstable,
-# bumped to v0.10.5 for the device_auth login (the interactive one is
-# rejected by Spotify's client id).
-# drop when: the stable channel ships go-librespot >= 0.10.5.
+# nixpkgs-unstable's go-librespot (stable 26.05 has none, which only matters
+# for the installer), bumped to v0.10.5 for the device_auth login (the
+# interactive one is rejected by Spotify's client id).
+# drop when: nixpkgs-unstable ships go-librespot >= 0.10.5.
 { inputs, ... }:
 _final: prev: {
   go-librespot =

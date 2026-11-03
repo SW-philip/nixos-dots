@@ -14,11 +14,6 @@ home/openrgb/rgb-reactive.nix  # black = LED off, hardware meaning
 home/nix-mark/mark.nix  # sed targets: the upstream Nix logo's own fill values
 home/fastfetch/logo.nix  # Nix logo brand fills and the sed targets that recolor them
 hosts/retro/kiosk.nix  # --replace-fail strings must match Moonlight's source verbatim
-pkgs/dsa-plymouth/default.nix  # DSA brand art, not themed
-pkgs/dsa-plymouth/dsa-rose.script  # DSA brand art, not themed
-pkgs/dsa-plymouth/render.py  # DSA brand art, not themed
-pkgs/lix-plymouth/lix-icecream.script  # Lix brand art, not themed
-pkgs/lix-plymouth/render.py  # Lix brand art, not themed
 pkgs/greeter/greeter/fallback-palette.sh  # greeter's palette when no theme file loads
 pkgs/greeter/greeter/palette.py  # greeter's palette when no theme file loads, plus brand constants
 pkgs/greeter/greeter/mark.py  # Nix logo fills the recolor step matches against

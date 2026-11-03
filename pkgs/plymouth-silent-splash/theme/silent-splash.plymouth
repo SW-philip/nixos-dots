@@ -1,8 +1,0 @@
-[Plymouth Theme]
-Name=Silent Splash
-Description=Silent film intertitle boot splash
-ModuleName=script
-
-[script]
-ImageDir=/etc/plymouth/themes/silent-splash
-ScriptFile=/etc/plymouth/themes/silent-splash/silent-splash.script

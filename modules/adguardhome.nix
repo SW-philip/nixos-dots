@@ -89,11 +89,20 @@ in
     ];
   };
   services.openssh.settings.AllowUsers = [ "querylog" ];
+  # roles/common.nix turns forwarding off; scripts/tunnel.sh still needs -L to the UI.
+  # prepko only: git-shell doesn't stop `ssh -N -L` as the git user.
+  services.openssh.extraConfig = ''
+    Match User ${config.myConfig.user} Address 100.64.0.0/10
+      AllowTcpForwarding local
+      PermitOpen localhost:${toString ports.adguard-ui} 127.0.0.1:${toString ports.adguard-ui}
+  '';
   security.sudo.extraRules = [{
     users = [ "querylog" ];
     commands = [{ command = "${querylogRead}"; options = [ "NOPASSWD" ]; }];
   }];
 
-  networking.firewall.allowedUDPPorts = [ ports.adguard-dns ];
-  networking.firewall.allowedTCPPorts = [ ports.adguard-dns ];
+  networking.firewall.interfaces.tailscale0 = {
+    allowedUDPPorts = [ ports.adguard-dns ];
+    allowedTCPPorts = [ ports.adguard-dns ];
+  };
 }

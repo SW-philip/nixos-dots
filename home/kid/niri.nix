@@ -107,8 +107,6 @@ let
     }
 
     binds {
-        Mod+Space  { spawn "nwg-drawer"; }
-        Mod+Return { spawn "ghostty"; }
 
         Mod+Q { close-window; }
         Mod+F { fullscreen-window; }

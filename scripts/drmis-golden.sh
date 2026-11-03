@@ -42,8 +42,7 @@ for slug in "${themes[@]}"; do
 done
 rm -rf "$work"
 
-# `let` also writes /run/tuigreet-theme and /run/greeter/palette.sh when
-# writable; put them back to the real current theme.
+# `let` also writes /run/greeter/palette.sh when writable; put them back to the real current theme.
 drmis let >/dev/null
 
 if [[ $mode == capture ]]; then

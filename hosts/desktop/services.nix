@@ -2,25 +2,17 @@
 
 let
   ports = import ../ports.nix;
+  # by-id: sda/sdb swap between boots, and hdparm on the wrong one hits the SSD.
+  hdd = "/dev/disk/by-id/ata-ST3000DM008-2DM166_Z505GAGT";
+  ssd = "/dev/disk/by-id/ata-ADATA_SU630_2J1320139530";
 in
 {
   ############################################################
   # Services
   ############################################################
-  services = {
-    fwupd.enable = true;
-  };
-
-  # Upstream timer is hourly + Persistent, so it also fires right after boot.
-  systemd.timers.fwupd-refresh.timerConfig = {
-    OnCalendar = [ "" "monthly" ];
-    RandomizedDelaySec = "1d";
-  };
-
-  # Opens TCP+UDP 1714-1764 on every interface. Unlike surface, desktop keeps
-  # the package's /etc/xdg/autostart entry: it's always on, so kdeconnectd
-  # should be up to answer the phone's discovery broadcasts.
-  programs.kdeconnect.enable = true;
+  # fwupd and kdeconnect: roles/base.nix. Unlike surface, desktop keeps kdeconnect's
+  # /etc/xdg/autostart entry: it's always on, so kdeconnectd should be up to answer
+  # the phone's discovery broadcasts.
 
   # acpid is switched on unconditionally by the nvidia driver module and has no
   # handlers here; keep it to its unix socket + acpi netlink events. No
@@ -57,12 +49,8 @@ in
 
   ############################################################
   # Smartd (drive monitoring)
-  # sda: ST3000DM008 HDD  sdb: ADATA SU630 SSD
   ############################################################
   services.smartd = {
-    enable = true;
-    autodetect = false;
-    notifications.wall.enable = true;
     devices = let
       hddOpts = lib.concatStringsSep " " [
         "-a" "-n standby"
@@ -79,8 +67,8 @@ in
         "-l error" "-l selftest"
       ];
     in [
-      { device = "/dev/sda"; options = hddOpts; }
-      { device = "/dev/sdb"; options = ssdOpts; }
+      { device = hdd; options = hddOpts; }
+      { device = ssd; options = ssdOpts; }
     ];
   };
 
@@ -88,7 +76,6 @@ in
   # Packages
   ############################################################
   environment.systemPackages = with pkgs; [
-    wireguard-tools
     nvtopPackages.nvidia
   ];
 
@@ -97,18 +84,18 @@ in
   ############################################################
   powerManagement.cpuFreqGovernor = "powersave";
 
-  # Disable APM head-parking on the HDD (ST3000DM008/sda).
+  # Disable APM head-parking on the HDD (ST3000DM008).
   # Load_Cycle_Count was accumulating rapidly (141k+) due to aggressive
   # APM spinning down heads during writes, causing btrfs write_io_errs.
   # APM level 255 = fully disabled; drive handles its own spindown on idle.
   systemd.services.hdparm-apm-disable = {
-    description = "Disable APM head-parking on HDD (sda)";
+    description = "Disable APM head-parking on the HDD";
     wantedBy = [ "multi-user.target" ];
     after = [ "systemd-udev-settle.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
-      ExecStart = "${pkgs.hdparm}/bin/hdparm -B 255 /dev/sda";
+      ExecStart = "${pkgs.hdparm}/bin/hdparm -B 255 ${hdd}";
     };
   };
 

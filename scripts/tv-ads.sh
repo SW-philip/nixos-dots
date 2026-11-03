@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # tv-ads <pool> <url|file>... — add commercial compilations to an ad pool:
 # tv-add files them under commercials/<pool>, then split-commercials.sh cuts
-# every unsplit source there into commercials-split/spots-<pool>, which the
-# breaks in modules/ersatztv.nix query.
+# every unsplit source there into commercials-split/spots-<pool>. No break in
+# modules/ersatztv.nix airs those pools right now; add one back to air it.
 #
 #   tv-ads halloween https://youtu.be/pMy58wP8e7Y
 #   tv-ads kids ~/Downloads/nick-2003.mp4

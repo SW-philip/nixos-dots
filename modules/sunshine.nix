@@ -2,7 +2,7 @@
 let
   inventory = import ../hosts/inventory.nix;
   ports = import ../hosts/ports.nix;
-  artDir = "/home/${config.myConfig.user}/.local/share/retro-tiles/art";
+  artDir = "${config.users.users.${config.myConfig.user}.home}/.local/share/retro-tiles/art";
   tileSystems = builtins.filter (s: s.tile or false)
     (import ../hosts/retro-systems.nix { inherit pkgs; });
   # KMS capture grabs the first enabled output and floods "Couldn't get drm
@@ -37,7 +37,7 @@ in
   # KMS video capture (capSysAdmin, session-independent) keeps working.
   # A static group grant sidesteps the seat-active requirement entirely.
   hardware.uinput.enable = true;
-  users.users.prepko.extraGroups = [ "uinput" "uhid" ];
+  users.users.${config.myConfig.user}.extraGroups = [ "uinput" "uhid" ];
   # Sunshine presents a DualSense client as a virtual PS5 pad via /dev/uhid,
   # root-only by default, so it fell back to an Xbox pad. Group grant, not
   # uaccess, for the same seat-active reason as uinput above.

@@ -11,7 +11,7 @@ in
     ../../modules/adguardhome.nix
     "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
     ../../identities/prepko.nix
-    ../../roles/nix-hygiene.nix
+    ../../roles/headless.nix
     ../../roles/goodnight-activate.nix
     ../../roles/ssh-known-hosts.nix
     ../../roles/wifi-home.nix
@@ -19,18 +19,9 @@ in
   ];
 
   networking.hostName = "SWpi";
-  time.timeZone = "America/New_York";
-  i18n.defaultLocale = "en_US.UTF-8";
-  hardware.enableRedistributableFirmware = true;
 
-  # DHCP on Ethernet comes from NetworkManager too. The home Wi-Fi profile is
-  # declared in roles/wifi-home.nix; its PSK comes from sops, never the store.
-  networking.networkmanager.enable = true;
-  sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-
-  # 1 GB of RAM and a microSD: swap in RAM, logs in RAM.
+  # 1 GB of RAM and a microSD: swap in RAM, logs in RAM (roles/headless.nix).
   services.journald.extraConfig = ''
-    Storage=volatile
     RuntimeMaxUse=32M
   '';
   services.udisks2.enable = false;
@@ -78,36 +69,10 @@ in
     '';
   };
 
-  # identities/prepko.nix lists groups that don't exist here and sets zsh.
-  users.users.prepko = {
-    shell = lib.mkForce pkgs.bash;
-    extraGroups = lib.mkForce [ "wheel" ];
-  };
-  # Passwordless on purpose: remote deploys (nixos-rebuild --sudo over ssh) can't prompt, and
-  # scoping NOPASSWD to deploy commands buys nothing since nix-env/systemd-run/switch-to-configuration
-  # are root-equivalent. A wrong rule would lock out deploys.
-  security.sudo.wheelNeedsPassword = false;
-
-  # No home-manager here, so no themed ff: stock fastfetch under the usual name.
-  environment.systemPackages = [ pkgs.fastfetch pkgs.ghostty.terminfo ];
-  environment.shellAliases.ff = "fastfetch";
-
-  services.tailscale.enable = true;
-  networking.firewall = {
-    checkReversePath = "loose";
-  };
-
-  services.openssh = {
-    enable = true;
-    settings = {
-      PasswordAuthentication = false;
-      KbdInteractiveAuthentication = false;
-      PermitRootLogin = "no";
-      AllowUsers = [ "prepko" "git" ];
-      X11Forwarding = false;
-      MaxAuthTries = 3;
-      LoginGraceTime = 20;
-    };
+  services.openssh.settings = {
+    AllowUsers = [ "prepko" "git" ];
+    MaxAuthTries = 3;
+    LoginGraceTime = 20;
   };
 
   ############################################################
@@ -182,5 +147,14 @@ in
         [ -d /srv/git/$r.git ] || git init --bare -b main /srv/git/$r.git
       done
     '';
+  };
+
+
+  # goodnight runs these instead of their timers (modules/goodnight-jobs.nix)
+  goodnight.jobs = {
+    git-maintain.every = "week";
+    nix-gc.every = "week";
+    fstrim.every = "week";
+    zpool-trim.every = "week";
   };
 }

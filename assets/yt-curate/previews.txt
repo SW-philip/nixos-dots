@@ -1,0 +1,30 @@
+# dest: bumpers/previews
+# full official trailers, G/PG only: they air on Little Kids too
+https://www.youtube.com/watch?v=Rvr68u6k5sI  # Coco
+https://www.youtube.com/watch?v=CaimKeDcudo  # Encanto
+https://www.youtube.com/watch?v=LEjhY15eCx0  # Inside Out 2
+https://www.youtube.com/watch?v=hDZ7y8RP5HE  # Moana 2
+https://www.youtube.com/watch?v=BjkIOU5PhyQ  # Zootopia 2
+https://www.youtube.com/watch?v=ETVi5_cnnaE  # Elio
+https://www.youtube.com/watch?v=67vbA5ZJdKQ  # The Wild Robot
+https://www.youtube.com/watch?v=6COmYeLsz4c  # Wicked
+https://www.youtube.com/watch?v=vt98AlBDI9Y  # Wicked: For Good
+https://www.youtube.com/watch?v=PypDSyIRRSs  # Hoppers
+https://www.youtube.com/watch?v=ggZA2oi8S5s  # GOAT
+https://www.youtube.com/watch?v=TY1lWh20VSw  # The Bad Guys 2
+https://www.youtube.com/watch?v=_inKs4eeHiI  # Kung Fu Panda 4
+https://www.youtube.com/watch?v=qQlr9-rF32A  # Despicable Me 4
+https://www.youtube.com/watch?v=hXzcyx9V0xw  # Elemental
+https://www.youtube.com/watch?v=XdKzUbAiswE  # Turning Red
+https://www.youtube.com/watch?v=mYfJxlgR2jw  # Luca
+https://www.youtube.com/watch?v=wmiIUN-7qhE  # Toy Story 4
+https://www.youtube.com/watch?v=c51ND9Hdbw0  # Toy Story 5
+https://www.youtube.com/watch?v=NTvudSGfHRI  # Paddington in Peru
+https://www.youtube.com/watch?v=TnGl01FkMMo  # The Super Mario Bros. Movie
+https://www.youtube.com/watch?v=oyRxxpD3yNw  # Wish
+https://www.youtube.com/watch?v=cQfo0HJhCnE  # Migration
+https://www.youtube.com/watch?v=VWqJifMMgZE  # Lilo & Stitch (2025)
+https://www.youtube.com/watch?v=22w7z_lT6YM  # How to Train Your Dragon (2025)
+https://www.youtube.com/watch?v=QaJbAennB_Q  # Dog Man
+https://www.youtube.com/watch?v=XdPt8QWTypI  # The SpongeBob Movie: Search for SquarePants
+https://www.youtube.com/watch?v=qjoomsFNgwg  # UglyDolls

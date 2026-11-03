@@ -71,9 +71,11 @@
     };
 
     # Lix 2.96 from nixpkgs-unstable (cached; stable's `latest` is 2.95, which had
-    # regressions) on both channels instead of building the upstream flake locally.
+    # regressions) instead of building the upstream flake locally. Workstations only:
+    # retro and pi keep their channel's nix, since they're deployed from desktop
+    # and never evaluate the flake themselves.
     # pkgs.nix is Lix too, so comma/nix-direnv follow.
-    # drop when: the default lixPackageSets on both channels is >= 2.96.
+    # drop when: unstable's default lixPackageSets is >= 2.96.
     lixModule = { ... }:
       let lix = inputs.nixpkgs-unstable.legacyPackages.${system}.lixPackageSets.lix_2_96.lix;
       in {
@@ -98,11 +100,8 @@
       default          = (pkgsFor system).sqlch;
       uniremote        = (pkgsFor system).uniremote;
       greeter          = (pkgsFor system).greeter;
-      lix-plymouth     = (pkgsFor system).lix-plymouth;
-      dsa-plymouth     = (pkgsFor system).dsa-plymouth;
       niri-bridge      = (pkgsFor system).niri-bridge;
     };
-    formatter.${system} = (pkgsFor system).nixfmt;
     checks.${system} = {
       surface = self.nixosConfigurations.surface.config.system.build.toplevel;
       desktop = self.nixosConfigurations.desktop.config.system.build.toplevel;
@@ -123,7 +122,6 @@
           inputs.impermanence.nixosModules.impermanence
           inputs.nirinit.nixosModules.nirinit
           ./hosts/surface/config.nix
-          ./cachix.nix
           home-manager-unstable.nixosModules.home-manager
           hmBase
           hmPrepkoSurface
@@ -142,7 +140,6 @@
           inputs.impermanence.nixosModules.impermanence
           inputs.nirinit.nixosModules.nirinit
           ./hosts/desktop/config.nix
-          ./cachix.nix
           ./modules/virt.nix
           lanzaboote.nixosModules.lanzaboote
           home-manager-unstable.nixosModules.home-manager

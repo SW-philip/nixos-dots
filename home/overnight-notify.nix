@@ -23,10 +23,14 @@ in
       default = [ ];
       description = "User services (names without .service) whose outcome is recorded.";
     };
+    popups = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Notify per run; off where goodnight sends one summary instead (`overnight log` still works).";
+    };
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ overnight ];
     home.activation.overnightSpool = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       mkdir -p ${spool}
     '';
@@ -37,7 +41,11 @@ in
       # also WantedBy the session, so runs that finished while logged out are announced at login
       overnight-notify = {
         Unit = config.lib.niri.unit { wayland = true; } { Description = "Notify about finished overnight services"; };
-        Service = { Type = "oneshot"; ExecStart = "${overnight}/bin/overnight consume"; };
+        Service = {
+          Type = "oneshot";
+          ExecStart = "${overnight}/bin/overnight consume";
+          Environment = lib.optional (!cfg.popups) "OVERNIGHT_POPUPS=0";
+        };
         Install.WantedBy = [ "graphical-session.target" ];
       };
     } // lib.genAttrs cfg.units (n: {

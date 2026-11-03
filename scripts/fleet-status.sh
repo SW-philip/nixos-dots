@@ -33,11 +33,12 @@ HEAD_SHA=$(git -C "$ROOT" rev-parse "$HEAD_REF" 2>/dev/null || true)
 # drift counts only commits that can change what a host runs: docs, notes and tests never do.
 # desktop/surface build from nearly the whole tree; retro and pi are plain nixosSystems that only
 # reach a few paths (their hosts/ dir plus what it imports), so a commit elsewhere is not pending
-# for them. Keep these lists in step with the imports in hosts/retro and hosts/pi.
+# for them. The lists err wide on purpose: a false "pending" costs nothing, a missed one
+# leaves a stale host looking current.
 drift_paths() {
   case $1 in
-    pi)    DRIFT_PATHS=(-- flake.nix flake.lock hosts/pi identities roles/ssh-known-hosts.nix) ;;
-    retro) DRIFT_PATHS=(-- flake.nix flake.lock hosts/retro identities roles pkgs/josefin-sans.nix themes/Dark/slate-lavender) ;;
+    pi)    DRIFT_PATHS=(-- flake.nix flake.lock hosts/pi hosts/ports.nix 'hosts/inventory.*' identities roles modules lib pkgs scripts secrets ':(exclude)scripts/tests') ;;
+    retro) DRIFT_PATHS=(-- flake.nix flake.lock hosts/retro hosts/ports.nix 'hosts/inventory.*' hosts/retro-systems.nix hosts/pegasus-metadata.nix identities roles modules lib pkgs scripts secrets themes ':(exclude)scripts/tests') ;;
     *)     DRIFT_PATHS=(-- . ':(exclude)docs' ':(exclude)*.md' ':(exclude).superpowers' ':(exclude)scripts/tests' ':(exclude).claude-shared') ;;
   esac
 }

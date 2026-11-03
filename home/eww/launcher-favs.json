@@ -4,7 +4,6 @@
   {"icon": "󰉋", "label": "Files", "cmd": "nemo"},
   {"icon": "󰇮", "label": "Mail", "cmd": "thunderbird"},
   {"icon": "󰍡", "label": "Element", "cmd": "element-desktop"},
-  {"icon": "󰓇", "label": "Spotify", "cmd": "spotify"},
   {"icon": "󰏫", "label": "Notes", "cmd": "xournalpp"},
   {"icon": "󰃣", "label": "Krita", "cmd": "krita"},
   {"icon": "󰂽", "label": "Books", "cmd": "koreader"},

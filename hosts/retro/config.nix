@@ -10,22 +10,16 @@
     ../../roles/secure-boot.nix
     ../../roles/wifi-home.nix
     inputs.sops-nix.nixosModules.sops
-    ../../roles/nix-hygiene.nix
+    ../../roles/headless.nix
     ../../roles/goodnight-activate.nix
     ../../roles/ssh-known-hosts.nix
   ];
 
   networking.hostName = "SWretro";
-  time.timeZone = "America/New_York";
-  i18n.defaultLocale = "en_US.UTF-8";
-
-  hardware.enableRedistributableFirmware = true;
-
   ############################################################
   # Boot (lanzaboote via roles/secure-boot.nix) + LUKS (TPM2 auto-unlock; enrolled by hand, see plan Task 4)
   ############################################################
-  environment.systemPackages = [ pkgs.sbctl pkgs.fastfetch pkgs.ghostty.terminfo ];
-  environment.shellAliases.ff = "fastfetch";
+  environment.systemPackages = [ pkgs.sbctl ];
 
   # A headless box can't sit at a passphrase prompt. The crypttab option is
   # inert until a TPM2 keyslot is enrolled; the passphrase slot stays as recovery.
@@ -39,16 +33,6 @@
   ############################################################
   # Users
   ############################################################
-  # identities/prepko.nix lists groups that don't exist here and sets zsh.
-  users.users.prepko = {
-    shell = lib.mkForce pkgs.bash;
-    extraGroups = lib.mkForce [ "wheel" "networkmanager" ];
-  };
-  # Passwordless on purpose: remote deploys (nixos-rebuild --sudo over ssh) can't prompt, and
-  # scoping NOPASSWD to deploy commands buys nothing since nix-env/systemd-run/switch-to-configuration
-  # are root-equivalent. A wrong rule would lock out deploys.
-  security.sudo.wheelNeedsPassword = false;
-
   # No password, no keys: only ever autologged-in by cage.
   users.users.retro = {
     isNormalUser = true;
@@ -61,28 +45,12 @@
   ############################################################
   # Network
   ############################################################
-  networking.networkmanager.enable = true;
   networking.networkmanager.wifi.powersave = false;
 
-  sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
   # ath10k stalls on 2.4 GHz while Bluetooth is active.
   homeWifi.band = "a";
 
-  services.tailscale.enable = true;
-  networking.firewall = {
-    checkReversePath = "loose";
-  };
-
-  services.openssh = {
-    enable = true;
-    settings = {
-      PasswordAuthentication = false;
-      KbdInteractiveAuthentication = false;
-      PermitRootLogin = "no";
-      AllowUsers = [ "prepko" ];
-      X11Forwarding = false;
-    };
-  };
+  services.openssh.settings.AllowUsers = [ "prepko" ];
 
   ############################################################
   # Power: docked on a TV; power button suspends, BT pad wakes
@@ -133,22 +101,14 @@
   # Every fleet-status probe used to log in over ssh and journal a user-manager start/stop; keep
   # the journal small and in RAM so idle chatter doesn't hit the SSD.
   services.journald.extraConfig = ''
-    Storage=volatile
     RuntimeMaxUse=64M
   '';
 
-  ############################################################
-  # Hardening (light)
-  ############################################################
-  security.protectKernelImage = true;
-  boot.kernel.sysctl = {
-    "net.ipv4.conf.all.accept_redirects" = 0;
-    "net.ipv4.conf.default.accept_redirects" = 0;
-    "net.ipv6.conf.all.accept_redirects" = 0;
-    "net.ipv4.conf.all.send_redirects" = 0;
-    "net.ipv4.conf.all.accept_source_route" = 0;
-    "kernel.kptr_restrict" = 2;
-    "kernel.dmesg_restrict" = 1;
-    "kernel.unprivileged_bpf_disabled" = 1;
+
+  # goodnight runs these instead of their timers (modules/goodnight-jobs.nix)
+  goodnight.jobs = {
+    nix-optimise.every = "day";
+    nix-gc.every = "week";
+    fstrim.every = "week";
   };
 }

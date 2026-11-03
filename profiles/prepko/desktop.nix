@@ -6,29 +6,10 @@
     ../../home/openrgb/rgb-moon.nix
     ../../home/openrgb/rgb-reactive.nix
     ../../home/ps-controller-colors.nix
-    ../../home/niri-bridge
-    ../../home/claude-tidy.nix
-    ../../home/tree-sync.nix
-    ../../home/theme-sync.nix
-    ../../home/fleet-status.nix
-    ../../home/whats-new.nix
     ../../home/goodnight.nix
-    ../../home/nixfetch.nix
     ../../home/pi-git-mirror.nix
     ../../home/flake-check.nix
     ../../home/reaper.nix
-    ../../home/sync-status.nix
-    ../../home/pass-through.nix
-    ../../home/quivr.nix
-    ../../home/go-librespot.nix
-    ../../home/on.nix
-    ../../home/settings.nix
-    ../../home/commands.nix
-    ../../home/snark.nix
-    ../../home/tunnel.nix
-    ../../home/dnslog.nix
-    ../../home/polkit-agent.nix
-    ../../home/shared-apps
     ../../home/pegasus
     ../../home/bluetooth-idle-notify.nix
     ../../home/archive.nix
@@ -39,10 +20,17 @@
 
   goodnight.deploy.enable = true;
   goodnight.reboot.enable = true;
+  goodnight.jobs = {
+    icloud-pull = { every = "day"; stage = "data"; };
+    drive-pull = { every = "day"; stage = "data"; };
+    pi-git-mirror = { every = "day"; stage = "data"; };
+    flake-check.every = "week";
+  };
 
   # archive.nix wires icloud-pull and drive-pull itself (they carry a failure hint)
   overnight.notify = {
     enable = true;
+    popups = false;
     units = [ "goodnight" "claude-tidy" "flake-check" "pi-git-mirror" ];
   };
 
@@ -72,6 +60,20 @@
   # Password -> leave the new password fields empty) — this mirrors exactly
   # what pam_gnome_keyring does on a normal password login, just with an
   # empty token instead of a real one.
+  systemd.user.services.protonmail-bridge = {
+    Unit = {
+      Description = "Proton Mail Bridge";
+      After = [ "network-online.target" "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.protonmail-bridge}/bin/protonmail-bridge --noninteractive";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   systemd.user.services.gnome-keyring-unlock = {
     Unit = config.lib.niri.unit { wayland = false; } {
       Description = "Unlock the (blank-password) login keyring for greetd's autologin session";
@@ -92,16 +94,20 @@
   programs.zsh.shellAliases.tv-ads = "noglob tv-ads";
 
   home.packages = with pkgs; [
+    thunderbird
     orch
-    kdePackages.kdenlive
     wayland-utils
     ydotool
     vulkan-tools
     mesa-demos
     drm_info
-    dig
-    vmpk qsynth fluidsynth soundfont-fluid
-    helio-workstation hydrogen
+    dig              # bind's dnsutils output; the system bind has no dig
+    tor-browser
+    # Standalone Wine for running Windows installers (e.g. FitGirl setup.exe)
+    # outside Steam's process reaper, which kills Inno Setup's setup.tmp worker
+    # when the bootstrapper exits mid-extraction.
+    wineWow64Packages.stable   # 64-bit wine with 32-bit (WoW64) support
+    winetricks
     (writeShellScriptBin "tv-add" ''
       exec ~/nixos/scripts/tv-add.sh "$@"
     '')

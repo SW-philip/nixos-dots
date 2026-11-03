@@ -8,6 +8,7 @@ let
 in
 {
   home.packages = [ tidy ];
+  goodnight.jobs.claude-tidy.every = "day";
 
   systemd.user.services.claude-tidy = {
     Unit.Description = "Prune old Claude Code transcripts and redact leaked tokens";

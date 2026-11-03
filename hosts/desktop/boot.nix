@@ -1,8 +1,8 @@
 { lib, ... }:
 
 {
-  # Plymouth is off (a black screen beats stalling on the splash). The theme
-  # module is kept in modules/plymouth.nix but deliberately not imported.
+  # Plymouth is off (a black screen beats stalling on the splash). The old
+  # themes are in ~/archive/nixos/plymouth-2026-11-02.
   boot.plymouth.enable = false;
   boot.consoleLogLevel = 0;
 

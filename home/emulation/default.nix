@@ -46,11 +46,6 @@
   # "true", which rewrites this ENTIRE file on every quit — turning the
   # home-manager symlink into a plain writable file and silently reverting
   # joypad_autoconfig_dir back to RetroArch's own default, undoing the fix.
-  # video_fullscreen pinned explicitly (rather than left to upstream's
-  # default) so every RetroArch core opens windowed — niri's own
-  # window-rule (home/niri/config.kdl.nix, app-id "com.libretro.RetroArch")
-  # then maximizes it. Exclusive fullscreen on this box coincides with the
-  # Bluetooth adapter dropping its connected device.
   # savefile_directory points every account at the shared NFS-backed save
   # store (docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md);
   # savestates stay local.
@@ -59,7 +54,6 @@
     text = ''
       joypad_autoconfig_dir = "${pkgs.retroarch-joypad-autoconfig}/share/libretro/autoconfig"
       config_save_on_exit = "false"
-      video_fullscreen = "false"
       savefile_directory = "/srv/game-saves"
     '';
   };

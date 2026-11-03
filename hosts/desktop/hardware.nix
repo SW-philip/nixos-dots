@@ -99,7 +99,7 @@
 
   ############################################################
   # SATA link power management
-  # sda (ADATA SU630) causes CommWake link resets with DiPM enabled,
+  # The ADATA SU630 causes CommWake link resets with DiPM enabled,
   # resulting in btrfs write_io_errs and EIO on sync. max_performance
   # disables both HIPM and DiPM to keep the link always active.
   ############################################################

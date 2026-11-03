@@ -10,7 +10,7 @@ let
   # transport changes (HTTP response instead of waybar's stdout polling).
   eggclockPy = ../waybar/scripts/eggclock.py;
 
-  # The kid's home screen: a static tile page (Pegasus/Firefox/Krita/GCompris)
+  # The kid's home screen and only launcher: a static tile page
   # plus the eggclock badge, served by the Python backend below instead of
   # a file:// URL.
   #
@@ -36,7 +36,7 @@ let
       body {
         display: flex; align-items: center; justify-content: center;
       }
-      .tiles { display: grid; grid-template-columns: repeat(2, 320px); gap: 48px; }
+      .tiles { display: grid; grid-template-columns: repeat(3, 320px); gap: 48px; }
       a.tile {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         width: 320px; height: 320px;
@@ -71,6 +71,8 @@ let
         <a class="tile" href="/launch/firefox"><span class="icon">🌐</span>Firefox</a>
         <a class="tile" href="/launch/krita"><span class="icon">🎨</span>Krita</a>
         <a class="tile" href="/launch/gcompris"><span class="icon">🧩</span>GCompris</a>
+        <a class="tile" href="/launch/tuxpaint"><span class="icon">🖍️</span>Tux Paint</a>
+        <a class="tile" href="/launch/foliate"><span class="icon">📚</span>Books</a>
       </div>
       <script>
         async function updateEgg() {
@@ -116,6 +118,11 @@ let
         # Real binary is gcompris-qt, not gcompris — confirmed by building
         # the package and listing its bin/ output.
         "gcompris": ["${pkgs.gcompris}/bin/gcompris-qt"],
+        "tuxpaint": ["${pkgs.tuxpaint}/bin/tuxpaint"],
+        # No network: foliate's word look-up (Wikipedia/Wiktionary) and OPDS
+        # catalogs would otherwise bypass the Firefox allowlist.
+        "foliate": ["${pkgs.bubblewrap}/bin/bwrap", "--dev-bind", "/", "/", "--unshare-net", "--",
+                    "${pkgs.foliate}/bin/foliate"],
     }
     EGGCLOCK_CMD = ["${pkgs.python3}/bin/python3", "${eggclockPy}"]
 

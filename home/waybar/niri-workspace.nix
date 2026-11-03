@@ -80,7 +80,7 @@ in
   # which injects a phantom nameless bar past the `b != {}` filter in default.nix.
   programs.waybar.settings = lib.mkMerge [
     (lib.mkIf isDesktop {
-      leftBar."custom/niri-workspace"  = mkModule "DP-1";
+      leftBar."custom/niri-workspace"  = mkModule "DP-3";
       rightBar."custom/niri-workspace" = mkModule "DP-2";
       tvTopBar."custom/niri-workspace" = mkModule "HDMI-A-1";
     })

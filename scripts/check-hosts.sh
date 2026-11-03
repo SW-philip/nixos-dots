@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Eval all hosts (no build). Channels differ (desktop=unstable, surface/retro=26.05), so all must pass.
+# Eval all hosts (no build). Channels differ (desktop/surface=unstable, retro/pi=26.05), so all must pass.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 

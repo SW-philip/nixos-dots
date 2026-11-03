@@ -14,27 +14,8 @@ in
     ../surface-tablet.nix
     ../../home/pegasus-surface
     ../../home/moonlight
-    ../../home/niri-bridge
     ../../home/reader-warmth
     ../../home/battery-low-notify.nix
-    ../../home/claude-tidy.nix
-    ../../home/tree-sync.nix
-    ../../home/theme-sync.nix
-    ../../home/fleet-status.nix
-    ../../home/whats-new.nix
-    ../../home/nixfetch.nix
-    ../../home/sync-status.nix
-    ../../home/pass-through.nix
-    ../../home/quivr.nix
-    ../../home/go-librespot.nix
-    ../../home/on.nix
-    ../../home/settings.nix
-    ../../home/commands.nix
-    ../../home/snark.nix
-    ../../home/tunnel.nix
-    ../../home/dnslog.nix
-    ../../home/polkit-agent.nix
-    ../../home/shared-apps
     ../../home/network-notify.nix
     ../../home/autobrightness.nix
   ];
@@ -78,6 +59,8 @@ in
   # package ships the unit but nothing enables it, and its [Install] has no niri
   # guard — hence the wants symlink plus the guard drop-in (unit owned by the
   # ghostty package, so a drop-in rather than config.lib.niri.unit).
+  # Type=notify: systemd ≥262 refuses a notify-reload service whose process has no
+  # SIGUSR2 handler at READY=1, and ghostty 1.3.1 installs it later (result 'protocol').
   xdg.configFile."systemd/user/graphical-session.target.wants/app-com.mitchellh.ghostty.service".source =
     "${pkgs.ghostty}/share/systemd/user/app-com.mitchellh.ghostty.service";
   xdg.configFile."systemd/user/app-com.mitchellh.ghostty.service.d/niri-guard.conf".text = ''
@@ -85,6 +68,10 @@ in
     ConditionEnvironment=WAYLAND_DISPLAY
     ConditionEnvironment=XDG_CURRENT_DESKTOP=niri
     PartOf=graphical-session.target
+
+    [Service]
+    Type=notify
+    ExecReload=${pkgs.coreutils}/bin/kill -USR2 $MAINPID
   '';
 
   xdg.configFile."autostart/org.kde.kdeconnect.daemon.desktop".text = ''
@@ -135,11 +122,8 @@ in
     pandora
     xournalpp       # stylus note-taking
     koreader        # ebooks + comics; warm-screen mode via home/reader-warmth
-    kdePackages.kdenlive krita uniremote
-    spotify
+    krita uniremote
     python-ember-mug
-    vmpk qsynth fluidsynth soundfont-fluid
-    helio-workstation hydrogen
 
     # element-desktop's Electron backend picks a secret-storage backend by
     # checking XDG_CURRENT_DESKTOP, not by probing D-Bus — niri isn't in its
@@ -154,5 +138,4 @@ in
       '';
     })
   ];
-
 }

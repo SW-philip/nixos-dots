@@ -54,15 +54,4 @@
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     NVD_BACKEND               = "auto";
   };
-
-  programs.steam.enable = true;
-  programs.steam.extraCompatPackages = [ pkgs.proton-ge-bin ];
-
-  # Standalone Wine for running Windows installers (e.g. FitGirl setup.exe)
-  # outside Steam's process reaper, which kills Inno Setup's setup.tmp worker
-  # when the bootstrapper exits mid-extraction.
-  environment.systemPackages = with pkgs; [
-    wineWow64Packages.stable   # 64-bit wine with 32-bit (WoW64) support
-    winetricks
-  ];
 }

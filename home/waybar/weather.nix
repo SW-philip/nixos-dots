@@ -2,8 +2,7 @@
 let
   scriptsDir = "${config.home.homeDirectory}/.config/waybar/scripts";
 
-  bar = if config.waybar.barName != "" then config.waybar.barName
-        else config.waybar.secondaryBar;
+  bar = config.waybar.secondaryBar;
 
   python = pkgs.python3.withPackages (ps: with ps; [ requests ]);
 

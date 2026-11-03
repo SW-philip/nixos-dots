@@ -90,8 +90,8 @@ in
       harvestScript diagnoseScript
       treemapScript
       failLogScript nrsWrapScript
-      pythonEnv llamaBin
     ];
+    # pythonEnv and llamaBin stay off PATH: the scripts and units call them by store path.
 
     system.activationScripts.myln = lib.stringAfter [ "var" ] ''
       mkdir -p ${cfg.storePath}/reports

@@ -17,7 +17,7 @@ assert_has() { # name haystack needle
   if [[ "$2" != *"$3"* ]]; then echo "FAIL: $1 — missing '$3' in: $2"; fail=1; else echo "PASS: $1"; fi
 }
 
-mkdir -p "$T/boot" "$T/never-back" "$T/uptime" "$T/bin" "$T/down" "$T/rev" "$T/btrbk" "$T/units" "$T/escrow" "$T/state"
+mkdir -p "$T/boot" "$T/never-back" "$T/uptime" "$T/bin" "$T/down" "$T/rev" "$T/btrbk" "$T/units" "$T/escrow" "$T/state" "$T/jobs"
 
 # ---- fakes ----------------------------------------------------------------
 printf '#!/bin/sh\ncat %s/me 2>/dev/null || echo SWsurface\n' "$T" > "$T/bin/hostname"
@@ -37,7 +37,11 @@ case \$cmd in
   "cut -d. -f1 /proc/uptime") cat "\$T/uptime/\$host" 2>/dev/null || echo 99999; exit 0 ;;
   *nixos-version*) cat "\$T/rev/\$host" 2>/dev/null; exit 0 ;;
   *"/mnt/backup/btrbk/"*) n=\$(sed -E 's#.*btrbk/([a-z]+).*#\1#' <<<"\$cmd"); cat "\$T/btrbk/\$n" 2>/dev/null; exit 0 ;;
-  "systemctl show -p Result --value"*) u=\${cmd##* }; cat "\$T/units/\$host-\$u" 2>/dev/null || echo success; exit 0 ;;
+  "cat /etc/goodnight/jobs.json"*) cat "\$T/jobs/\$host-system.json" 2>/dev/null; exit 0 ;;
+  *"/.config/goodnight/jobs.json"*) cat "\$T/jobs/\$host-user.json" 2>/dev/null; exit 0 ;;
+  *"start --wait"*) u=\${cmd##* }; u=\${u%.service}; echo "\$host \$u" >> "\$T/started.log"; exit \$(cat "\$T/units/\$host-\$u.rc" 2>/dev/null || echo 0) ;;
+  *"show -p Result -p ExecMainExitTimestamp"*) u=\${cmd##* }; u=\${u%.service}; cat "\$T/units/\$host-\$u.sd" 2>/dev/null; exit 0 ;;
+  *"show -p Result --value"*) u=\${cmd##* }; cat "\$T/units/\$host-\$u" 2>/dev/null || echo success; exit 0 ;;
   *key-escrow*) n=\$(grep -oE 'key-escrow/[A-Za-z]+' <<<"\$cmd" | cut -d/ -f2); cat "\$T/escrow/\$n" 2>/dev/null; exit 0 ;;
 esac
 exit 0
@@ -67,7 +71,6 @@ cat > "$T/repo/scripts/deploy-all.sh" <<EOF
 echo "NONINTERACTIVE=\${NONINTERACTIVE:-} args=\$*" >> $T/deploy.log
 rc=\$(cat $T/deploy.rc 2>/dev/null || echo 0); exit \$rc
 EOF
-printf '#!/bin/sh\necho flake-check-ran >> %s/flake.log\n' "$T" > "$T/repo/scripts/flake-check.sh"
 chmod +x "$T/repo/scripts/"*.sh
 echo a > "$T/repo/f"; git -C "$T/repo" add -A; git -C "$T/repo" commit -qm A
 A=$(git -C "$T/repo" rev-parse HEAD)
@@ -80,7 +83,7 @@ C=$(git -C "$T/repo" rev-parse HEAD)   # ahead of main, only local (wip)
 
 stamp() { date -d "$1 hours ago" +%Y%m%dT%H%M; }
 fresh_world() {
-  rm -rf "$T/me" "$T/self-reboot.log" "$T/boot"/* "$T/never-back"/* "$T/uptime"/* "$T/reboot.log" "$T/sudo-refused" "$T/down"/* "$T/rev"/* "$T/units"/* "$T/deploy.log" "$T/deploy.rc" "$T/flake.log" "$T/notify.log" "$T/state"/* "$T/escrow"/*
+  rm -rf "$T/me" "$T/self-reboot.log" "$T/boot"/* "$T/never-back"/* "$T/uptime"/* "$T/reboot.log" "$T/sudo-refused" "$T/down"/* "$T/rev"/* "$T/units"/* "$T/deploy.log" "$T/deploy.rc" "$T/notify.log" "$T/state"/* "$T/escrow"/* "$T/jobs"/* "$T/started.log"
   for h in pi retro desktop surface; do echo "$A" > "$T/rev/$h"; done   # everyone one commit behind main
   { echo "home.$(stamp 3)"; } > "$T/btrbk/home"; { echo "persist.$(stamp 3)"; } > "$T/btrbk/persist"
   date +%s > "$T/escrow/SWphil"; date +%s > "$T/escrow/SWsurface"
@@ -169,14 +172,52 @@ assert_has "backups: mirror mismatch" "$out" "mirror: pi main"
 assert_has "backups: missing escrow" "$out" "key-escrow surface: no bundle on the pi"
 git -C "$T/repo" push -q --force pi "$B:refs/heads/main"
 
-# ---- 8. housekeeping ------------------------------------------------------------
-fresh_world; echo failed > "$T/units/surface-nh-clean.service"
-out=$(gn run housekeeping)
-assert_eq "housekeeping: failed unit = warn" warn "$(phase_status housekeeping)"
-assert_has "housekeeping: names it" "$out" "surface nh-clean.service: failed"
-fresh_world
-out=$(GOODNIGHT_FLAKE_CHECK=1 gn run housekeeping)
-assert_eq "housekeeping: flake-check ran from the main checkout" "flake-check-ran" "$(cat "$T/flake.log")"
+# ---- 8. jobs --------------------------------------------------------------------
+jobs_world() {
+  fresh_world; echo SWnone > "$T/me"   # every host over the fake ssh
+  echo '{"btrbk-daily":{"every":"day","stage":"data"},"btrfs-scrub@-":{"every":"month","stage":"long"}}' > "$T/jobs/desktop-system.json"
+  echo '{"icloud-pull":{"every":"day","stage":"data"}}' > "$T/jobs/desktop-user.json"
+  echo '{"nix-gc":{"every":"week","stage":"upkeep"},"git-maintain":{"every":"week","stage":"upkeep"}}' > "$T/jobs/pi-system.json"
+}
+jobs_world
+out=$(gn run data)
+assert_eq "jobs: data stage runs only data jobs, system then user" "desktop btrbk-daily
+desktop icloud-pull" "$(cat "$T/started.log")"
+assert_eq "jobs: all ok" ok "$(phase_status data)"
+rm -f "$T/started.log"; out=$(gn run data)
+[[ ! -e $T/started.log ]] && echo "PASS: jobs: a job that just succeeded is not due" || { echo "FAIL: jobs: reran $(cat "$T/started.log")"; fail=1; }
+assert_has "jobs: nothing due" "$out" "nothing due"
+
+jobs_world; printf 'success\n@%s\n' "$(date +%s)" > "$T/units/pi-nix-gc.sd"
+out=$(gn run upkeep)
+assert_eq "jobs: a hand-run success counts, the other weekly job runs" "pi git-maintain" "$(cat "$T/started.log")"
+rm -f "$T/started.log" "$T/units/pi-nix-gc.sd"; gn run upkeep >/dev/null
+[[ ! -e $T/started.log ]] && echo "PASS: jobs: a success systemd reported outlives a reboot" || { echo "FAIL: jobs: reran $(cat "$T/started.log")"; fail=1; }
+
+jobs_world; echo 3 > "$T/units/desktop-btrbk-daily.rc"; echo exit-code > "$T/units/desktop-btrbk-daily.service"
+out=$(gn run data); rc=$?
+assert_eq "jobs: a failed job warns, the run goes on" "warn 0" "$(phase_status data) $rc"
+assert_has "jobs: names the failure" "$out" "desktop btrbk-daily: FAILED (exit-code)"
+assert_has "jobs: later jobs still ran" "$(cat "$T/started.log")" "desktop icloud-pull"
+rm -f "$T/started.log" "$T/units/desktop-btrbk-daily.rc"; gn run data >/dev/null
+assert_eq "jobs: a failed job is due again" "desktop btrbk-daily" "$(cat "$T/started.log")"
+
+jobs_world; out=$(gn run --dry-run data)
+[[ ! -e $T/started.log ]] && echo "PASS: jobs: dry run starts nothing" || { echo "FAIL: jobs: dry run started $(cat "$T/started.log")"; fail=1; }
+assert_has "jobs: dry run lists what is due" "$out" "desktop btrbk-daily: due (dry run"
+
+jobs_world; echo SWphil > "$T/me"; rm -f "$T/plan"/*; echo reboot > "$T/plan/desktop"
+out=$(GOODNIGHT_REBOOT=1 gnr run reboot long)
+assert_has "jobs: long jobs wait while this host reboots itself" "$out" "desktop: long jobs wait"
+[[ ! -e $T/started.log ]] && echo "PASS: jobs: no long job started" || { echo "FAIL: jobs: started $(cat "$T/started.log")"; fail=1; }
+jobs_world
+out=$(gn run long)
+assert_eq "jobs: long jobs run on an ordinary night" "desktop btrfs-scrub@-" "$(cat "$T/started.log")"
+
+jobs_world; out=$(gn run data)
+assert_has "notify: one summary on an ok night" "$(cat "$T/notify.log")" "goodnight: all ok"
+echo '{"phases": {"housekeeping": {"status": "ok"}}}' > "$T/state/report.json"; gn run data >/dev/null
+assert_eq "report: retired phases drop out" null "$(phase_status housekeeping)"
 
 # ---- 9. audit phase and report merge ---------------------------------------------
 fresh_world; echo '{"generated_at": 1, "hosts": {"surface": {"grade": "A"}}}' > "$T/state/report.json"

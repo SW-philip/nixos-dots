@@ -1,7 +1,6 @@
 { config, pkgs, lib, ... }:
 let
-  bar = if config.waybar.barName != "" then config.waybar.barName
-        else config.waybar.primaryBar;
+  bar = config.waybar.primaryBar;
 
   volScript = pkgs.writeShellScriptBin "volume" ''
     export PATH="${lib.makeBinPath [ pkgs.pipewire pkgs.wireplumber pkgs.systemd ]}:$PATH"

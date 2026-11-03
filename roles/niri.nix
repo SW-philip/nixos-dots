@@ -24,10 +24,7 @@
   # GPU Screen Recorder
   ############################################################
   programs.gpu-screen-recorder.enable = true;
-  environment.systemPackages = with pkgs; [
-    xwayland-satellite
-    config.programs.gpu-screen-recorder.package
-  ];
+  environment.systemPackages = [ pkgs.xwayland-satellite ];
 
   # graphical-desktop.nix mkDefaults speechd on for any graphical session;
   # nothing here speaks, and it drags a 1.2 GB closure into the system path.
@@ -68,5 +65,9 @@
   # and loops on Restart=always. Same guard as kanshi.service.
   systemd.user.services.nirinit.unitConfig.ConditionEnvironment =
     [ "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=niri" ];
+  # Where ghostty runs as a D-Bus service (surface), restore only once it is up, so a
+  # restored `ghostty` hands its window to the service instead of starting a second
+  # instance. No-op where it isn't enabled.
+  systemd.user.services.nirinit.after = [ "app-com.mitchellh.ghostty.service" ];
 
 }

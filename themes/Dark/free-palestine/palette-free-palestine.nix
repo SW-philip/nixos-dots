@@ -1,44 +1,44 @@
 {
   # ── Ground ────────────────────────────────────────────────────
   HALL  = "#000000";
-  STAGE = "#181616";
-  WING  = "#2e292a";
+  STAGE = "#141212";
+  WING  = "#241f20";
   MUTE  = "#1f1f1f";
-  DIM   = "#0d0c0c";
+  DIM   = "#090808";
 
   # ── Ink ───────────────────────────────────────────────────────
   SCORE = "#ffffff";
   LYRIC = "#bfbfbf";
-  REST  = "#4c4c4c";
+  REST  = "#6c6c6c";
 
   # ── Accent ────────────────────────────────────────────────────
-  ROOT    = "#00f458";
-  FIFTH   = "#ee0000";
+  ROOT    = "#51ff74";
+  FIFTH   = "#ff3d2f";
   SEVENTH = "#06ee06";
-  SOTTO   = "#f9381e";
+  SOTTO   = "#fe7e68";
 
   # ── Signal ────────────────────────────────────────────────────
-  FORTE   = "#ee0000";
-  FERMATA = "#ee4700";
-  PIANO   = "#f9381e";
+  FORTE   = "#ff3d2f";
+  FERMATA = "#f54e11";
+  PIANO   = "#fe7e68";
   TACET   = "#06ee06";
 
   # ── Edge ──────────────────────────────────────────────────────
   BAR    = "#262626";
-  LEDGER = "#d40000";
+  LEDGER = "#fc4233";
   SHADOW = "#000000";
 
   # ── Shell ─────────────────────────────────────────────────────
   PIT         = "#0b0b0b";
-  PIT_SURFACE = "#181616";
-  PIT_OVERLAY = "#2e292a";
+  PIT_SURFACE = "#141212";
+  PIT_OVERLAY = "#241f20";
 
   # ── Charge ────────────────────────────────────────────────────
   CHG_FF      = "#eeaaaa";
   CHG_MF      = "#06ee06";
   CHG_MP      = "#3eba3e";
-  CHG_PP      = "#f9381e";
-  CHG_MORENDO = "#ee0000";
+  CHG_PP      = "#fe7e68";
+  CHG_MORENDO = "#ff3d2f";
 
   # ── Meta ──────────────────────────────────────────────────────
   TEMPO   = "12px";
@@ -53,12 +53,12 @@
   STAFF_A_BORDER    = "0.07";
 
   # ── Derived ───────────────────────────────────────────────────
-  ROOT_RGB  = "0,244,88";
-  FORTE_RGB = "238,0,0";
-  GRAD_STAGE_HI = "#231f1f";
-  GRAD_STAGE_LO = "#0d0c0c";
-  GRAD_WING_HI  = "#3a3233";
-  GRAD_WING_LO  = "#232021";
+  ROOT_RGB  = "81,255,116";
+  FORTE_RGB = "255,61,47";
+  GRAD_STAGE_HI = "#1e1a1a";
+  GRAD_STAGE_LO = "#090808";
+  GRAD_WING_HI  = "#302829";
+  GRAD_WING_LO  = "#1a1718";
   GRAD_HALL_HI  = "#0a0a0a";
   GRAD_HALL_LO  = "#000000";
 }

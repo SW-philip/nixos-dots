@@ -61,7 +61,6 @@ in
     ./lix-logout.nix
     ./ember-mug.nix
     ./jbl-speaker.nix
-    ./stoic.nix
     ./kdeconnect.nix
     ./niri-workspace.nix
     ./notification.nix
@@ -292,7 +291,6 @@ in
     lixLogout.enable = true;
     emberMug.enable = true;
     jblSpeaker.enable = true;
-    stoicQuote.enable = true;
     kdeconnect.enable = true;
   };
 }

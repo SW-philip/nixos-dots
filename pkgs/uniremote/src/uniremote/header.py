@@ -12,7 +12,8 @@ from uniremote.widgets import icon_button
 
 class Header(Gtk.WindowHandle):
     def __init__(self, stack, tabs: list[tuple[str, str]],
-                 menu: Gio.MenuModel, on_close: Callable[[], None]):
+                 menu: Gio.MenuModel, on_close: Callable[[], None],
+                 on_channels: Callable[[bool], None] | None = None):
         super().__init__()
         self._was_online = True
         self._snark = ""
@@ -22,11 +23,18 @@ class Header(Gtk.WindowHandle):
 
         title = Gtk.Label(label="UNIREMOTE", xalign=0, hexpand=True)
         title.add_css_class("ur-nameplate")
+        self._channels_button = Gtk.ToggleButton(icon_name="view-list-symbolic",
+                                                 tooltip_text="Channels")
+        self._channels_button.add_css_class("ur-chip")
+        self._channels_button.set_visible(False)
+        if on_channels is not None:
+            self._channels_button.connect("toggled", lambda b: on_channels(b.get_active()))
         menu_button = Gtk.MenuButton(icon_name="view-more-symbolic",
                                      menu_model=menu, tooltip_text="Menu")
         menu_button.add_css_class("ur-chip")
         nameplate = Gtk.Box(spacing=6)
         nameplate.append(title)
+        nameplate.append(self._channels_button)
         nameplate.append(menu_button)
         nameplate.append(icon_button("window-close-symbolic", on_close,
                                      tooltip="Close", css=["ur-chip"]))
@@ -68,6 +76,11 @@ class Header(Gtk.WindowHandle):
     def _on_tab(button, stack, child_name):
         if button.get_active():
             stack.set_visible_child_name(child_name)
+
+    def set_channels_available(self, available: bool) -> None:
+        self._channels_button.set_visible(available)
+        if not available and self._channels_button.get_active():
+            self._channels_button.set_active(False)
 
     def set_device(self, status: DeviceStatus) -> None:
         line = status.line

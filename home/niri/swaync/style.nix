@@ -50,7 +50,7 @@ let
 in
 ''
   * {
-    font-family: "JetBrains Mono", monospace;
+    font-family: "Josefin Sans", "JetBrainsMono Nerd Font", monospace;
     font-size: 12px;
   }
 
@@ -112,20 +112,17 @@ in
 
   ${nBox} .summary {
     font-size: 12px;
-    font-weight: 700;
     color: ${p.SCORE};
     text-shadow: none;
   }
   ${nBox} .time {
     font-size: 10px;
-    font-weight: 600;
     color: ${p.LYRIC};
     text-shadow: none;
     margin-right: 24px;
   }
   ${nBox} .body {
     font-size: 12px;
-    font-weight: 500;
     color: ${p.LYRIC};
     text-shadow: none;
   }
@@ -163,7 +160,6 @@ in
     border-radius: ${rKey}px;
     box-shadow: ${capDrop};
     padding: 4px 10px;
-    font-weight: 700;
   }
   ${nReply} .inline-reply-button:hover,
   ${nCard} .notification-action > button:hover,
@@ -215,7 +211,6 @@ in
   .control-center-list .notification { margin: 0; }
 
   #label-count {
-    font-weight: 700;
     color: ${p.FORTE};
   }
 
@@ -244,7 +239,6 @@ in
   .widget-title > label,
   .widget-label > label {
     color: ${p.LYRIC};
-    font-weight: 700;
     font-size: 10px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -259,7 +253,6 @@ in
     color: ${p.LYRIC};
     padding: 3px 10px;
     font-size: 10px;
-    font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     min-height: 0;
@@ -289,7 +282,6 @@ in
   .widget-volume label,
   .widget-backlight label {
     color: ${p.SCORE};
-    font-weight: 600;
   }
 
   /* Slider track + knob — palette-themed (GTK ships a bright blue here).
@@ -373,7 +365,6 @@ in
     margin: 3px;
     padding: 6px 8px;
     font-size: 11px;
-    font-weight: 700;
     color: ${p.LYRIC};
   }
   .widget-buttons-grid flowboxchild > button.toggle:checked {
@@ -422,7 +413,6 @@ in
     -gtk-icon-size: 44px;
   }
   .widget-mpris .widget-mpris-player .mpris-overlay .widget-mpris-title {
-    font-weight: 700;
     font-size: 12px;
     color: ${p.SCORE};
   }

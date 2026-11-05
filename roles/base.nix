@@ -245,6 +245,8 @@ in
     pulse.enable = true;
     alsa.enable = true;
     wireplumber.enable = true;
+    # x11-bell's X IO-error handler segfaults pipewire whenever xwayland-satellite's :0 drops.
+    extraConfig.pipewire."99-no-x11-bell"."context.properties"."module.x11.bell" = false;
   };
 
   ############################################################

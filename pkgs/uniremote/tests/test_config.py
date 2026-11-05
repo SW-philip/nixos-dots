@@ -76,3 +76,35 @@ def test_old_smartthings_keys_are_ignored(tmp_path):
 def test_token_file_sits_next_to_config(tmp_path):
     cfg = Config(path=tmp_path / "config.toml")
     assert cfg.samsung_token_file == tmp_path / "samsung-token"
+
+def test_favorites_default_empty(tmp_path):
+    assert Config(path=tmp_path / "config.toml").favorite_roku_apps == []
+
+def test_favorites_round_trip_and_toml_shape(tmp_path):
+    path = tmp_path / "config.toml"
+    cfg = Config(path=path)
+    cfg.favorite_roku_apps = ["12", "2285"]
+    cfg.save()
+    assert 'favorites = ["12", "2285"]' in path.read_text()
+    assert Config(path=path).favorite_roku_apps == ["12", "2285"]
+
+def test_empty_favorites_serialised_as_empty_array(tmp_path):
+    path = tmp_path / "config.toml"
+    Config(path=path).save()
+    assert "favorites = []" in path.read_text()
+
+def test_toggle_favorite_adds_then_removes(tmp_path):
+    cfg = Config(path=tmp_path / "config.toml")
+    assert cfg.toggle_favorite("12") is True
+    assert cfg.toggle_favorite("2285") is True
+    assert cfg.favorite_roku_apps == ["12", "2285"]
+    assert cfg.toggle_favorite("12") is False
+    assert cfg.favorite_roku_apps == ["2285"]
+
+def test_config_without_favorites_key_still_loads(tmp_path):
+    path = tmp_path / "config.toml"
+    path.write_text('[roku]\nip = "10.0.0.5"\nrecent = ["12"]\n')
+    cfg = Config(path=path)
+    assert cfg.roku_ip == "10.0.0.5"
+    assert cfg.recent_roku_apps == ["12"]
+    assert cfg.favorite_roku_apps == []

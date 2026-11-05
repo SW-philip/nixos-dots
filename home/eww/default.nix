@@ -67,6 +67,7 @@ let
     export TABLET_SURFACE_MODE=${nirScripts.surfaceMode}/bin/surface-mode
     export TABLET_SQLCH_STEP=${tabletSqlchStep}
     export TABLET_LAUNCHER=${nirScripts.launcher}/bin/launcher
+    export TABLET_NOTIF_TOGGLE=${notifCenterToggleBin}/bin/notif-center-toggle
     exec ${pkgs.bash}/bin/bash ${./scripts/tablet-act.sh} "$@"
   '';
   tabletGesturesBin = pkgs.writeShellScriptBin "tablet-gestures" ''
@@ -76,16 +77,36 @@ let
     exec ${pkgs.bash}/bin/bash ${./scripts/tablet-gestures.sh} "$@"
   '';
 
-  # The stoic-quote cache is populated by home/waybar/stoic.nix's poll
-  # timer (writes ~/.cache/waybar/stoic-quote.json); the ledger chip below
-  # is just another reader of that same cache, same as waybar's custom
-  # module used to be. Wrapped in its own script (rather than inlined as a
-  # --replace-fail value) because the fallback JSON needs literal single
-  # quotes around it, and two literal `''` back-to-back is Nix's own
-  # ''-string escape trigger -- inlining it breaks the outer yuck
-  # substitute script's Nix parse.
-  quoteCacheRead = pkgs.writeShellScript "eww-quote-cache-read" ''
-    exec ${(import ../waybar/cache-tools.nix { inherit pkgs; }).cacheRead}/bin/waybar-cache-read stoic-quote 4000 '{"text":"","tooltip":"","class":"unknown"}'
+  # The notif_* scripts are each copied to the store on their own, so the shared module needs its own path entry.
+  notifSearchLib = pkgs.linkFarm "notif-search-lib" [ { name = "notif_search.py"; path = ./scripts/notif_search.py; } ];
+
+  notifFeed = pkgs.writeShellScript "notif-feed" ''
+    export NOTIF_INOTIFYWAIT=${pkgs.inotify-tools}/bin/inotifywait
+    exec ${pkgs.bash}/bin/bash ${./scripts/notif-feed.sh} "$@"
+  '';
+
+  # busctl/systemctl (systemd) drive swaync's dismiss/clear and the daemon's USR1; the monitor itself is pure dbus-fast.
+  notifHistoryBin = pkgs.writeShellScriptBin "notif-history" ''
+    export PATH="${lib.makeBinPath [ pkgs.systemd ]}:$PATH"
+    export PYTHONPATH="${notifSearchLib}"
+    exec ${feedPython}/bin/python3 ${./scripts/notif_history.py} "$@"
+  '';
+
+  # swaync's action commands call bare profile/system tools (quantum-bt-toggle, drmis, ghostty...), hence the extra PATH tails.
+  notifControlsBin = pkgs.writeShellScriptBin "notif-controls" ''
+    export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep pkgs.networkmanager pkgs.systemd pkgs.wireplumber pkgs.brightnessctl pkgs.swaynotificationcenter pkgs.power-profiles-daemon ]}:${config.home.profileDirectory}/bin:/run/current-system/sw/bin"
+    export NOTIF_SWAYNC_CONFIG=${config.xdg.configFile."swaync/config.json".source}
+    export PYTHONPATH="${notifSearchLib}"
+    exec ${pkgs.python3}/bin/python3 ${./scripts/notif_controls.py} "$@"
+  '';
+
+  notifCenterToggleBin = pkgs.writeShellScriptBin "notif-center-toggle" ''
+    export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep ]}:$PATH"
+    export EWW=${pkgs.eww}/bin/eww
+    export NIRI=${pkgs.niri}/bin/niri
+    export JQ=${pkgs.jq}/bin/jq
+    export NOTIF_HISTORY_BIN=${notifHistoryBin}/bin/notif-history
+    exec ${pkgs.bash}/bin/bash ${./scripts/notif-center-toggle.sh} "$@"
   '';
 
   nirScripts = import ../niri/scripts.nix { inherit pkgs lib; };
@@ -110,6 +131,8 @@ let
       --replace-fail ':monitor 0' ':monitor "${connector}"' \
       --replace-fail ':monitor 1' ':monitor "HDMI-A-1"' \
       --replace-fail '(defvar is_desktop false)' '(defvar is_desktop ${lib.boolToString isDesktop})' \
+      --replace-fail 'NOTIF_CONTROLS' '${notifControlsBin}/bin/notif-controls' \
+      --replace-fail 'NOTIF_HISTORY' '${notifHistoryBin}/bin/notif-history' \
       --replace-fail 'EWW' '${pkgs.eww}/bin/eww' \
       --replace-fail 'TABLET_FEED' '${if hasTouch then "${surfaceFeed} tablet" else "sleep infinity"}' \
       --replace-fail 'OSK_FEED' '${if hasTouch then "${surfaceFeed} osk" else "sleep infinity"}' \
@@ -120,13 +143,11 @@ let
       --replace-fail 'LIX_LOGOUT_TOGGLE' '${pkgs.lix-logout}/bin/lix-logout-toggle' \
       --replace-fail 'SETTINGS_BIN' '${pkgs.util-linux}/bin/setsid -f ${config.home.profileDirectory}/bin/settings' \
       --replace-fail 'NIRI_BIN' '${pkgs.niri}/bin/niri' \
-      --replace-fail 'LAUNCHER_BIN' '${nirScripts.launcher}/bin/launcher' \
-      --replace-fail 'QUOTE_CACHE_READ' '${quoteCacheRead}' \
-      --replace-fail 'QUOTE_REFRESH' '${pkgs.systemd}/bin/systemctl --user start waybar-stoic-quote-poll.service'
+      --replace-fail 'LAUNCHER_BIN' '${nirScripts.launcher}/bin/launcher'
   '';
 in
 {
-  home.packages = [ pkgs.eww panelEdgeBin panelStepBin ]
+  home.packages = [ pkgs.eww panelEdgeBin panelStepBin notifHistoryBin notifControlsBin notifCenterToggleBin ]
     ++ lib.optionals hasTouch [ tabletStateBin tabletActBin tabletGesturesBin nirScripts.tabletShell ];
 
   xdg.configFile = lib.mkMerge [
@@ -136,6 +157,8 @@ in
       name = "eww/scripts/${s}.sh";
       value = { source = ./scripts/${s}.sh; executable = true; };
     }) scripts))
+    # eww.service's PATH is not the profile PATH: bake in the absolute inotifywait
+    { "eww/scripts/notif-feed.sh" = { source = notifFeed; executable = true; }; }
   ];
 
   # colors.scss and status-snark.json are seeded copy-iff-absent, not xdg-managed:
@@ -206,6 +229,18 @@ in
       RestartSec = "3s";
     };
     Install.WantedBy = [ "squeekboard.service" ];
+  };
+
+  systemd.user.services.notif-history = {
+    Unit = config.lib.niri.unit { wayland = true; } {
+      Description = "Notification history for the eww notif-center";
+    };
+    Service = {
+      ExecStart = "${notifHistoryBin}/bin/notif-history run";
+      Restart = "on-failure";
+      RestartSec = "3s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   systemd.user.services.eww = {

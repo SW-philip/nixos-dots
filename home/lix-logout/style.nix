@@ -5,19 +5,21 @@
 # hover/focus. FORTE (warning) appears only on an armed Reboot/Shutdown row.
 # The nix mark (state/nix-mark-img) is the same drmis-tinted image the
 # greeter and the lock screen carry.
+# Leaf shape (Josefin J/S/G/K terminals): big round corners on one diagonal, small sharp
+# ones on the other: window 24/6, rows 16/4.
 # See home/niri/swaync/style.nix.
 { p, l }:
 ''
   * {
       background-image: none;
       text-shadow: none;
-      font-family: "JetBrainsMono Nerd Font", monospace;
+      font-family: "Josefin Sans", "JetBrainsMono Nerd Font", monospace;
   }
 
   window {
       background-color: ${p.WING};
       border: 1px solid ${p.SCORE}8c;
-      border-radius: 18px;
+      border-radius: 24px 6px 24px 6px;
       box-shadow: 3px 4px 0 0 rgba(${p.STAFF}, ${p.STAFF_A_DROP});
   }
 
@@ -44,7 +46,7 @@
       color: ${p.SCORE};
       background-color: transparent;
       border: none;
-      border-radius: ${toString l.radiusMd}px;
+      border-radius: 16px 4px 16px 4px;
       padding: 9px 12px;
       outline-style: none;
       box-shadow: none;
@@ -76,6 +78,7 @@
   .lix-logout-hint {
       color: ${p.SCORE}99;
       font-size: 12px;
+      font-weight: 700;
   }
 
   button.lix-logout-row.armed .lix-logout-hint {

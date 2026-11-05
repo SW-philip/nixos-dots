@@ -22,16 +22,17 @@
 (deflisten tablet :initial "false" `TABLET_FEED`)
 ;; true while squeekboard is on screen; the bottom ledger fades out of its way.
 (deflisten osk :initial "false" `OSK_FEED`)
+(deflisten notifs :initial `{"count":0,"items":[],"groups":[],"query":"","matches":0}` `bash SCRIPTS/notif-feed.sh`)
+(defvar notif_tab "notifs")
+(defvar nc_open_group "")
+(defvar nc_search_text "")
 (deflisten launcher_rows :initial "[]" `last=; while :; do cur=$(bash SCRIPTS/launcher-favs.sh); [ "$cur" = "$last" ] || { echo "$cur"; last=$cur; }; sleep 3; done`)
 ;; Tablet shell (surface, cover detached). tablet-shell swaps waybar for the
 ;; strip; the sheet drops from under it.
 (deflisten tablet_state :initial "{}" `bash SCRIPTS/feed.sh 5 6 'TABLET_STATE'`)
+(deflisten controls :initial `{"grids":{},"vol":0,"muted":false,"bright":0,"focus":"","matches":[]}`
+  `NOTIF_CONTROLS feed`)
 (defpoll clock_text :interval "10s" `date +'%-I:%M %p'`)
-
-;; Reads the same ~/.cache/waybar/stoic-quote.json that
-;; home/waybar/stoic.nix's poll timer writes -- this chip is just another
-;; reader of that cache, same as the retired waybar custom module was.
-(deflisten stoic_quote :initial "{}" `bash SCRIPTS/feed.sh 47 8 'QUOTE_CACHE_READ'`)
 
 ;; One coloured letter per pill. `spark` (scripts/sparkle-picks.sh) supplies a
 ;; regex (k skipped letters + the pick) and a colour per slot `i`. eww's replace()
@@ -179,9 +180,6 @@
     (button :class "chip" :onclick "EWW update ledger_open=false; SETTINGS_BIN" :timeout "5s" (spk :i 23 :class "" :halign "center" :text "󰒓 Settings"))
     (button :class "chip" :onclick "EWW update ledger_open=false; UNIREMOTE_TOGGLE" :timeout "5s" :visible {!is_desktop} (spk :i 19 :class "" :halign "center" :text "󰠲 Uniremote"))
     (button :class "chip" :onclick "EWW update ledger_open=false; MOONLIGHT_TOGGLE" :timeout "5s" :visible {!is_desktop} (spk :i 20 :class "" :halign "center" :text "󰊗 Moonlight"))
-    (button :class "chip" :onclick "EWW update ledger_open=false; QUOTE_REFRESH" :timeout "5s"
-            :tooltip {(stoic_quote.tooltip ?: "") != "" ? stoic_quote.tooltip : "loading…"}
-      (spk :i 22 :class "" :halign "center" :text {(stoic_quote.text ?: "") != "" ? "${stoic_quote.text} Quote" : "Quote"}))
     (button :class "chip" :onclick "EWW update ledger_open=false; LIX_LOGOUT_TOGGLE" :timeout "5s" (spk :i 21 :class "" :halign "center" :text "󰐻 Logout"))))
 
 ;; One window, one eventbox. Two overlapping right-anchored windows can't both
@@ -348,7 +346,7 @@
     (button :class "ts-slider-icon" :timeout "3s"
             :onclick {icon_action != "" ? "TABLET_ACT ${icon_action}" : "true"}
       glyph)
-    (scale :class "ts-slider" :hexpand true :min 0 :max 101 :value value :timeout "2s"
+    (scale :class "ts-slider" :hexpand true :min 0 :max 100 :value value :timeout "2s"
            :onchange "TABLET_ACT ${action} {}")))
 
 (defwidget ts-toggle [label glyph on action]
@@ -420,3 +418,123 @@
   :stacking "overlay" :focusable false :exclusive false
   (revealer :transition "crossfade" :duration "300ms" :reveal fade_on
     (box :class "tablet-fade-box" :hexpand true :vexpand true)))
+
+;; notif-center: tabbed replacement for swaync's control-center panel.
+(defwidget nc-tab [id label]
+  (button :class {notif_tab == id ? "nc-tab on" : "nc-tab"} :timeout "2s"
+          :onclick "EWW update notif_tab=${id}"
+    label))
+
+(defwidget nc-title [title]
+  (box :orientation "horizontal" :space-evenly false :spacing 8
+    (box :class "nc-rule-l" :hexpand true :valign "center")
+    (label :class "nc-title" :text title)
+    (box :class "nc-rule-r" :hexpand true :valign "center")))
+
+(defwidget nc-card [n]
+  (box :class "nc-card ${n.urgency}${n.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
+    (box :orientation "vertical" :space-evenly false :spacing 2 :hexpand true
+      (box :orientation "horizontal" :space-evenly false
+        (label :class "nc-app" :halign "start" :text {n.app})
+        (box :hexpand true)
+        (button :class "nc-x" :timeout "2s" :onclick "NOTIF_HISTORY dismiss ${n.id}" "󰅖"))
+      (label :class "nc-sum" :halign "start" :xalign 0 :wrap true :text {n.summary})
+      (label :class "nc-body" :halign "start" :xalign 0 :wrap true :limit-width 120
+             :visible {n.body != ""} :text {n.body}))))
+
+;; A stack of same-app notifications: tap the header to fan it out. A stack that
+;; holds a critical item stays open.
+(defwidget nc-stack [g]
+  (box :orientation "vertical" :space-evenly false :spacing 0
+    (eventbox :cursor "pointer" :timeout "2s"
+              :onclick "EWW update nc_open_group=${nc_open_group == g.key ? '' : g.key}"
+      (box :class "nc-card nc-stack ${g.urgency}${nc_open_group == g.key ? ' open' : ''}${g.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
+        (box :orientation "vertical" :space-evenly false :spacing 0 :hexpand true
+          (box :orientation "horizontal" :space-evenly false :spacing 8
+            (label :class "nc-app" :halign "start" :text {g.app})
+            (label :class "nc-badge" :text "×${g.count}")
+            (box :hexpand true)
+            (button :class "nc-x" :timeout "2s" :onclick "NOTIF_HISTORY dismiss ${g.ids}" "󰅖"))
+          (revealer :transition "slidedown" :duration "200ms"
+                    :reveal {nc_open_group != g.key && g.urgency != 'critical'}
+            (box :class "nc-stack-body" :orientation "vertical" :space-evenly false :spacing 2
+              (label :class "nc-sum" :halign "start" :xalign 0 :limit-width 40
+                     :text {g.items[0].summary})
+              (label :class "nc-body" :halign "start" :xalign 0
+                     :text "${g.count - 1} more"))))))
+    (revealer :transition "slidedown" :duration "220ms"
+              :reveal {nc_open_group == g.key || g.urgency == 'critical'}
+      (box :class "nc-fan" :orientation "vertical" :space-evenly false :spacing 3
+        (for n in {g.items}
+          (nc-card :n n))))))
+
+(defwidget nc-group [g]
+  (box :orientation "vertical" :space-evenly false
+    (box :visible {g.count == 1}
+      (nc-card :n {g.items[0]}))
+    (box :visible {g.count > 1}
+      (nc-stack :g g))))
+
+(defwidget nc-slider [glyph value cmd]
+  (box :class "nc-slider-row" :orientation "horizontal" :space-evenly false :spacing 12
+    (label :class "nc-slider-glyph" :text glyph)
+    (scale :class "nc-slider" :hexpand true :min 0 :max 100 :value value :timeout "2s"
+           :onchange "NOTIF_CONTROLS ${cmd} {}")))
+
+(defwidget nc-grid [title rows grid]
+  (box :orientation "vertical" :space-evenly false :spacing 6 :visible {arraylength(rows) > 0}
+    (nc-title :title title)
+    (box :orientation "vertical" :space-evenly false :spacing 1
+      (for r in rows
+        (button :class "nc-toggle${r.on ? ' on' : ''}${r.match ? '' : ' dim'}" :timeout "8s"
+                :onclick "NOTIF_CONTROLS act ${grid} ${r.i}"
+          (label :halign "start" :text {r.on ? "◆ ${r.label}" : r.label}))))))
+
+(defwindow notif-center
+  :monitor 0
+  :geometry (geometry :anchor "top right" :x "8px" :y "8px" :width "360px" :height "92%")
+  :stacking "overlay" :focusable "ondemand" :exclusive false
+  (box :class "nc-panel" :orientation "vertical" :space-evenly false :spacing 10
+    (box :class "nc-tabs" :orientation "horizontal" :space-evenly true :spacing 8
+      (nc-tab :id "notifs" :label "Notifications")
+      (nc-tab :id "controls" :label "Controls"))
+    (overlay
+      (box :class "nc-leaf-row" :halign "center"
+        (box :class "nc-leaf" :orientation "horizontal" :space-evenly false
+          (label :class {notifs.query == "" ? "nc-search-hint" : "nc-search-hint typed"} :text "󰍉  search")
+          (input :class "nc-search-input" :value nc_search_text :timeout "2s"
+                 :onchange "NOTIF_HISTORY query {}"
+                 :onaccept "NOTIF_CONTROLS enter")))
+      (box :class "nc-search-actions" :halign "end" :valign "center" :orientation "horizontal" :space-evenly false :spacing 4
+        (revealer :transition "slideleft" :duration "200ms" :reveal {notifs.query != ""}
+          (button :class "nc-x" :timeout "2s"
+                  :onclick "EWW update nc_search_text=' ' && EWW update nc_search_text=" "󰅖"))
+        (button :class {osk ? "nc-kbd on" : "nc-kbd"} :visible {!is_desktop} :timeout "2s"
+                :onclick "TABLET_ACT osk" "󰌓")))
+    (stack :vexpand true :selected {notif_tab == "notifs" ? 0 : 1} :transition "crossfade" :same-size false
+      (box :orientation "vertical" :space-evenly false :spacing 0 :vexpand true
+        (box :class "nc-count-row" :orientation "horizontal" :space-evenly false
+          (label :class "nc-count" :halign "start" :hexpand true :text {notifs.query != "" ? "${notifs.matches} of ${notifs.count}" : "${notifs.count} total"})
+          (button :class "nc-clear" :timeout "3s" :onclick "NOTIF_HISTORY clear" "CLEAR ALL"))
+        (revealer :transition "slidedown" :duration "200ms"
+                  :reveal {arraylength(controls.matches ?: []) > 0}
+          (box :class "nc-match-strip" :orientation "vertical" :space-evenly false :spacing 1
+            (for r in {controls.matches ?: []}
+              (button :class {r.on ? "nc-toggle on" : "nc-toggle"} :timeout "8s"
+                      :onclick "NOTIF_CONTROLS act ${r.grid} ${r.i}"
+                (label :halign "start" :text {r.on ? "◆ ${r.label}" : r.label})))))
+        (scroll :vexpand true :vscroll true :hscroll false
+          (box :orientation "vertical" :space-evenly false :spacing 3
+            (label :class "nc-empty" :visible {notifs.count == 0} :text "all quiet")
+            (for g in {notifs.groups}
+              (nc-group :g g)))))
+      (scroll :vexpand true :vscroll true :hscroll false
+        (box :orientation "vertical" :space-evenly false :spacing 14
+          (nc-grid :title "Connectivity" :rows {controls.grids.connectivity ?: []} :grid "connectivity")
+          (nc-grid :title "System" :rows {controls.grids.system ?: []} :grid "system")
+          (nc-grid :title "Appearance" :rows {controls.grids.appearance ?: []} :grid "appearance"))))
+    (box :class "nc-dock" :orientation "vertical" :space-evenly false :spacing 6
+      (box :class {controls.focus == 'vol' ? "nc-hit" : ""}
+        (nc-slider :glyph {controls.muted ? "󰝟" : "󰕾"} :value {controls.vol} :cmd "vol"))
+      (box :class {controls.focus == 'bright' ? "nc-hit" : ""}
+        (nc-slider :glyph "󰃟" :value {controls.bright} :cmd "bright")))))

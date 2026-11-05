@@ -31,18 +31,18 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
   background-repeat: repeat;
   color: $fg;
   padding: 18px;
-  border-radius: 0;
-  border: 1px solid $hairline;
-  box-shadow: 0 2px 3px $shadow;
+  border-radius: 14px 0 0 14px;
+  border: 1px solid $accent;
+  box-shadow: inset 0 0 0 4px $bg, inset 0 0 0 5px rgba($accent, 0.35), 0 2px 3px $shadow;
 }
 // Left-docked mirror of .panel above -- same reasoning as .edge.left.
 .panel.left {
-  border-radius: 0;
+  border-radius: 0 14px 14px 0;
 }
 
 .snark { font-style: italic; color: $dim; font-size: 14px; margin-bottom: 14px; }
-.hdr   { font-size: 11px; color: $dim; margin: 12px 0 6px 0; border-bottom: 1px solid rgba($fg, 0.12); padding-bottom: 4px; }
-.subhdr { font-size: 10px; color: $dim; opacity: 0.8; margin: 8px 0 4px 0; }
+.hdr   { font-size: 11px; color: $accent; letter-spacing: 5px; margin: 12px 0 6px 0; border-bottom: 1px solid rgba($accent, 0.5); padding-bottom: 4px; }
+.subhdr { font-size: 10px; color: $dim; letter-spacing: 3px; opacity: 0.8; margin: 8px 0 4px 0; }
 .row   { font-size: 13px; }
 .readout { color: $fg; }
 .readout.warn { color: $warn; }
@@ -67,11 +67,11 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
 
 .section {
   background-color: $module-bg;
-  border: 1px solid $hairline;
+  border: 1px solid rgba($accent, 0.5);
   border-radius: 12px;
   padding: 10px 12px;
   margin-bottom: 10px;
-  box-shadow: 0 2px 3px $shadow;
+  box-shadow: inset 0 0 0 1px rgba($accent, 0.12), 0 2px 3px $shadow;
 }
 
 // min-width matters now that the window shrink-wraps to ledger-content
@@ -100,14 +100,14 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
   background-color: $bg;
   background-image: $fiber;
   background-repeat: repeat;
-  border-radius: 0;
-  border: 1px solid $hairline;
+  border-radius: 12px 12px 0 0;
+  border: 1px solid $accent;
   margin: 0;
-  box-shadow: 0 2px 3px $shadow;
+  box-shadow: inset 0 0 0 3px $bg, inset 0 0 0 4px rgba($accent, 0.35), 0 2px 3px $shadow;
 }
 // Top-docked mirror of .ledger-bar above -- same reasoning as .ledger-strip.top.
 .ledger-bar.top {
-  border-radius: 0;
+  border-radius: 0 0 12px 12px;
   margin: 0;
 }
 
@@ -115,9 +115,8 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
   background-color: $module-bg;
   color: $fg;
   font-size: 14px;
-  font-weight: 700;
-  border: 1px solid $hairline;
-  border-radius: 6px;
+  border: 1px solid rgba($accent, 0.5);
+  border-radius: 13px 3px 13px 3px;
   padding: 4px 11px;
   box-shadow: 0 2px 3px $shadow;
 }
@@ -164,7 +163,6 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
 .tap-handle, .tap-handle label {
   color: $fg;
   font-size: 13px;
-  font-weight: 700;
 }
 .tap-handle {
   background-color: $bg-edge;
@@ -200,7 +198,7 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
   // instead of a bare outline. Inverse of .chip/waybar's #custom-*
   // modules, which sit on $bg and use $module-bg to look like a module.
   background-color: $bg;
-  border: 1px solid $hairline;
+  border: 1px solid rgba($accent, 0.5);
   border-radius: 6px;
   padding: 3px 8px;
   box-shadow: 0 2px 3px $shadow;
@@ -250,7 +248,7 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
 }
 .launcher-tile {
   background-color: $module-bg;
-  border: 1px solid $hairline;
+  border: 1px solid rgba($accent, 0.5);
   border-radius: 22px;
   min-width: 230px;
   min-height: 200px;
@@ -261,7 +259,6 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
 }
 .launcher-label {
   font-size: 20px;
-  font-weight: 700;
   color: $fg;
   padding-bottom: 4px;
   border-bottom: 2px solid transparent;
@@ -314,7 +311,6 @@ tooltip label {
   color: $fg;
   font-family: "Josefin Sans", "JetBrainsMono Nerd Font", monospace;
   font-size: 15px;
-  font-weight: 700;
   padding: 3px 10px;
 }
 
@@ -325,7 +321,7 @@ tooltip label {
   background-image: $fiber;
   padding: 0 18px;
   min-height: 56px;
-  border-bottom: 1px solid $hairline;
+  border-bottom: 1px solid $accent;
 }
 .tablet-strip label { color: $fg; font-size: 21px; }
 .ts-clock { font-weight: 700; }
@@ -334,9 +330,9 @@ tooltip label {
   background-color: $bg;
   background-image: $fiber;
   padding: 22px 26px 26px;
-  border-bottom: 1px solid $hairline;
+  border-bottom: 1px solid $accent;
   border-radius: 0 0 14px 14px;
-  box-shadow: 0 10px 28px $shadow;
+  box-shadow: inset 0 0 0 4px $bg, inset 0 0 0 5px rgba($accent, 0.35), 0 10px 28px $shadow;
 }
 .ts-glyph, .ts-slider-icon { color: $fg; font-size: 26px; }
 .ts-label, .ts-card-main { color: $fg; font-size: 18px; }
@@ -347,15 +343,15 @@ tooltip label {
 .ts-toggle {
   min-height: 84px;
   background-color: $module-bg;
-  border: 1px solid $hairline;
+  border: 1px solid rgba($accent, 0.5);
   border-radius: 12px;
 }
 .ts-toggle:active { background-color: rgba($accent, 0.15); border-color: $accent; }
-.ts-toggle.on { border-color: $accent; background-color: rgba($accent, 0.15); }
+.ts-toggle.on { border-color: $accent; background-color: rgba($accent, 0.15); box-shadow: inset 0 0 0 1px rgba($accent, 0.35); }
 .ts-toggle.on .ts-glyph { color: $accent; }
 .ts-card {
   background-color: $module-bg;
-  border: 1px solid $hairline;
+  border: 1px solid rgba($accent, 0.5);
   border-radius: 12px;
   padding: 10px 14px;
 }
@@ -364,7 +360,7 @@ tooltip label {
   min-height: 56px;
   padding: 0 18px;
   background-color: $bg;
-  border: 1px solid $hairline;
+  border: 1px solid rgba($accent, 0.5);
   border-radius: 10px;
 }
 .ts-pill label { color: $fg; font-size: 20px; }
@@ -373,3 +369,83 @@ tooltip label {
 // Tablet-mode switchover fade overlay: a dip to the theme background.
 // Use $fg here for a white-out instead.
 .tablet-fade-box { background-color: $bg; }
+
+// notif-center: tabbed notification panel (keycap tabs, flat cards).
+.nc-panel { background-color: $bg; background-image: linear-gradient(to bottom, rgba($accent, 0.10), rgba($accent, 0) 140px), $fiber; padding: 14px; border: 1px solid $accent; border-radius: 24px 6px 24px 6px; box-shadow: inset 0 0 0 4px $bg, inset 0 0 0 5px rgba($accent, 0.35), 0 6px 20px $shadow; }
+.nc-tabs { margin-bottom: 2px; border-bottom: 1px solid $accent; }
+.nc-tab { min-height: 30px; background-color: transparent; border: none; border-radius: 16px 4px 0 0; padding: 0 16px; }
+.nc-tab label { color: $dim; font-size: 12px; letter-spacing: 4px; }
+.nc-tab.on { background-color: $accent; }
+.nc-tab.on label { color: $module-bg; }
+.nc-count, .nc-empty { color: $dim; font-size: 12px; letter-spacing: 2px; }
+.nc-empty { padding: 24px 0; }
+.nc-title { color: $accent; font-size: 11px; letter-spacing: 5px; }
+.nc-rule-l { min-height: 1px; background-image: linear-gradient(to right, rgba($accent, 0), $accent); }
+.nc-rule-r { min-height: 1px; background-image: linear-gradient(to left, rgba($accent, 0), $accent); }
+.nc-clear { padding: 4px 16px; margin: 0 3px 5px; background-color: transparent; border: 1px solid $accent; border-radius: 15px 4px 15px 4px; box-shadow: 0 2px 3px $shadow; }
+.nc-clear label { color: $accent; font-size: 11px; letter-spacing: 4px; }
+.nc-clear:active { background-color: rgba($accent, 0.15); box-shadow: none; }
+.nc-card { margin: 0 3px 5px; background-color: $module-bg; border: 1px solid rgba($accent, 0.5); border-radius: 16px 4px 16px 4px; padding: 8px 12px; box-shadow: 0 2px 3px $shadow; }
+// Round = calm, sharp = urgent: critical pulls its pointed corners in tighter.
+.nc-card.critical { border-color: $crit; border-radius: 16px 2px 16px 2px; box-shadow: inset 0 0 0 1px rgba($crit, 0.35), 0 2px 3px $shadow; }
+.nc-card.low { opacity: 0.7; }
+// Stack: the offset edge is drop shadows, so margin-bottom reserves them (GTK
+// clips shadows to the margin box).
+.nc-stack { margin-bottom: 10px; box-shadow: 0 4px 0 -2px $module-bg, 0 5px 0 -2px rgba($accent, 0.5), 0 2px 3px $shadow; }
+// Fanned out: nothing is stacked behind the header any more, so drop the edge.
+.nc-stack.open { margin-bottom: 5px; box-shadow: 0 2px 3px $shadow; }
+.nc-badge { background-color: $accent; color: $module-bg; border-radius: 10px 2px 10px 2px; padding: 0 8px; font-size: 11px; letter-spacing: 1px; }
+.nc-fan { padding: 3px 0 0 10px; }
+.nc-stack-body { padding-top: 2px; }
+.nc-count-row { margin-bottom: 10px; }
+
+// Search leaf: the J/S/G/K shape, gradient-filled; the open state is the same leaf unfurled.
+.nc-leaf-row { min-height: 36px; margin: 0 0 2px; }
+// The pill: opaque base under the gradient so it reads the same over the pane texture.
+// Padding lives on the input, so the pill is exactly as wide as the input and grows with it.
+.nc-leaf { min-height: 34px; padding: 0; border: 1px solid $accent; border-radius: 20px 4px 20px 4px; background-color: $bg; background-image: linear-gradient(120deg, rgba($accent, 0.35), rgba($accent, 0.05) 70%); box-shadow: 0 2px 3px $shadow; }
+// "search" hint: drawn under the transparent input (negative right margin = same width as the resting input), fades once a query exists.
+.nc-search-hint { min-width: 182px; margin-right: -182px; color: $dim; font-size: 14px; letter-spacing: 5px; transition: opacity 200ms ease-in-out; }
+.nc-search-hint.typed { opacity: 0; }
+// A GtkEntry never requests less than ~150px, so the resting pill is ~180px; on focus the input grows to the pane's content width
+// (pane 360 - border 2 - padding 28 = 330 -> input 328 = 236 content + 92 padding, the right padding clears the buttons).
+.nc-search-input { color: $fg; font-size: 16px; letter-spacing: 4px; background: transparent; border: none; box-shadow: none; caret-color: $accent; min-width: 150px; padding: 0 16px; transition: min-width 220ms ease-in-out, padding 220ms ease-in-out; }
+.nc-search-input:focus { min-width: 236px; padding: 0 76px 0 16px; }
+.nc-search-actions { margin-right: 12px; }
+.nc-kbd label { color: $dim; font-size: 16px; }
+.nc-kbd.on label { color: $accent; }
+.nc-match-strip { margin-bottom: 10px; }
+.dim { opacity: 0.3; }
+.nc-card.low.dim { opacity: 0.2; }
+.nc-hit .nc-slider-glyph { color: $accent; }
+.nc-hit .nc-slider trough { border-color: $accent; }
+.nc-app { color: $accent; font-size: 10px; letter-spacing: 3px; }
+.nc-card.critical .nc-app { color: $crit; }
+.nc-card.low .nc-app { color: $dim; }
+.nc-sum { color: $fg; font-size: 14px; }
+.nc-body { color: $dim; font-size: 12px; }
+.nc-x label { color: $dim; font-size: 14px; }
+.nc-x:hover label { color: $fg; }
+.nc-slider-row { padding: 2px 4px; }
+.nc-slider-glyph { color: $fg; font-size: 20px; min-width: 28px; }
+.nc-dock { padding-top: 10px; border-top: 1px solid rgba($accent, 0.35); }
+.nc-slider trough { min-height: 8px; background-color: $module-bg; border: 1px solid rgba($accent, 0.5); border-radius: 6px 1px 6px 1px; }
+.nc-slider highlight { background-color: $accent; border-radius: 6px 1px 6px 1px; }
+.nc-slider slider { min-width: 16px; min-height: 16px; margin: -7px 0; background-color: $fg; border-radius: 8px 2px 8px 2px; }
+// GTK clips the drop to the margin box (see home/waybar/style.nix), so each
+// chip's margin reserves its shadow and :spacing in eww.yuck shrinks to match.
+.nc-toggle { min-height: 36px; margin: 0 3px 5px; padding: 0 14px; background-color: $module-bg; border: 1px solid rgba($accent, 0.5); border-radius: 16px 4px 16px 4px; box-shadow: 0 2px 3px $shadow; }
+.nc-toggle label { color: $dim; font-size: 12px; letter-spacing: 2px; }
+.nc-toggle:active { border-color: $accent; box-shadow: none; }
+.nc-toggle.on { border-color: $accent; box-shadow: inset 0 0 0 1px rgba($accent, 0.35), 0 2px 3px $shadow; }
+.nc-toggle.on label { color: $fg; }
+
+// Fluid state changes: classes flip (dim, on, hit, open) and fills, borders and
+// shadows ease instead of snapping; the revealers/stack in eww.yuck do the motion.
+.nc-card, .nc-toggle, .nc-clear, .nc-leaf, .nc-tab, .nc-badge, .nc-kbd {
+  transition: opacity 200ms ease-in-out, background-color 200ms ease-in-out, border-color 200ms ease-in-out, box-shadow 200ms ease-in-out;
+}
+.nc-tab label, .nc-toggle label, .nc-x label, .nc-slider-glyph, .nc-kbd label { transition: color 200ms ease-in-out; }
+.nc-slider trough { transition: border-color 200ms ease-in-out; }
+.nc-card:hover, .nc-toggle:hover { border-color: rgba($accent, 0.85); }
+.nc-card.critical:hover { border-color: $crit; }

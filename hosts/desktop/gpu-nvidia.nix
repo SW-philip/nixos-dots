@@ -37,6 +37,11 @@
     });
   };
 
+  # After a driver bump the loaded kernel module stays old until reboot, so restarting these
+  # fails on NVML version mismatch, nrs exits 4, and nh never moves the boot profile.
+  systemd.services.nvidia-container-toolkit-cdi-generator.restartIfChanged = false;
+  systemd.services.nvidia-persistenced.restartIfChanged = false;
+
   boot.kernelParams = lib.mkAfter [
     "nvidia-drm.modeset=1"
     "nvidia.NVreg_PreserveVideoMemoryAllocations=1"

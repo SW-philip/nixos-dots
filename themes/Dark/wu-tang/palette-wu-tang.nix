@@ -9,19 +9,19 @@
   # ── Ink ───────────────────────────────────────────────────────
   SCORE = "#ffffff";
   LYRIC = "#bfbfbf";
-  REST  = "#4c4c4c";
+  REST  = "#747474";
 
   # ── Accent ────────────────────────────────────────────────────
   ROOT    = "#f0c02d";
-  FIFTH   = "#9fe72c";
-  SEVENTH = "#dde132";
-  SOTTO   = "#d3a527";
+  FIFTH   = "#f2e6c4";
+  SEVENTH = "#8fb0cc";
+  SOTTO   = "#f08a24";
 
   # ── Signal ────────────────────────────────────────────────────
-  FORTE   = "#c1ab1a";
+  FORTE   = "#ff5945";
   FERMATA = "#a5c11a";
-  PIANO   = "#d7a94b";
-  TACET   = "#dde132";
+  PIANO   = "#f0c02d";
+  TACET   = "#8fb0cc";
 
   # ── Edge ──────────────────────────────────────────────────────
   BAR    = "#262626";
@@ -35,10 +35,10 @@
 
   # ── Charge ────────────────────────────────────────────────────
   CHG_FF      = "#f0c02d";
-  CHG_MF      = "#dde132";
-  CHG_MP      = "#d3a527";
-  CHG_PP      = "#d7a94b";
-  CHG_MORENDO = "#c1ab1a";
+  CHG_MF      = "#f2e6c4";
+  CHG_MP      = "#8fb0cc";
+  CHG_PP      = "#f08a24";
+  CHG_MORENDO = "#ff5945";
 
   # ── Meta ──────────────────────────────────────────────────────
   TEMPO   = "12px";
@@ -54,7 +54,7 @@
 
   # ── Derived ───────────────────────────────────────────────────
   ROOT_RGB  = "240,192,45";
-  FORTE_RGB = "193,171,26";
+  FORTE_RGB = "255,89,69";
   GRAD_STAGE_HI = "#231f1f";
   GRAD_STAGE_LO = "#0d0c0c";
   GRAD_WING_HI  = "#3a3233";

@@ -5,19 +5,23 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Adw
 
 from uniremote.api import RokuAPI
+from uniremote.channels import RECENT_SHOWN
 from uniremote.widgets import icon_button, dpad, button_row
 
-RECENT_CAP = 5
+RECENT_CAP = RECENT_SHOWN
 
 
 class RokuView(Gtk.Box):
-    def __init__(self, config, run_async, notify):
+    def __init__(self, config, run_async, notify, on_apps=lambda apps: None, on_recent=lambda: None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=4,
                          margin_top=8, margin_bottom=8,
                          margin_start=10, margin_end=10)
+        self.add_css_class("ur-roku")
         self._config = config
         self._run_async = run_async
         self._notify = notify
+        self._on_apps = on_apps
+        self._on_recent = on_recent
         self._app_names: dict[str, str] = {}
 
         self.append(button_row(
@@ -61,22 +65,6 @@ class RokuView(Gtk.Box):
                         lambda: self._key("VolumeUp"), tooltip="Volume up"),
         ))
 
-        self._recent_label = Gtk.Label(label="Recent", halign=Gtk.Align.START)
-        self._recent_label.add_css_class("heading")
-        self._recent_label.set_visible(False)
-        self._recent_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        self._recent_box.set_visible(False)
-        self.append(self._recent_label)
-        self.append(self._recent_box)
-
-        self._apps_box = Gtk.FlowBox(max_children_per_line=3,
-                                     selection_mode=Gtk.SelectionMode.NONE,
-                                     row_spacing=6, column_spacing=6,
-                                     homogeneous=True)
-        scroll = Gtk.ScrolledWindow(vexpand=True)
-        scroll.set_child(self._apps_box)
-        self.append(scroll)
-
         self._run_async(self._load_apps, callback=self._on_apps_loaded)
 
     def set_online(self, online: bool):
@@ -103,18 +91,9 @@ class RokuView(Gtk.Box):
         if not apps:
             return
         self._app_names = {app_id: name for app_id, name in apps}
-        for child in list(self._apps_box):
-            self._apps_box.remove(child)
-        for app_id, name in apps:
-            self._apps_box.append(self._app_button(app_id, name))
-        self._rebuild_recent()
+        self._on_apps(apps)
 
-    def _app_button(self, app_id: str, name: str) -> Gtk.Button:
-        button = Gtk.Button(label=name, hexpand=True)
-        button.connect("clicked", lambda _: self._launch(app_id))
-        return button
-
-    def _launch(self, app_id: str):
+    def launch_app(self, app_id: str):
         def done(result):
             if isinstance(result, Exception):
                 self._notify(f"Roku: {result}")
@@ -127,16 +106,7 @@ class RokuView(Gtk.Box):
         recent.insert(0, app_id)
         self._config.recent_roku_apps = recent[:RECENT_CAP]
         self._config.save()
-        self._rebuild_recent()
-
-    def _rebuild_recent(self):
-        for child in list(self._recent_box):
-            self._recent_box.remove(child)
-        ids = [a for a in self._config.recent_roku_apps if a in self._app_names]
-        self._recent_label.set_visible(bool(ids))
-        self._recent_box.set_visible(bool(ids))
-        for app_id in ids:
-            self._recent_box.append(self._app_button(app_id, self._app_names[app_id]))
+        self._on_recent()
 
     def _open_search(self):
         dialog = Adw.AlertDialog(heading="Search Roku",

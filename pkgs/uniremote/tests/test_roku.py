@@ -46,3 +46,8 @@ def test_device_info(requests_mock):
         "model-name": "Roku Ultra",
         "power-mode": "PowerOn",
     }
+
+
+def test_icon_returns_the_image_bytes(requests_mock):
+    requests_mock.get(f"http://{IP}:8060/query/icon/12", content=b"\x89PNGdata")
+    assert _api().icon("12") == b"\x89PNGdata"

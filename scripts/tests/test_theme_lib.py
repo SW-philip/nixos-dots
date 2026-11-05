@@ -220,9 +220,9 @@ class TestSeedRoundTrip(unittest.TestCase):
 
 
 class TestGoldenInvariant(unittest.TestCase):
-    """The rename must not change any generated palette. Fixed seed hexes ->
-    byte-identical 44-key musical output. Update SEED_INPUTS keys alongside the
-    rename; never regenerate golden_palettes.json."""
+    """Refactors must not change any generated palette. Fixed seed hexes ->
+    byte-identical 44-key musical output. Regenerate golden_palettes.json only
+    in the same commit as a deliberate change to derivation output."""
 
     # Keyed by the seed names CURRENTLY in force. Hexes are frozen.
     SEED_INPUTS = {

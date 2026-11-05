@@ -46,7 +46,6 @@ placessidebar > viewport > list > row {
 placessidebar > viewport > list > row.separator > label {
   color: ${p.BAR};
   font-size: 10px;
-  font-weight: bold;
 }
 
 placessidebar > viewport > list > row:hover {
@@ -90,7 +89,6 @@ placessidebar > viewport > list > row:selected:focus label {
 .path-bar > button:checked,
 .path-bar button.text-button:active {
   color: ${p.SCORE};
-  font-weight: bold;
 }
 
 /* ── File / icon view ────────────────────────────────────── */
@@ -250,7 +248,7 @@ tooltip * {
 
 dialog,
 dialog * {
-  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-family: "Josefin Sans", "JetBrainsMono Nerd Font", monospace;
   font-size: 13px;
 }
 

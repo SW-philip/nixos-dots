@@ -17,3 +17,4 @@ hosts/retro/kiosk.nix  # --replace-fail strings must match Moonlight's source ve
 pkgs/greeter/greeter/fallback-palette.sh  # greeter's palette when no theme file loads
 pkgs/greeter/greeter/palette.py  # greeter's palette when no theme file loads, plus brand constants
 pkgs/greeter/greeter/mark.py  # Nix logo fills the recolor step matches against
+assets/notify-send.svg  # brand art: swaync fallback icon for notify-send

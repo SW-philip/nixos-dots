@@ -11,7 +11,7 @@ trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin" "$TMP/fx"
 
 # Every stub logs its argv; query commands also print $FX/<name> if present.
-for t in wpctl brightnessctl nmcli bluetoothctl swaync-client powerprofilesctl sqlch toggle-osk waybar-sqlch niri launcher surface-mode; do
+for t in wpctl brightnessctl nmcli bluetoothctl swaync-client notif-center-toggle powerprofilesctl sqlch toggle-osk waybar-sqlch niri launcher surface-mode; do
   cat > "$TMP/bin/$t" <<STUB
 #!/usr/bin/env bash
 echo "$t \$*" >> "$TMP/log"
@@ -87,7 +87,7 @@ fxreset
 act osk;   expect "osk" "toggle-osk "
 act dnd;   expect "dnd" "swaync-client -d"
 act desktop; expect "desktop pins desktop mode" "surface-mode desktop"
-act notif; { saw "eww close tablet-sheet" && saw "swaync-client -t"; } && pass "notif closes the sheet then opens swaync" || fail "notif closes the sheet then opens swaync"
+act notif; { saw "eww close tablet-sheet" && saw "notif-center-toggle "; } && pass "notif closes the sheet then opens the notif-center" || fail "notif closes the sheet then opens the notif-center"
 act sheet; expect "sheet toggles" "eww open --toggle tablet-sheet"
 act suspend; { saw "eww close tablet-sheet" && saw "systemctl suspend"; } && pass "suspend closes the sheet first" || fail "suspend closes the sheet first"
 

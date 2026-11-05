@@ -1,44 +1,44 @@
 {
   # ── Ground ────────────────────────────────────────────────────
-  HALL  = "#121c16";
-  STAGE = "#233928";
-  WING  = "#305535";
-  MUTE  = "#2a4133";
-  DIM   = "#1c2c20";
+  HALL  = "#0a120c";
+  STAGE = "#19311c";
+  WING  = "#264d26";
+  MUTE  = "#203926";
+  DIM   = "#132315";
 
   # ── Ink ───────────────────────────────────────────────────────
-  SCORE = "#e8e8e7";
-  LYRIC = "#c8c6c2";
-  REST  = "#9fa18c";
+  SCORE = "#e8e7e6";
+  LYRIC = "#c7c3be";
+  REST  = "#a0a085";
 
   # ── Accent ────────────────────────────────────────────────────
-  ROOT    = "#9b4ec1";
-  FIFTH   = "#5c6cc2";
-  SEVENTH = "#c9776b";
-  SOTTO   = "#5aaf68";
+  ROOT    = "#fadca3";
+  FIFTH   = "#f1a8fb";
+  SEVENTH = "#9fafe9";
+  SOTTO   = "#a2d9e6";
 
   # ── Signal ────────────────────────────────────────────────────
-  FORTE   = "#5aaf68";
-  FERMATA = "#5aaf82";
-  PIANO   = "#d0b28d";
-  TACET   = "#c9776b";
+  FORTE   = "#f1a8fb";
+  FERMATA = "#fba8ec";
+  PIANO   = "#fadca3";
+  TACET   = "#9fafe9";
 
   # ── Edge ──────────────────────────────────────────────────────
-  BAR    = "#667759";
-  LEDGER = "#4ea15c";
+  BAR    = "#647550";
+  LEDGER = "#ed90fa";
   SHADOW = "#000000";
 
   # ── Shell ─────────────────────────────────────────────────────
-  PIT         = "#1b2a21";
-  PIT_SURFACE = "#233928";
-  PIT_OVERLAY = "#305535";
+  PIT         = "#122116";
+  PIT_SURFACE = "#19311c";
+  PIT_OVERLAY = "#264d26";
 
   # ── Charge ────────────────────────────────────────────────────
-  CHG_FF      = "#c9776b";
-  CHG_MF      = "#5c6cc2";
-  CHG_MP      = "#badbde";
-  CHG_PP      = "#d0b28d";
-  CHG_MORENDO = "#5aaf68";
+  CHG_FF      = "#f1b7bb";
+  CHG_MF      = "#a2d9e6";
+  CHG_MP      = "#b6d69e";
+  CHG_PP      = "#fadca3";
+  CHG_MORENDO = "#f1a8fb";
 
   # ── Meta ──────────────────────────────────────────────────────
   TEMPO   = "12px";
@@ -53,12 +53,12 @@
   STAFF_A_BORDER    = "0.07";
 
   # ── Derived ───────────────────────────────────────────────────
-  ROOT_RGB  = "155,78,193";
-  FORTE_RGB = "90,175,104";
-  GRAD_STAGE_HI = "#2a4730";
-  GRAD_STAGE_LO = "#1c2c20";
-  GRAD_WING_HI  = "#36643c";
-  GRAD_WING_LO  = "#2a472e";
-  GRAD_HALL_HI  = "#192920";
-  GRAD_HALL_LO  = "#0a0f0c";
+  ROOT_RGB  = "250,220,163";
+  FORTE_RGB = "241,168,251";
+  GRAD_STAGE_HI = "#1f3f23";
+  GRAD_STAGE_LO = "#132315";
+  GRAD_WING_HI  = "#2b5c2b";
+  GRAD_WING_LO  = "#203e20";
+  GRAD_HALL_HI  = "#112015";
+  GRAD_HALL_LO  = "#030503";
 }

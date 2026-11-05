@@ -3,11 +3,9 @@
 {
   boot.plymouth.enable = false;
   boot.consoleLogLevel = 0;
-  boot.initrd.verbose = false;
 
   boot.loader.timeout = 0;
 
-  boot.initrd.systemd.enable = true;
   boot.initrd.kernelModules = [ "i915" ];
 
   # INT347E (IR camera) never answers on I2C (-121 at probe) and nothing

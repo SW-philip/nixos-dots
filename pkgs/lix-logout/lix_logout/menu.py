@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from html import escape
 
 
 @dataclass(frozen=True)
@@ -34,3 +35,8 @@ def action_for_key(name: str) -> str | None:
 
 def header_text(host: str, user: str) -> str:
     return f"{host} · {user}"
+
+
+def header_markup(host: str, user: str) -> str:
+    """Pango markup for the header: the hostname bold, the rest regular."""
+    return f"<b>{escape(host)}</b> · {escape(user)}"

@@ -19,7 +19,7 @@ from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 from .armgate import ARM_WINDOW_SECONDS, ArmGate
 from .commands import command_for
-from .menu import ARMED_LABELS, ROWS, action_for_key, header_text
+from .menu import ARMED_LABELS, ROWS, action_for_key, header_markup
 
 CSS_PATH = Path.home() / ".config" / "lix-logout" / "style.css"
 MARK_PATH = Path.home() / ".local" / "state" / "nix-mark-img"
@@ -68,7 +68,8 @@ class LogoutWindow(Gtk.ApplicationWindow):
             mark.set_pixel_size(MARK_PX)
             mark.add_css_class("lix-logout-mark")
             header.append(mark)
-        host = Gtk.Label(label=header_text(socket.gethostname(), getpass.getuser()))
+        host = Gtk.Label()
+        host.set_markup(header_markup(socket.gethostname(), getpass.getuser()))
         host.add_css_class("lix-logout-host")
         host.set_xalign(0)
         header.append(host)

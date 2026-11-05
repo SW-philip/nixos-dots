@@ -1,17 +1,13 @@
 """Derive a dark counterpart's seed colours from an existing theme, and
 sanity-check the palette derived from them."""
 import re
-from itertools import combinations
 from pathlib import Path
 
-from theme_lib.colormath import _hex_to_hsl, _hsl_to_hex, contrast_ratio, delta_e_cie76
+from theme_lib.colormath import _hex_to_hsl, _hsl_to_hex
+from theme_lib.legibility import legibility_problems
 from theme_lib.palette_files import SEED_KEYS
 
 ACCENT_SEEDS = tuple(k for k in SEED_KEYS if k != "HALL")
-_CHECKED_ACCENTS = ("TONIC", "MEDIANT", "DOMINANT", "SUBDOMINANT", "SUPERTONIC", "SUBMEDIANT")
-MIN_ACCENT_CONTRAST = 3.5
-MIN_INK_CONTRAST = 7.0
-MIN_ACCENT_DELTA_E = 25.0
 _SWATCH_SLOTS = ("HALL", "STAGE", "WING", "TONIC", "MEDIANT", "DOMINANT",
                  "SUBDOMINANT", "SUPERTONIC", "SUBMEDIANT", "SCORE")
 
@@ -49,7 +45,7 @@ def palette_seeds(sh_path: Path) -> dict:
 def dark_seeds(seeds: dict, ground_l: float = 0.09, ground_sat: float = 0.30,
                accent_sat_max: float = 0.70) -> dict:
     # Accent lightness is left alone on purpose: derive_full_palette raises it
-    # until each accent clears MIN_ACCENT_CONTRAST on the real (now dark) HALL.
+    # until each accent clears its floor on every real (now dark) surface.
     h, s, _ = _hex_to_hsl(seeds["HALL"])
     out = {"HALL": _hsl_to_hex(h, min(s, ground_sat), ground_l)}
     for key in ACCENT_SEEDS:
@@ -88,19 +84,8 @@ def apply_overrides(colors: dict, pairs: list[str], allowed: tuple = SEED_KEYS) 
 
 
 def check_palette(p: dict) -> list[str]:
-    problems = []
-    ink = contrast_ratio(p["SCORE"], p["HALL"])
-    if ink < MIN_INK_CONTRAST:
-        problems.append(f"SCORE ink contrast {ink:.1f} on HALL (< {MIN_INK_CONTRAST})")
-    for key in _CHECKED_ACCENTS:
-        c = contrast_ratio(p[key], p["HALL"])
-        if c < MIN_ACCENT_CONTRAST:
-            problems.append(f"{key} contrast {c:.1f} on HALL (< {MIN_ACCENT_CONTRAST})")
-    for a, b in combinations(_CHECKED_ACCENTS, 2):
-        de = delta_e_cie76(p[a], p[b])
-        if de < MIN_ACCENT_DELTA_E:
-            problems.append(f"{a}/{b} ΔE {de:.0f} (< {MIN_ACCENT_DELTA_E:.0f}), too close")
-    return problems
+    """Contrast of every text slot on every text surface, plus accent ΔE."""
+    return legibility_problems(p)
 
 
 def hexline(p: dict) -> str:

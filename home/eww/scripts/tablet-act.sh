@@ -56,7 +56,7 @@ case "${1:-}" in
     fi ;;
   desktop) "${TABLET_SURFACE_MODE:-surface-mode}" desktop ;;
   dnd)    swaync-client -d >/dev/null ;;
-  notif)  "$EWW" close tablet-sheet >/dev/null 2>&1; swaync-client -t >/dev/null ;;
+  notif)  "$EWW" close tablet-sheet >/dev/null 2>&1; "${TABLET_NOTIF_TOGGLE:-notif-center-toggle}" >/dev/null ;;
   profile)
     case "$(powerprofilesctl get)" in
       balanced)    next=performance ;;

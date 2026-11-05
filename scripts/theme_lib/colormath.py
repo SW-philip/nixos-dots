@@ -102,6 +102,28 @@ def srgb_to_lab(hex_color: str) -> tuple[float, float, float]:
     return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
 
 
+def lab_to_hex(L: float, a: float, b: float) -> str | None:
+    """CIE L*a*b* (D65) -> sRGB hex, or None when the colour is outside sRGB."""
+    fy = (L + 16) / 116
+    fx, fz = fy + a / 500, fy - b / 200
+
+    def _finv(t: float) -> float:
+        return t ** 3 if t ** 3 > 216 / 24389 else (t - 4 / 29) * 108 / 841
+
+    x, y, z = _finv(fx) * 0.95047, _finv(fy), _finv(fz) * 1.08883
+    lin = (3.2404542 * x - 1.5371385 * y - 0.4985314 * z,
+           -0.9692660 * x + 1.8760108 * y + 0.0415560 * z,
+           0.0556434 * x - 0.2040259 * y + 1.0572252 * z)
+    if any(c < -1e-6 or c > 1 + 1e-6 for c in lin):
+        return None
+    out = []
+    for c in lin:
+        c = min(1.0, max(0.0, c))
+        v = 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+        out.append(round(v * 255))
+    return "#{:02x}{:02x}{:02x}".format(*out)
+
+
 def delta_e_cie76(hex_a: str, hex_b: str) -> float:
     """CIE76 colour difference: Euclidean distance in L*a*b*.
 

@@ -1,51 +1,51 @@
 {
   # ── Ground ────────────────────────────────────────────────────
-  HALL  = "#f4ebef";
-  STAGE = "#e7d0d6";
-  WING  = "#d7acb4";
-  MUTE  = "#dec4cf";
-  DIM   = "#dfc3cb";
+  HALL  = "#fdecef";
+  STAGE = "#f9bdbe";
+  WING  = "#f79187";
+  MUTE  = "#f6a7b5";
+  DIM   = "#f6abac";
 
   # ── Ink ───────────────────────────────────────────────────────
-  SCORE = "#191717";
-  LYRIC = "#403838";
-  REST  = "#7a5e63";
+  SCORE = "#191818";
+  LYRIC = "#423939";
+  REST  = "#5f4d4e";
 
   # ── Accent ────────────────────────────────────────────────────
-  ROOT    = "#ca2525";
-  FIFTH   = "#a35d24";
-  SEVENTH = "#6375cf";
-  SOTTO   = "#a03ba0";
+  ROOT    = "#7c000b";
+  FIFTH   = "#001a70";
+  SEVENTH = "#72107b";
+  SOTTO   = "#492e00";
 
   # ── Signal ────────────────────────────────────────────────────
-  FORTE   = "#ca2525";
-  FERMATA = "#ca5625";
-  PIANO   = "#a35d24";
-  TACET   = "#6375cf";
+  FORTE   = "#7c000b";
+  FERMATA = "#7c1a00";
+  PIANO   = "#492e00";
+  TACET   = "#72107b";
 
   # ── Edge ──────────────────────────────────────────────────────
-  BAR    = "#ae8994";
-  LEDGER = "#b42121";
-  SHADOW = "#bd56a3";
+  BAR    = "#b28c90";
+  LEDGER = "#620009";
+  SHADOW = "#fa2389";
 
   # ── Shell ─────────────────────────────────────────────────────
-  PIT         = "#eddee4";
-  PIT_SURFACE = "#e7d0d6";
-  PIT_OVERLAY = "#d7acb4";
+  PIT         = "#fbd5dc";
+  PIT_SURFACE = "#f9bdbe";
+  PIT_OVERLAY = "#f79187";
 
   # ── Charge ────────────────────────────────────────────────────
-  CHG_FF      = "#6375cf";
-  CHG_MF      = "#3a8646";
-  CHG_MP      = "#a03ba0";
-  CHG_PP      = "#a35d24";
-  CHG_MORENDO = "#ca2525";
+  CHG_FF      = "#72107b";
+  CHG_MF      = "#002233";
+  CHG_MP      = "#1d2b12";
+  CHG_PP      = "#492e00";
+  CHG_MORENDO = "#7c000b";
 
   # ── Meta ──────────────────────────────────────────────────────
   TEMPO   = "12px";
   PAIR    = "wine-crimson";
   isLight = true;
   MEASURE = "0 1px 2px rgba(0,0,0,0.80)";
-  STAFF   = "189,86,163";
+  STAFF   = "250,35,137";
   STAFF_A_OUTER     = "0.50";
   STAFF_A_DROP      = "0.55";
   STAFF_A_HOVER     = "0.65";
@@ -54,12 +54,12 @@
   STAFF_A_BORDER    = "0.07";
 
   # ── Derived ───────────────────────────────────────────────────
-  ROOT_RGB  = "202,37,37";
-  FORTE_RGB = "202,37,37";
-  GRAD_STAGE_HI = "#eedde2";
-  GRAD_STAGE_LO = "#dfc3cb";
-  GRAD_WING_HI  = "#dfb9c0";
-  GRAD_WING_LO  = "#cfa0a8";
-  GRAD_HALL_HI  = "#fbf8fa";
-  GRAD_HALL_LO  = "#ecdee5";
+  ROOT_RGB  = "124,0,11";
+  FORTE_RGB = "124,0,11";
+  GRAD_STAGE_HI = "#fbcfd0";
+  GRAD_STAGE_LO = "#f6abac";
+  GRAD_WING_HI  = "#f9a299";
+  GRAD_WING_LO  = "#f48175";
+  GRAD_HALL_HI  = "#fffeff";
+  GRAD_HALL_LO  = "#fbdae0";
 }

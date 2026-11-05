@@ -87,7 +87,7 @@ rec {
     fi
   '';
 
-  # Manual show/hide for squeekboard (swaync toggle, Mod+Shift+W, three-finger tap);
+  # Manual show/hide for squeekboard (notif-center search bar button, Mod+Shift+W, three-finger tap);
   # "hide" is for the focus policy (leaving a browser). No-op unless squeekboard.service is up, i.e.
   # unless the Type Cover is detached.
   toggleOsk = pkgs.writeShellScriptBin "toggle-osk" ''

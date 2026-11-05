@@ -5,14 +5,17 @@ which re-derives every app config from the palette. So registering a theme means
 writing only its source-of-truth palette files (.nix/.sh) plus the wallpaper;
 `drmis set <slug>` (after `nrs`) applies it.
 """
+import re
 import subprocess
 import sys
 from pathlib import Path
 
+from theme_lib.legibility import legibility_problems
 from theme_lib.musical import to_musical
 from theme_lib.naming import slugify
 from theme_lib.paths import DARK_DIR, THEMES_ROOT, MAKE_WALLPAPER, NIXOS_ROOT
 from theme_lib.palette_files import write_nix, write_sh, SEED_KEYS
+from theme_lib.variant import set_pair
 
 
 def _read_sh_palette(sh_path: Path) -> dict:
@@ -50,11 +53,18 @@ def register_theme(name: str, palette: dict, source: str, force: bool = False,
     if already and existing_sh.exists() and not force:
         print(f"  ℹ️  Preserving existing palette for {slug} (use --force to regenerate)")
     else:
+        for msg in legibility_problems(palette):
+            print(f"  ⚠️  {slug}: {msg}")
         musical = to_musical(palette)
         source_dict = raw_seeds if raw_seeds is not None else palette
         seeds = {k: source_dict[k] for k in SEED_KEYS if k in source_dict}
-        write_nix(theme_dir / f"palette-{slug}.nix", musical, name)
+        nix = theme_dir / f"palette-{slug}.nix"
+        # write_nix knows nothing of PAIR; a --force re-derive would orphan the pair.
+        pair = re.search(r'^\s*PAIR\s*=\s*"([^"]+)"', nix.read_text(), re.MULTILINE) if nix.exists() else None
+        write_nix(nix, musical, name)
         write_sh(theme_dir / f"palette-{slug}.sh", musical, name, seeds=seeds)
+        if pair:
+            set_pair(theme_dir, pair.group(1))
 
     # Wallpaper Generation — the wallpaper-<slug>.png is consumed live by drmis.
     if MAKE_WALLPAPER.exists():

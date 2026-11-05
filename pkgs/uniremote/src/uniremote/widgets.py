@@ -9,6 +9,7 @@ def icon_button(icon_name: str, on_click: Callable[[], None], *,
                 tooltip: str | None = None,
                 css: list[str] | None = None) -> Gtk.Button:
     button = Gtk.Button(icon_name=icon_name)
+    button.add_css_class("ur-key")
     if tooltip:
         button.set_tooltip_text(tooltip)
     for cls in css or []:

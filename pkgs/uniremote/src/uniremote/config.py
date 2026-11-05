@@ -31,6 +31,7 @@ class Config:
         self.samsung_mac = ""
         self.roku_ip = ""
         self.recent_roku_apps: list[str] = []
+        self.favorite_roku_apps: list[str] = []
         self._load()
 
     def _load(self):
@@ -44,6 +45,7 @@ class Config:
         self.samsung_mac = samsung.get("mac", "")
         self.roku_ip = roku.get("ip", "")
         self.recent_roku_apps = [str(a) for a in roku.get("recent", [])]
+        self.favorite_roku_apps = [str(a) for a in roku.get("favorites", [])]
 
     @property
     def samsung_token_file(self) -> Path:
@@ -53,6 +55,15 @@ class Config:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "samsung": {"ip": self.samsung_ip, "mac": self.samsung_mac},
-            "roku": {"ip": self.roku_ip, "recent": self.recent_roku_apps},
+            "roku": {"ip": self.roku_ip, "recent": self.recent_roku_apps,
+                     "favorites": self.favorite_roku_apps},
         }
         self.path.write_text(_write_toml(data))
+
+    def toggle_favorite(self, app_id: str) -> bool:
+        """Add or remove a Roku channel id; True when it is now a favorite."""
+        if app_id in self.favorite_roku_apps:
+            self.favorite_roku_apps = [a for a in self.favorite_roku_apps if a != app_id]
+            return False
+        self.favorite_roku_apps = [*self.favorite_roku_apps, app_id]
+        return True

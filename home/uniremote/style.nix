@@ -2,11 +2,11 @@
 # to ~/.config/uniremote/style.css and loaded by the app at USER priority (not
 # ~/.config/gtk-4.0/gtk.css, which every other GTK4 app would also inherit).
 # Same vocabulary as home/waybar/style.nix + home/eww/eww.scss: WING shell,
-# STAGE chips, SCORE hairline, STAFF drop, ROOT/HALL the one accent.
+# STAGE chips, FIFTH keylines (art deco, as eww), STAFF drop, ROOT/HALL the one accent.
 { p }:
 let
-  keyline = "alpha(${p.SCORE}, 0.15)";
-  edge    = "alpha(${p.SCORE}, 0.32)";
+  keyline = "alpha(${p.FIFTH}, 0.35)";
+  edge    = "alpha(${p.FIFTH}, 0.5)";
   bevel   = "inset 0 1px 0 alpha(${p.SCORE}, 0.12)";
   thread  = "alpha(${p.SCORE}, 0.55)";
   drop    = "${bevel}, 0 2px 3px rgba(${p.STAFF}, ${p.STAFF_A_DROP})";
@@ -33,7 +33,6 @@ in
 
   * {
       font-family: "Josefin Sans", "DejaVu Sans", sans-serif;
-      font-weight: 700;
       text-shadow: none;
   }
 
@@ -43,7 +42,7 @@ in
       background-color: ${p.STAGE};
       color: ${p.SCORE};
       border: 1px solid ${edge};
-      border-radius: 7px;
+      border-radius: 13px 3px 13px 3px;
       min-height: 28px;
       min-width: 28px;
       margin: 4px 3px;
@@ -65,12 +64,54 @@ in
       box-shadow: inset 0 1px 3px rgba(${p.STAFF}, ${p.STAFF_A_HOVER});
   }
 
+  /* Circular (pill) buttons keep their pill proportions as a leaf: big round corners on one diagonal. */
   button.circular {
-      border-radius: 9999px;
+      border-radius: 18px 4px 18px 4px;
   }
 
   button.suggested-action {
       background-color: ${p.ROOT};
+      color: ${p.HALL};
+  }
+
+  /* Roku remote: ~25% larger keys than the generic chip (28px min), still compact.
+     Tablet CSS below is more specific and keeps its own larger sizes. */
+  .ur-roku button.ur-key {
+      min-height: 36px;
+      min-width: 36px;
+      padding: 4px 12px;
+      -gtk-icon-size: 20px;
+  }
+
+  /* Channels pane: attached to the remote's right edge. */
+  .ur-pane {
+      border-left: 1px solid ${keyline};
+  }
+
+  .ur-pane-heading {
+      font-size: 10px;
+      letter-spacing: 0.4em;
+      color: ${p.FIFTH};
+      margin: 8px 4px 2px 4px;
+  }
+
+  button.ur-chan {
+      margin: 0;
+      padding: 4px 10px;
+      border-radius: 16px 4px 16px 4px;
+  }
+
+  button.ur-chan-star {
+      margin: 0;
+      min-width: 32px;
+      padding: 4px 8px;
+      border-radius: 13px 3px 13px 3px;
+  }
+
+  /* Header toggle for the channels pane: same checked look as the folder tabs. */
+  button.ur-chip:checked {
+      background-color: ${p.FIFTH};
+      border-color: ${p.FIFTH};
       color: ${p.HALL};
   }
 
@@ -104,8 +145,8 @@ in
 
   .ur-nameplate {
       font-size: 10px;
-      letter-spacing: 0.24em;
-      color: ${p.REST};
+      letter-spacing: 0.4em;
+      color: ${p.FIFTH};
   }
 
   .ur-plate {
@@ -151,10 +192,10 @@ in
       min-height: 30px;
       padding: 4px 0;
       border-bottom-width: 0;
-      border-radius: 7px 7px 0 0;
+      border-radius: 16px 4px 0 0;
       background-color: ${p.STAGE};
       color: ${p.REST};
-      letter-spacing: 0.12em;
+      letter-spacing: 0.2em;
       box-shadow: none;
   }
 
@@ -165,13 +206,14 @@ in
   }
 
   button.ur-tab:checked {
-      background-color: ${p.ROOT};
-      border-color: ${p.ROOT};
+      background-color: ${p.FIFTH};
+      border-color: ${p.FIFTH};
       color: ${p.HALL};
   }
 
   .ur-body {
-      border-top: 1px solid ${p.ROOT};
+      border-top: 1px solid ${p.FIFTH};
+      border-bottom: 1px solid ${keyline};
       border-left: 1px solid ${keyline};
       border-right: 1px solid ${keyline};
   }
@@ -180,7 +222,7 @@ in
       background-color: ${p.STAGE};
       color: ${p.SCORE};
       border: 1px solid ${keyline};
-      border-radius: 7px;
+      border-radius: 13px 3px 13px 3px;
   }
 
   /* Tablet mode (Type Cover detached): mirrors eww .ledger-bar.tablet .chip. */
@@ -190,18 +232,18 @@ in
       min-height: 56px;
       min-width: 56px;
       padding: 11px 24px;
-      border-radius: 10px;
+      border-radius: 16px 4px 16px 4px;
   }
 
   window.tablet .ur-header button.circular,
   window.tablet .ur-body button.circular {
-      border-radius: 9999px;
+      border-radius: 28px 6px 28px 6px;
   }
 
   window.tablet .ur-header button.ur-tab {
       min-height: 46px;
       padding: 8px 0;
-      border-radius: 10px 10px 0 0;
+      border-radius: 16px 4px 0 0;
   }
 
   window.tablet .ur-name {

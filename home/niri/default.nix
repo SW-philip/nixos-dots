@@ -180,12 +180,6 @@ let
     update-command = "systemctl --user is-active --quiet niri-rotation.service && echo true || echo false";
   }
   ++ lib.optional config.myConfig.hasTouch {
-    label = "󰌓  On-Screen Keyboard";
-    type = "toggle";
-    command = "${s.toggleOsk}/bin/toggle-osk";
-    update-command = "${s.toggleOsk}/bin/toggle-osk status";
-  }
-  ++ lib.optional config.myConfig.hasTouch {
     label = "󰍹  Desktop Mode";
     type = "toggle";
     command = "${s.surfaceMode}/bin/surface-mode toggle";
@@ -342,11 +336,11 @@ let
   hdmiSink   = "alsa_output.pci-0000_01_00.1.hdmi-stereo";
   spdifSink  = "alsa_output.pci-0000_00_1f.3.iec958-stereo";
 
-  # Mod+B / surface MouseMiddle / TV hamburger — toggles swaync's control
-  # center. (The waybar stats sidebar it used to sit beside is gone; the eww
-  # status window replaces it.)
+  # Mod+B / surface MouseMiddle / TV hamburger — toggles the eww notif-center
+  # (notif-center-toggle, installed by home/eww). Script name kept from the
+  # swaync days; the binds spawn it by this derivation.
   sidebarToggleBin = pkgs.writeShellScript "swaync-toggle" ''
-    exec ${pkgs.swaynotificationcenter}/bin/swaync-client -t
+    exec notif-center-toggle
   '';
 
   # Shared with the greeter (pkgs/greeter/default.nix) — edit

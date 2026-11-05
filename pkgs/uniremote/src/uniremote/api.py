@@ -101,6 +101,11 @@ class RokuAPI:
     def launch_app(self, app_id: str):
         requests.post(f"{self.base}/launch/{app_id}", timeout=3).raise_for_status()
 
+    def icon(self, app_id: str) -> bytes:
+        resp = requests.get(f"{self.base}/query/icon/{app_id}", timeout=5)
+        resp.raise_for_status()
+        return resp.content
+
     def search(self, query: str):
         requests.post(
             f"{self.base}/search/browse",

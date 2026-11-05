@@ -13,11 +13,14 @@ from uniremote import __version__
 from uniremote.api import RokuAPI, SamsungAPI
 from uniremote.config import Config
 from uniremote.header import Header
+from uniremote.icons import IconCache
+from uniremote.niri_window import resize_own_window
 from uniremote.recenter import center_own_window
 from uniremote.status import NOT_SET_UP, DeviceStatus, roku_status, samsung_status
 from uniremote.tablet import cover_detached, cover_path
 from uniremote.views.samsung import SamsungView
 from uniremote.views.roku import RokuView
+from uniremote.views.channels_pane import PANE_WIDTH, ChannelsPane
 from uniremote.preferences import Preferences
 
 APP_ID = "com.prepko.uniremote"
@@ -123,28 +126,46 @@ class MainWindow(Adw.ApplicationWindow):
                 self._poll()
             run_async(fn, *args, callback=done)
 
+        self._icons = IconCache()
+        self._base_width = 0
+        self._channels = ChannelsPane(
+            config, on_launch=lambda app_id: self._roku.launch_app(app_id),
+            icon_for=self._icons.get, request_icon=self._request_icon)
+        self._roku = RokuView(config, run_and_poll, notify,
+                              on_apps=self._channels.set_apps, on_recent=self._channels.refresh)
+
         self._stack = Adw.ViewStack()
         self._stack.add_titled(SamsungView(config, samsung_api, run_and_poll, notify), "samsung", "Samsung")
-        self._stack.add_titled(RokuView(config, run_and_poll, notify), "roku", "Roku")
+        self._stack.add_titled(self._roku, "roku", "Roku")
 
         menu = Gio.Menu()
         menu.append("Preferences", "app.preferences")
         menu.append("About Uniremote", "app.about")
         self._header = Header(self._stack,
                               [("samsung", "SAMSUNG"), ("roku", "ROKU")],
-                              menu, self.close)
+                              menu, self.close,
+                              on_channels=self._on_channels_toggled)
 
         self._toast_overlay = Adw.ToastOverlay()
         self._toast_overlay.set_child(self._stack)
         self._toast_overlay.add_css_class("ur-body")
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        box.append(self._header)
-        box.append(self._toast_overlay)
+        remote = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
+        remote.append(self._header)
+        remote.append(self._toast_overlay)
         self._toast_overlay.set_vexpand(True)
-        self.set_content(box)
+        self._pane_revealer = Gtk.Revealer(
+            transition_type=Gtk.RevealerTransitionType.SLIDE_LEFT, transition_duration=220,
+            reveal_child=False)
+        self._pane_revealer.set_child(self._channels)
+        root = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        root.append(remote)
+        root.append(self._pane_revealer)
+        self.set_content(root)
 
         self._stack.connect("notify::visible-child-name", lambda *_: self._poll())
+        self._stack.connect("notify::visible-child-name", self._sync_channels_button)
+        self._sync_channels_button()
         self.connect("notify::is-active",
                      lambda *_: self.is_active() and self._poll())
         self._tick_id = GLib.timeout_add_seconds(POLL_SECONDS, self._tick)
@@ -220,6 +241,29 @@ class MainWindow(Adw.ApplicationWindow):
     def _recenter_soon(self):
         # Let GTK finish resizing for the new CSS before niri re-centres.
         GLib.timeout_add(250, lambda: run_async(center_own_window, os.getpid()) or False)
+
+    def _sync_channels_button(self, *_):
+        self._header.set_channels_available(self._stack.get_visible_child_name() == "roku")
+
+    def _on_channels_toggled(self, active: bool):
+        if active:
+            self._base_width = self.get_width()
+            self._pane_revealer.set_reveal_child(True)
+            run_async(resize_own_window, os.getpid(), self._base_width + PANE_WIDTH)
+        else:
+            self._pane_revealer.set_reveal_child(False)
+            if self._base_width:
+                run_async(resize_own_window, os.getpid(), self._base_width)
+        self._recenter_soon()
+
+    def _request_icon(self, app_id: str):
+        def fetch():
+            if not config.roku_ip:
+                return None
+            return self._icons.store(app_id, RokuAPI(config.roku_ip).icon(app_id))
+
+        run_async(fetch, callback=lambda result, i=app_id:
+                  isinstance(result, Path) and self._channels.icon_ready(i))
 
     def toast(self, message: str):
         self._toast_overlay.add_toast(Adw.Toast(title=message, timeout=3))

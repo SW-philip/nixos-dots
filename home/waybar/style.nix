@@ -54,12 +54,11 @@ window#waybar {
 
 /* -----------------------------------------------------------------
    Generic module — flat chip: STAGE fill, SCORE hairline, one drop.
-   Chip radius (7), not card radius — same as swaync keycaps / gui rows.
+   Leaf chip (13/3, diagonal — the J/S/G/K terminals), not card radius — same as swaync keycaps / gui rows.
    ----------------------------------------------------------------- */
 .module {
   background-color: ${p.STAGE};
   color: ${p.SCORE};
-  font-weight: 700;
   padding: 4px 11px;
   /* GTK clips box-shadow rendering to the margin box, so the vertical
      margin must stay >= the drop's offset + spread or the shadow gets
@@ -67,7 +66,7 @@ window#waybar {
      was tightened here. */
   margin: 4px 3px;
   border: 1px solid ${keyline};
-  border-radius: 7px;
+  border-radius: 13px 3px 13px 3px;
   box-shadow: ${drop};
   transition: margin 120ms ease-out, box-shadow 120ms ease-out;
 }
@@ -92,12 +91,11 @@ window#waybar {
 #custom-start {
   color: ${p.HALL};
   background-color: ${p.ROOT};
-  font-weight: 700;
   letter-spacing: 0.04em;
   padding: 4px 16px;
   margin: 4px 5px;
   border: 1px solid ${keyline};
-  border-radius: 7px;
+  border-radius: 13px 3px 13px 3px;
   box-shadow: ${drop};
   transition: margin 120ms ease-out, box-shadow 120ms ease-out;
 }
@@ -256,7 +254,7 @@ window#waybar {
   color: ${p.SCORE};
   font-weight: 700;
   border: 1px solid ${keyline};
-  border-radius: 7px;
+  border-radius: 13px 3px 13px 3px;
   box-shadow: ${drop};
   margin: 4px 5px;
   padding: 4px 10px;
@@ -342,7 +340,6 @@ tooltip label {
   color: ${p.SCORE};
   font-family: "Josefin Sans", "JetBrainsMono Nerd Font", monospace;
   font-size: 15px;
-  font-weight: 700;
   padding: 3px 10px;
 }
 ''

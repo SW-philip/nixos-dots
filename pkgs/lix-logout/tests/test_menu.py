@@ -1,5 +1,5 @@
 from lix_logout.commands import ACTIONS
-from lix_logout.menu import ARMED_LABELS, ROWS, action_for_key, header_text
+from lix_logout.menu import ARMED_LABELS, ROWS, action_for_key, header_markup, header_text
 
 
 def test_rows_cover_every_command_action_in_order():
@@ -28,3 +28,8 @@ def test_only_destructive_rows_have_armed_labels():
 
 def test_header_text():
     assert header_text("SWphil", "prepko") == "SWphil · prepko"
+
+
+def test_header_markup_bolds_only_the_host_and_escapes():
+    assert header_markup("SWphil", "prepko") == "<b>SWphil</b> · prepko"
+    assert header_markup("a<b>", "x&y") == "<b>a&lt;b&gt;</b> · x&amp;y"

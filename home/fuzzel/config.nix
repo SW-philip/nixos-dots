@@ -4,10 +4,12 @@
 # in via `include=` so theme switches never touch this file. The drun
 # placeholder line is picked per launch by the `launcher` script
 # (assets/launcher-lines.txt), not set here.
+# Josefin leaf: fuzzel only takes ONE radius per surface (no asymmetric corners), so the
+# leaf is approximated with round bowls: window 22, selection 14.
 { l }:
 ''
   [main]
-  font=JetBrainsMono Nerd Font:size=13
+  font=Josefin Sans:size=15, JetBrainsMono Nerd Font:size=13
   prompt="󰀻  "
   dpi-aware=auto
   terminal=ghostty -e
@@ -19,12 +21,13 @@
   horizontal-pad=28
   vertical-pad=20
   inner-pad=14
-  line-height=26
+  line-height=28
   image-size-ratio=0.55
-  letter-spacing=0.4
+  letter-spacing=1.2
   include=~/.config/fuzzel/fuzzel-colors.ini
 
   [border]
   width=2
-  radius=${toString l.radiusLg}
+  radius=22
+  selection-radius=14
 ''

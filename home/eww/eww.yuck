@@ -25,12 +25,13 @@
 (deflisten notifs :initial `{"count":0,"items":[],"groups":[],"query":"","matches":0}` `bash SCRIPTS/notif-feed.sh`)
 (defvar notif_tab "notifs")
 (defvar nc_open_group "")
+(defvar nc_open_grid "")
 (defvar nc_search_text "")
 (deflisten launcher_rows :initial "[]" `last=; while :; do cur=$(bash SCRIPTS/launcher-favs.sh); [ "$cur" = "$last" ] || { echo "$cur"; last=$cur; }; sleep 3; done`)
 ;; Tablet shell (surface, cover detached). tablet-shell swaps waybar for the
 ;; strip; the sheet drops from under it.
 (deflisten tablet_state :initial "{}" `bash SCRIPTS/feed.sh 5 6 'TABLET_STATE'`)
-(deflisten controls :initial `{"grids":{},"vol":0,"muted":false,"bright":0,"focus":"","matches":[]}`
+(deflisten controls :initial `{"grids":{},"vol":0,"muted":false,"bright":0,"focus":"","matches":[],"summary":{"connectivity":{"on":0,"total":0,"tags":"","hit":false},"system":{"on":0,"total":0,"tags":"","hit":false},"appearance":{"on":0,"total":0,"tags":"","hit":false}},"acts":{"connectivity":[],"system":[],"appearance":[]}}`
   `NOTIF_CONTROLS feed`)
 (defpoll clock_text :interval "10s" `date +'%-I:%M %p'`)
 
@@ -46,75 +47,75 @@
                   : replace(replace(replace(text, "&", "&amp;"), "<", "&lt;"), ">", "&gt;")}))
 
 (defwidget sec [title]
-  (label :class "hdr" :halign "start" :text title))
+  (nc-title :title title))
 
 (defwidget subsec [title]
   (label :class "subhdr" :halign "start" :text title))
 
 (defwidget legendary []
-  (box :class "section" :orientation "vertical" :space-evenly false :spacing 4
+  (box :class "section" :orientation "vertical" :space-evenly false :spacing 0
     (sec :title "LEGENDARY")
-    (box :class "readout-pill wide" :halign "start"
-      (spk :i 0 :class "row" :halign "start" :text "uptime ${boot.uptime_str ?: "?"}  ·  ${boot.kernel ?: "?"}"))
-    (box :class "readout-pill wide" :halign "start"
+    (eventbox :class "pill-hit" (box :class "readout-pill wide"
+      (spk :i 0 :class "row" :halign "start" :text "uptime ${boot.uptime_str ?: "?"}  ·  ${boot.kernel ?: "?"}")))
+    (eventbox :class "pill-hit" (box :class "readout-pill wide"
       (spk :i 1 :class "row" :halign "start"
              :text {(boot.rebuild_state ?: "?") == "unknown"
                     ? "rebuild age unknown"
-                    : "rebuild ${boot.rebuild_age_h ?: 0}h ago (${boot.rebuild_state ?: "?"})"}))
-    (box :class {(boot.gen_drift ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
+                    : "rebuild ${boot.rebuild_age_h ?: 0}h ago (${boot.rebuild_state ?: "?"})"})))
+    (eventbox :class "pill-hit" (box :class {(boot.gen_drift ?: false) ? "readout-pill wide" : "readout-pill wide inactive"}
       (spk :i 2 :class {(boot.gen_drift ?: false) ? "row readout warn" : "row"} :halign "start"
-             :text {(boot.gen_drift ?: false) ? "booted generation ≠ current" : "generation  ·  in sync"}))
-    (box :class "readout-pill wide" :halign "start"
+             :text {(boot.gen_drift ?: false) ? "booted generation ≠ current" : "generation  ·  in sync"})))
+    (eventbox :class "pill-hit" (box :class "readout-pill wide"
       (spk :i 3 :class {(purity.pure ?: true) ? "row" : "row readout warn"} :halign "start"
              :text {(purity.pure ?: true)
                     ? "wayland  ·  pure"
-                    : "wayland  ·  ${purity.clients ?: 0} xwayland"}))
-    (box :class {(myln.available ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
+                    : "wayland  ·  ${purity.clients ?: 0} xwayland"})))
+    (eventbox :class "pill-hit" (box :class {(myln.available ?: false) ? "readout-pill wide" : "readout-pill wide inactive"}
       (spk :i 4 :class {(myln.count ?: 0) > 0 ? "row readout warn" : "row"} :halign "start"
              :text {!(myln.available ?: false)
                     ? "myln  ·  n/a"
-                    : "myln  ·  ${myln.count ?: 0} errors"}))
-    (box :class {jq(boot, ".sleep_drain_pct != null") ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
+                    : "myln  ·  ${myln.count ?: 0} errors"})))
+    (eventbox :class "pill-hit" (box :class {jq(boot, ".sleep_drain_pct != null") ? "readout-pill wide" : "readout-pill wide inactive"}
       (spk :i 5 :class "row" :halign "start"
              :text {jq(boot, ".sleep_drain_pct != null")
                     ? "sleep drain  ·  ${boot.sleep_drain_pct}% / ${boot.sleep_hours}h"
-                    : "sleep drain  ·  no data"}))
-    (box :class {(mug.available ?: false) ? "readout-pill wide" : "readout-pill wide inactive"} :halign "start"
+                    : "sleep drain  ·  no data"})))
+    (eventbox :class "pill-hit" (box :class {(mug.available ?: false) ? "readout-pill wide" : "readout-pill wide inactive"}
       (spk :i 6 :class "row" :halign "start"
              :text {(mug.available ?: false)
                     ? "mug  ·  ${mug.liquid_state}  ·  ${mug.temp_c}°C → ${mug.target_c}°C  ·  ${mug.battery_pct}%"
-                    : "mug  ·  not connected"}))))
+                    : "mug  ·  not connected"})))))
 
 (defwidget rare []
-  (box :class "section" :orientation "vertical" :space-evenly false :spacing 4
+  (box :class "section" :orientation "vertical" :space-evenly false :spacing 0
     (sec :title "RARE")
     (subsec :title "resources")
-    (box :class "row" :space-evenly true
-      (box :class "readout-pill stat-trio"
-        (spk :i 7 :class "readout" :halign "start" :text "cpu ${vitals.cpu_pct ?: 0}%"))
-      (box :class "readout-pill stat-trio"
-        (spk :i 8 :class "readout" :halign "start" :text "mem ${vitals.mem_pct ?: 0}%"))
-      (box :class "readout-pill stat-trio"
-        (spk :i 9 :class "readout" :halign "start" :text "load avg ${vitals.load1 ?: 0}")))
-    (box :class "row" :space-evenly true
-      (box :class "readout-pill stat-pair"
+    (box :class "row" :space-evenly true :spacing 0
+      (eventbox :class "pill-hit" (box :class "readout-pill stat-trio"
+        (spk :i 7 :class "readout" :halign "start" :text "cpu ${vitals.cpu_pct ?: 0}%")))
+      (eventbox :class "pill-hit" (box :class "readout-pill stat-trio"
+        (spk :i 8 :class "readout" :halign "start" :text "mem ${vitals.mem_pct ?: 0}%")))
+      (eventbox :class "pill-hit" (box :class "readout-pill stat-trio"
+        (spk :i 9 :class "readout" :halign "start" :text "load avg ${vitals.load1 ?: 0}"))))
+    (box :class "row" :space-evenly true :spacing 0
+      (eventbox :class "pill-hit" (box :class "readout-pill stat-pair"
         (spk :i 10 :class {(vitals.temp_cpu_c ?: 0) >= 85 ? "readout crit" : "readout"}
                :halign "start"
-               :text "cpu temp ${vitals.temp_cpu_c ?: 0}°C"))
-      (box :class "readout-pill stat-pair"
-        (spk :i 11 :class "readout" :halign "start" :text "peak temp ${vitals.temp_max_c ?: 0}°C")))
+               :text "cpu temp ${vitals.temp_cpu_c ?: 0}°C")))
+      (eventbox :class "pill-hit" (box :class "readout-pill stat-pair"
+        (spk :i 11 :class "readout" :halign "start" :text "peak temp ${vitals.temp_max_c ?: 0}°C"))))
     (graph :class "spark" :thickness 2 :time-range "120s" :min 0 :max 100
            :value {vitals.cpu_pct ?: 0} :dynamic true)
     (subsec :title "storage")
     (for m in {storage.mounts ?: "[]"}
       (box :orientation "vertical" :space-evenly false
-        (box :class "readout-pill" :space-evenly true
+        (eventbox :class "pill-hit" (box :class "readout-pill" :space-evenly true
           (label :class "row" :halign "start" :text {m.target})
-          (spk :i 12 :class "row" :halign "end"   :text "${m.used_gib}/${m.size_gib} GiB"))
+          (spk :i 12 :class "row" :halign "end"   :text "${m.used_gib}/${m.size_gib} GiB")))
         (progress :class {m.pct >= 90 ? "bar hot" : "bar"} :value {m.pct ?: 0})))
-    (box :class "readout-pill" :halign "start"
+    (eventbox :class "pill-hit" (box :class "readout-pill"
       (spk :i 13 :class "row" :halign "start"
-             :text "generation ${storage.generation ?: "?"} (current) · ${storage.generation_total ?: "?"} kept"))))
+             :text "generation ${storage.generation ?: "?"} (current) · ${storage.generation_total ?: "?"} kept")))))
 
 ;; bt/net/vpn are always-present single rows now -- never appear, disappear,
 ;; or change row count on a poll. A device connecting/disconnecting or the
@@ -125,31 +126,31 @@
 ;; busctl) jq(...,"has(...)") is false and the row shows "loading…" instead
 ;; of flashing a wrong default or vanishing outright.
 (defwidget common []
-  (box :class "section" :orientation "vertical" :space-evenly false :spacing 4
+  (box :class "section" :orientation "vertical" :space-evenly false :spacing 0
     (sec :title "COMMON")
-    (box :class "readout-pill wide" :halign "start" :space-evenly true
+    (eventbox :class "pill-hit" (box :class "readout-pill wide" :space-evenly true
       (label :class "row" :halign "start" :text "bt")
       (spk :i 14 :class "row" :halign "end"
              :text {!jq(bt, "has(\"count\")") ? "loading…"
                   : (bt.count ?: 0) == 0 ? "no devices"
                   : (bt.count ?: 0) == 1 ? (bt.devices[0].name + (jq(bt.devices[0], ".battery != null") ? "  ·  ${bt.devices[0].battery}%" : ""))
-                  : "${bt.count} devices"}))
-    (box :class "readout-pill wide" :halign "start" :space-evenly true
+                  : "${bt.count} devices"})))
+    (eventbox :class "pill-hit" (box :class "readout-pill wide" :space-evenly true
       (label :class "row" :halign "start" :text "net")
       (spk :i 15 :class "row" :halign "end"
              :text {!jq(net, "has(\"kind\")") ? "loading…"
                   : (net.kind ?: "none") == "wifi"  ? "${net.ssid} ${net.signal_pct}%"
                   : (net.kind ?: "none") == "wired" ? "wired"
-                  : "offline"}))
-    (box :class "readout-pill wide" :halign "start" :space-evenly true
+                  : "offline"})))
+    (eventbox :class "pill-hit" (box :class "readout-pill wide" :space-evenly true
       (label :class "row" :halign "start" :text "vpn")
       (spk :i 16 :class "row" :halign "end"
              :text {!jq(net, "has(\"vpn\")") ? "loading…"
-                  : (net.vpn ?: false) ? "${net.vpn_name ?: "on"}" : "off"}))
-    (box :class "readout-pill wide" :halign "start" :space-evenly true :visible is_desktop
+                  : (net.vpn ?: false) ? "${net.vpn_name ?: "on"}" : "off"})))
+    (eventbox :class "pill-hit" (box :class "readout-pill wide" :space-evenly true :visible is_desktop
       (label :class "row" :halign "start" :text {(power.present ?: false) ? "battery" : "power"})
       (spk :i 17 :class "row" :halign "end"
-             :text {(power.present ?: false) ? "${power.pct}% (${power.state})" : "AC ∞"}))))
+             :text {(power.present ?: false) ? "${power.pct}% (${power.state})" : "AC ∞"})))))
 
 ;; :height 600 is a floor (GTK size-request semantics, same as :width 410
 ;; above), measured live against a fully-loaded panel (legendary + rare +
@@ -432,21 +433,22 @@
     (box :class "nc-rule-r" :hexpand true :valign "center")))
 
 (defwidget nc-card [n]
-  (box :class "nc-card ${n.urgency}${n.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
-    (box :orientation "vertical" :space-evenly false :spacing 2 :hexpand true
-      (box :orientation "horizontal" :space-evenly false
-        (label :class "nc-app" :halign "start" :text {n.app})
-        (box :hexpand true)
-        (button :class "nc-x" :timeout "2s" :onclick "NOTIF_HISTORY dismiss ${n.id}" "󰅖"))
-      (label :class "nc-sum" :halign "start" :xalign 0 :wrap true :text {n.summary})
-      (label :class "nc-body" :halign "start" :xalign 0 :wrap true :limit-width 120
-             :visible {n.body != ""} :text {n.body}))))
+  (eventbox :class "card-hit"
+    (box :class "nc-card ${n.urgency}${n.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
+      (box :orientation "vertical" :space-evenly false :spacing 2 :hexpand true
+        (box :orientation "horizontal" :space-evenly false
+          (label :class "nc-app" :halign "start" :text {n.app})
+          (box :hexpand true)
+          (button :class "nc-x" :timeout "2s" :onclick "NOTIF_HISTORY dismiss ${n.id}" "󰅖"))
+        (label :class "nc-sum" :halign "start" :xalign 0 :wrap true :text {n.summary})
+        (label :class "nc-body" :halign "start" :xalign 0 :wrap true :limit-width 120
+               :visible {n.body != ""} :text {n.body})))))
 
 ;; A stack of same-app notifications: tap the header to fan it out. A stack that
 ;; holds a critical item stays open.
 (defwidget nc-stack [g]
   (box :orientation "vertical" :space-evenly false :spacing 0
-    (eventbox :cursor "pointer" :timeout "2s"
+    (eventbox :class "card-hit" :cursor "pointer" :timeout "2s"
               :onclick "EWW update nc_open_group=${nc_open_group == g.key ? '' : g.key}"
       (box :class "nc-card nc-stack ${g.urgency}${nc_open_group == g.key ? ' open' : ''}${g.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
         (box :orientation "vertical" :space-evenly false :spacing 0 :hexpand true
@@ -475,20 +477,34 @@
     (box :visible {g.count > 1}
       (nc-stack :g g))))
 
-(defwidget nc-slider [glyph value cmd]
+(defwidget nc-slider [glyph value cmd ?onclick]
   (box :class "nc-slider-row" :orientation "horizontal" :space-evenly false :spacing 12
-    (label :class "nc-slider-glyph" :text glyph)
+    (button :class "nc-slider-icon" :timeout "2s" :onclick {onclick ?: "true"}
+      (label :class "nc-slider-glyph" :text glyph))
     (scale :class "nc-slider" :hexpand true :min 0 :max 100 :value value :timeout "2s"
            :onchange "NOTIF_CONTROLS ${cmd} {}")))
 
 (defwidget nc-grid [title rows grid]
-  (box :orientation "vertical" :space-evenly false :spacing 6 :visible {arraylength(rows) > 0}
-    (nc-title :title title)
+  (box :orientation "vertical" :space-evenly false :spacing 0 :visible {arraylength(rows) > 0}
+    (eventbox :cursor "pointer" :timeout "2s"
+              :onclick "EWW update nc_open_grid=${nc_open_grid == grid ? '' : grid}"
+      (box :class {(nc_open_grid == grid || (controls.summary[grid].hit ?: false)) ? "nc-fold open" : "nc-fold"}
+           :orientation "horizontal" :space-evenly false :spacing 10
+        (label :class "nc-fold-title" :halign "start" :text title)
+        (label :class "nc-fold-tags" :hexpand true :halign "start" :limit-width 16
+               :text {controls.summary[grid].tags ?: ""})
+        (label :class "nc-badge" :visible {(controls.summary[grid].total ?: 0) > 0}
+               :text "◆ ${controls.summary[grid].on ?: 0}/${controls.summary[grid].total ?: 0}")))
     (box :orientation "vertical" :space-evenly false :spacing 1
-      (for r in rows
-        (button :class "nc-toggle${r.on ? ' on' : ''}${r.match ? '' : ' dim'}" :timeout "8s"
+      (for r in {(nc_open_grid == grid || (controls.summary[grid].hit ?: false)) ? jq(rows, "map(select(.toggle))") : []}
+        (button :class "nc-toggle sub${r.on ? ' on' : ''}${r.match ? '' : ' dim'}" :timeout "8s"
                 :onclick "NOTIF_CONTROLS act ${grid} ${r.i}"
-          (label :halign "start" :text {r.on ? "◆ ${r.label}" : r.label}))))))
+          (label :halign "start" :text {r.on ? "◆ ${r.label}" : r.label})))
+      (box :class "nc-acts" :orientation "horizontal" :space-evenly false :spacing 6 :halign "start"
+        (for a in {(nc_open_grid == grid || (controls.summary[grid].hit ?: false)) ? (controls.acts[grid] ?: []) : []}
+          (button :class {a.match ? "nc-act sub" : "nc-act sub dim"} :tooltip {a.name} :timeout "8s"
+                  :onclick "NOTIF_CONTROLS act ${grid} ${a.i}"
+            (label :text {a.glyph})))))))
 
 (defwindow notif-center
   :monitor 0
@@ -500,11 +516,11 @@
       (nc-tab :id "controls" :label "Controls"))
     (overlay
       (box :class "nc-leaf-row" :halign "center"
-        (box :class "nc-leaf" :orientation "horizontal" :space-evenly false
+        (eventbox :class "leaf-hit" (box :class "nc-leaf" :orientation "horizontal" :space-evenly false
           (label :class {notifs.query == "" ? "nc-search-hint" : "nc-search-hint typed"} :text "󰍉  search")
           (input :class "nc-search-input" :value nc_search_text :timeout "2s"
                  :onchange "NOTIF_HISTORY query {}"
-                 :onaccept "NOTIF_CONTROLS enter")))
+                 :onaccept "NOTIF_CONTROLS enter"))))
       (box :class "nc-search-actions" :halign "end" :valign "center" :orientation "horizontal" :space-evenly false :spacing 4
         (revealer :transition "slideleft" :duration "200ms" :reveal {notifs.query != ""}
           (button :class "nc-x" :timeout "2s"
@@ -529,12 +545,12 @@
             (for g in {notifs.groups}
               (nc-group :g g)))))
       (scroll :vexpand true :vscroll true :hscroll false
-        (box :orientation "vertical" :space-evenly false :spacing 14
+        (box :orientation "vertical" :space-evenly false :spacing 4
           (nc-grid :title "Connectivity" :rows {controls.grids.connectivity ?: []} :grid "connectivity")
           (nc-grid :title "System" :rows {controls.grids.system ?: []} :grid "system")
           (nc-grid :title "Appearance" :rows {controls.grids.appearance ?: []} :grid "appearance"))))
     (box :class "nc-dock" :orientation "vertical" :space-evenly false :spacing 6
       (box :class {controls.focus == 'vol' ? "nc-hit" : ""}
-        (nc-slider :glyph {controls.muted ? "󰝟" : "󰕾"} :value {controls.vol} :cmd "vol"))
+        (nc-slider :glyph {controls.muted ? "󰝟" : "󰕾"} :value {controls.vol} :cmd "vol" :onclick "NOTIF_CONTROLS mute"))
       (box :class {controls.focus == 'bright' ? "nc-hit" : ""}
         (nc-slider :glyph "󰃟" :value {controls.bright} :cmd "bright")))))

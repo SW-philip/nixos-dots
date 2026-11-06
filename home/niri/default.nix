@@ -568,6 +568,9 @@ in
     };
     Service = {
       ExecStart = "${pkgs.awww}/bin/awww-daemon --namespace card";
+      # The daemon runs `sh -c "exec awww restore"` when an output returns; without
+      # awww on PATH that output stays black (color 000000) until the next `awww img`.
+      Environment = "PATH=${lib.makeBinPath [ pkgs.awww pkgs.bash ]}";
       Restart = "on-failure";
       RestartSec = "2s";
     };

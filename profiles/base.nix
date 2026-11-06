@@ -9,6 +9,10 @@ let
 
   ports = import ../hosts/ports.nix;
 
+  sqlchYtdlp = pkgs.writeShellScript "yt-dlp-wait" ''
+    YT_DLP=${pkgs.yt-dlp}/bin/yt-dlp POPUP_MPV=${pkgs.mpv}/bin/mpv exec ${pkgs.python3}/bin/python3 ${../scripts/yt-dlp-wait.py} "$@"
+  '';
+
   sqlchHttpBridge = pkgs.writeScript "sqlch-http-bridge" ''
     #!${pkgs.python3}/bin/python3
     import json, os, socket
@@ -295,7 +299,7 @@ in
         # the whole unit, window and all, as soon as a video source started.
         MemoryMax = "2G";
         MemorySwapMax = "0";
-        Environment = "MALLOC_ARENA_MAX=2";
+        Environment = [ "MALLOC_ARENA_MAX=2" "SQLCH_YTDLP=${sqlchYtdlp}" ];
       };
       Install.WantedBy = [ "graphical-session.target" ];
     };
@@ -665,7 +669,19 @@ in
     ffmpeg mediainfo vlc playerctl libnotify
 
     libreoffice
-    nemo ghostty
+    nemo
+    (symlinkJoin {
+      name = "ghostty-random-cursor";
+      paths = [ ghostty ];
+      nativeBuildInputs = [ makeWrapper ];
+      # Cursor colour is picked per window from palette slots 1-6 of the live
+      # (drmis-themed) config, so no shader / idle redraw is needed.
+      postBuild = ''
+        wrapProgram $out/bin/ghostty --run '
+          c=$(sed -n "s/^palette = [1-6]=//p" "$HOME/.config/ghostty/config" 2>/dev/null | shuf -n1)
+          case " $* " in *" --cursor-color"*) ;; *) [ -n "$c" ] && set -- "--cursor-color=$c" "$@" ;; esac'
+      '';
+    })
 
     eza sshfs yt-dlp aria2 imagemagick
     delta lazygit gh tealdeer nix-your-shell comma

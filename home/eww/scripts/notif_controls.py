@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import notif_search
 
@@ -29,16 +30,44 @@ def load_grids(path):
             for k, v in widgets.items() if k.startswith("buttons-grid#")}
 
 
-def read_state(grids, runner=run_sh):
-    out = {}
-    for name, actions in grids.items():
-        rows = []
-        for i, a in enumerate(actions):
-            toggle = a.get("type") == "toggle"
-            on = toggle and runner(a.get("update-command", ""), timeout=2.0).strip() == "true"
-            rows.append({"i": i, "label": a.get("label", ""), "toggle": toggle, "on": bool(on)})
-        out[name] = rows
-    return {"grids": out}
+PROBE_TIMEOUT = 0.6
+
+
+def probe(cmd, timeout=PROBE_TIMEOUT):
+    """stdout of cmd; None when it timed out or could not run (state unknown)."""
+    try:
+        done = subprocess.run(["sh", "-c", cmd], capture_output=True, text=True, timeout=timeout, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return done.stdout if done.returncode == 0 else ""
+
+
+def split_label(label):
+    """swaync labels are "<nerd glyph>  <name>"; a label with no glyph falls back to its first letter."""
+    head, sep, rest = label.partition(" ")
+    if sep and rest.strip() and not head.isascii():
+        return head, rest.strip()
+    return label[:1].upper(), label
+
+
+def read_state(grids, runner=probe, prev=None):
+    prev = prev or {}
+    jobs = [(name, i, a) for name, actions in grids.items()
+            for i, a in enumerate(actions) if a.get("type") == "toggle"]
+
+    def check(job):
+        name, i, a = job
+        out = runner(a.get("update-command", ""), timeout=PROBE_TIMEOUT)
+        return prev.get((name, i), False) if out is None else out.strip() == "true"
+
+    on = {}
+    if jobs:
+        with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+            on = {(n, i): r for (n, i, _), r in zip(jobs, pool.map(check, jobs))}
+    return {"grids": {name: [{"i": i, "label": a.get("label", ""), "toggle": a.get("type") == "toggle",
+                              "glyph": split_label(a.get("label", ""))[0], "name": split_label(a.get("label", ""))[1],
+                              "on": on.get((name, i), False)} for i, a in enumerate(actions)]
+                      for name, actions in grids.items()}}
 
 
 def spawn_sh(cmd, timeout=None):
@@ -64,7 +93,17 @@ def apply_query(state, q):
     if q["terms"]:
         matches = [{"grid": name, "i": r["i"], "label": r["label"], "on": r["on"]}
                    for name, rows in grids.items() for r in rows if r["match"]]
-    return {**state, "grids": grids, "focus": q["focus"], "matches": matches}
+    summary = {}
+    for name, rows in grids.items():
+        toggles = [r for r in rows if r["toggle"]]
+        lit = [r for r in toggles if r["on"]]
+        summary[name] = {"on": len(lit), "total": len(toggles),
+                         "tags": " ".join(r["label"][:1].upper() for r in lit),
+                         "hit": bool(q["terms"]) and any(r["match"] for r in rows)}
+    acts = {name: [{"i": r["i"], "glyph": r.get("glyph", ""), "name": r.get("name", r["label"]), "match": r["match"]}
+                   for r in rows if not r["toggle"]]
+            for name, rows in grids.items()}
+    return {**state, "grids": grids, "focus": q["focus"], "matches": matches, "summary": summary, "acts": acts}
 
 
 def run_first_match(grids, q, runner=spawn_sh):
@@ -106,6 +145,10 @@ def set_level(kind, arg, runner=run_sh, current=levels):
         runner(f"brightnessctl set {want}%")
 
 
+def toggle_mute(runner=run_sh):
+    runner("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
+
+
 class Snapshot:
     """Toggle/level state cached between refreshes: a search-query change re-flags the
     cache (line) instead of re-running every status command (full)."""
@@ -114,10 +157,29 @@ class Snapshot:
         self.path = path
         self.base = None
         self.lv = None
+        self.cache = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "notif-controls-cache.json")
 
     def refresh(self):
-        self.base = read_state(load_grids(self.path))
+        prev = {(n, r["i"]): r["on"] for n, rows in (self.base or {"grids": {}})["grids"].items() for r in rows}
+        self.base = read_state(load_grids(self.path), prev=prev)
         self.lv = levels()
+        try:
+            tmp = self.cache + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump({"base": self.base, "lv": self.lv}, f)
+            os.replace(tmp, self.cache)
+        except OSError:
+            pass
+
+    def warm(self):
+        """Load the last refresh from disk so the first line needs no probes; False when absent."""
+        try:
+            with open(self.cache) as f:
+                saved = json.load(f)
+            self.base, self.lv = saved["base"], saved["lv"]
+        except (OSError, ValueError, KeyError):
+            return False
+        return True
 
     def line(self):
         if self.base is None:
@@ -144,6 +206,8 @@ def feed(state, exists, now, sleep, interval=5.0, query=lambda: "", tick=1.0, re
     last_q = query()
     if prime:
         yield state()
+        # the prime was a full refresh; don't repeat it on the first tick
+        last = now() if exists() else None
     while True:
         if exists():
             t = now()
@@ -167,6 +231,8 @@ def main(argv):
     elif cmd == "feed":
         flag = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "notif-center-open")
         snap = Snapshot(path)
+        if snap.warm():
+            print(snap.line(), flush=True)
         for line in feed(snap.full, lambda: os.path.exists(flag), time.monotonic, time.sleep,
                          query=notif_search.read_query, tick=0.25, rerender=snap.line, prime=True):
             print(line, flush=True)
@@ -174,10 +240,12 @@ def main(argv):
         run_action(load_grids(path), argv[2], int(argv[3]))
     elif cmd in ("vol", "bright") and len(argv) == 3:
         set_level(cmd, argv[2])
+    elif cmd == "mute":
+        toggle_mute()
     elif cmd == "enter":
         run_first_match(load_grids(path), notif_search.parse_query(notif_search.read_query()))
     else:
-        sys.exit("usage: notif_controls.py state | feed | act GRID IDX | vol N | bright N | enter")
+        sys.exit("usage: notif_controls.py state | feed | act GRID IDX | mute | vol N | bright N | enter")
 
 
 if __name__ == "__main__":

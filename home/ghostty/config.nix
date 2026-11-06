@@ -25,6 +25,9 @@
 
   cursor-color = ${p.ROOT}
   cursor-text = ${p.HALL}
+  cursor-style = block
+  cursor-style-blink = true
+  shell-integration-features = no-cursor
 
   selection-background = ${p.MUTE}
   selection-foreground = ${p.SCORE}

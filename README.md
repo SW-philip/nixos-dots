@@ -1,93 +1,126 @@
-# nixos-dots
+# NixOS Configuration
 
-A NixOS flake for four machines: a desktop, a Surface Pro 7+, a thin client on the TV and a Raspberry Pi. Its distinctive parts are a theme engine that recolours the whole desktop live, a tablet mode that follows the Surface's keyboard, and some fleet tooling that keeps the machines in step.
+This repository contains my NixOS and Home Manager configuration for four machines:
 
-It succeeds [dotfiles](https://github.com/SW-philip/dotfiles), which I no longer update. That one has a very different aesthetic and is still there if you want to fork it.
+- Desktop
+- Surface Pro 7+
+- Thin client on the TV
+- Raspberry Pi
 
-![desktop](assets/screenshots/desktop.png)
+It uses the [niri](https://github.com/YaLTeR/niri) compositor, a theme engine that recolours the whole desktop live, a tablet mode that follows the Surface's keyboard, and some fleet tooling that keeps the machines in step.
 
-This is tuned to my hardware and habits. Read it and borrow from it, but expect me to break things regularly and fix them a day or two later. It started as a learning project and still is one.
+> [!NOTE]
+> This is tuned to my hardware and habits. Read it and borrow from it, but expect me to break things regularly and fix them a day or two later. It succeeds [dotfiles](https://github.com/SW-philip/dotfiles), which I no longer update.
 
-![control center](assets/screenshots/control-center.png)
+## Screenshots
 
-## Machines
+### Desktop
 
-| host | what | nixpkgs |
-|---|---|---|
-| `desktop` | i5-9600K, GTX 1660, two FHD monitors on DP (sometimes a TV over HDMI) | unstable |
-| `surface` | Surface Pro 7+, linux-surface kernel, 8 GB RAM | nixos-26.05 |
-| `retro` | Dell Inspiron 5579 on the TV, a Moonlight kiosk streaming games from the desktop | nixos-26.05 |
-| `pi` | Raspberry Pi 3B+, headless git hub that mirrors this repo | nixos-26.05 |
+![Desktop](./assets/screenshots/desktop.png)
 
-| desktop | surface |
-|---|---|
-| ![fastfetch on desktop](assets/screenshots/fastfetch-desktop.png) | ![fastfetch on surface](assets/screenshots/fastfetch-surface.png) |
+![Control center](./assets/screenshots/control-center.png)
 
-The hosts are on different channels on purpose, so a shared module can't assume either one's option shapes. The Surface offloads its builds to the desktop, because 8 GB of RAM and a kernel build don't mix.
+### Panel tour
 
-Desktop and Surface use [Lix](https://lix.systems), lanzaboote secure boot, LUKS, btrfs subvolumes and impermanence. Secrets are sops-nix with age.
+Waybar, its tooltips and `ff`, the fleet-aware fetch.
 
-## What's in it
+![Panel tour](./assets/recordings/panel-tour.webp)
 
-- **[niri](https://github.com/YaLTeR/niri)** compositor with Waybar, swaync, fuzzel and ghostty. hyprlock is still the lock screen, and the login greeter is a small GTK app in `pkgs/greeter`.
-- **Theming.** Every colour comes from a palette file. `scripts/auto-theme.py` generates a palette from a few seed colours, and `drmis` switches the whole desktop to one live. There are 19 palettes in `themes/`; most wallpapers aren't in the repo.
-- **[sqlch](https://github.com/SW-philip/sqlch)**, an internet radio player I wrote, is its own flake input.
-- **Emulation.** Pegasus, RetroArch cores and standalone emulators in `home/emulation`. The Surface gets a lighter set in `home/emulation-light`.
-- **Game streaming.** Sunshine on the desktop, with `retro` as a Moonlight kiosk (`hosts/retro/kiosk.nix`).
-- **Shared keyboard and mouse** between desktop and Surface over the network (`pkgs/niri-bridge`).
-- **Fleet tooling.**
-  - `tree-sync` keeps the working tree in step across machines through the Pi.
-  - `fleet-status` records what each host is running and how far behind it is.
-  - `quivr` shows live per-host stats in the terminal.
-  - `ff` and a Waybar module read the same snapshot.
-- **A locked-down kid account** with its own touch-friendly dashboard.
-- **Small scripts** for Bluetooth battery levels, notifications, backups and recovery, in `scripts/` and `home/*.nix`.
+### sqlch and Spotify windows
 
-## First ten keys
+Draggable, magnetic layer-shell windows for [sqlch](https://github.com/SW-philip/sqlch), my internet radio player.
+
+![sqlch windows](./assets/recordings/sqlch-windows.webp)
+
+### Tablet mode
+
+Detaching the Surface keyboard switches the desktop into tablet mode. The ledger bar grows, and the wing and ledger menus get pull-tabs. Squeekboard opens when you tap a text field or tap the screen with three fingers.
+
+![Tablet mode](./assets/recordings/tablet-mode.webp)
+
+## Details
+
+### General Overview
+
+Every colour comes from a palette file. `scripts/auto-theme.py` generates a palette from a few seed colours, and `drmis` switches the whole desktop to one live. There are 19 palettes in `themes/`; most wallpapers aren't in the repo.
+
+The desktop is niri with Waybar, swaync, fuzzel and ghostty. hyprlock is still the lock screen, and the login greeter is a small GTK app in `pkgs/greeter`.
+
+Desktop and Surface use [Lix](https://lix.systems), lanzaboote secure boot, LUKS, btrfs subvolumes and impermanence. Secrets are sops-nix with age. Tailscale connects all the machines.
+
+The hosts are on different channels on purpose, so a shared module can't assume either one's option shapes.
+
+### Host Configurations
+
+#### Desktop
+
+i5-9600K, GTX 1660, two FHD monitors on DP (sometimes a TV over HDMI). `nixpkgs-unstable`.
+
+- Sunshine game streaming to `retro`
+- Emulation: Pegasus, RetroArch cores and standalone emulators (`home/emulation`)
+- Shares its keyboard and mouse with the Surface over the network (`pkgs/niri-bridge`)
+- Does the Surface's builds and the nightly fleet deploy
+
+#### Surface
+
+Surface Pro 7+ with the linux-surface kernel and 8 GB of RAM. `nixpkgs-unstable`.
+
+- Tablet mode and an on-screen keyboard
+- Offloads builds to the desktop, because 8 GB and a kernel build don't mix
+- A locked-down kid account with its own touch-friendly dashboard
+- Lighter emulation set (`home/emulation-light`)
+
+#### Retro
+
+Dell Inspiron 5579 on the TV, a Moonlight kiosk streaming games from the desktop (`hosts/retro/kiosk.nix`). `nixos-26.05`, lanzaboote and TPM2 LUKS.
+
+#### Pi
+
+Raspberry Pi 3B+, aarch64. A headless git hub that mirrors this repo. `nixos-26.05`.
+
+#### Fleet tooling
+
+- `tree-sync` keeps the working tree in step across machines through the Pi
+- `fleet-status` records what each host is running and how far behind it is
+- `quivr` shows live per-host stats in the terminal
+- `ff` and a Waybar module read the same snapshot
+- `goodnight` runs the nightly deploy, upkeep, reboot and backup batch
+
+`commands` prints every tool this repo installs, with a line each.
+
+### Keybindings
 
 `Mod` is the Super key. `Mod+Slash` shows the full list.
 
-| keys | does |
-|---|---|
-| `Mod+Return` | terminal |
-| `Mod+Space` | launcher |
-| `Mod+S` | settings: network, Bluetooth, audio, display |
-| `Mod+O` | overview of every workspace |
-| `Mod+Slash` | the hotkey list |
-| `Mod+Q` | close the window |
-| `Mod+H` / `Mod+L` | focus the column to the left / right (arrows work too) |
-| `Mod+1`..`5` | workspace (add `Shift` to send the window there) |
-| `Mod+Ctrl+Shift+,` / `.` | previous / next theme |
-| `Mod+Escape` | lock |
+- `Mod+Return`: terminal
+- `Mod+Space`: launcher
+- `Mod+S`: settings (network, Bluetooth, audio, display)
+- `Mod+O`: overview of every workspace
+- `Mod+H` / `Mod+L`: focus the column to the left / right
+- `Mod+1`..`5`: workspace (add `Shift` to send the window there)
+- `Mod+Ctrl+Shift+,` / `.`: previous / next theme
+- `Mod+Escape`: lock
 
-Two things don't have a key. The **ledger** is the bar of chips along the top edge (Launcher, Settings, Logout); hover the edge to open it. The **wing** is the side panel; hover the left or right edge. `Mod+Ctrl+arrows` hops them between monitors. `commands` prints every tool this repo installs, with a line each.
+The **ledger** is the bar of chips along the top edge; hover the edge to open it. The **wing** is the side panel; hover the left or right edge. `Mod+Ctrl+arrows` hops them between monitors.
 
-## Tablet mode
+## Repository Structure
 
-![tablet mode](assets/recordings/tablet-mode.webp)
+- `hosts/<name>/`: one machine: hardware, boot, its own services
+- `roles/`: system config shared by more than one host
+- `modules/`: one-service opt-in modules
+- `identities/`: user account declarations
+- `profiles/`: per-person, per-host home-manager entrypoints
+- `home/`: reusable home-manager modules
+- `pkgs/`: things I packaged or wrote
+- `themes/`: palettes and per-app theme files
+- `scripts/`: helper scripts, one-off and otherwise
+- `assets/`: small shared files: icons, snark lines, screenshots
 
-Detaching the Surface keyboard switches the desktop into tablet mode. The ledger bar grows, and the wing and ledger menus get pull-tabs. Squeekboard opens when you tap a text field or tap the screen with three fingers. A four-finger tap asks in Pegasus whether you want to close it.
+Waybar tooltips, dialogs, the lock screen and failed password attempts get short, dry commentary. The lines live in `assets/snark-lines.txt`.
 
-## The snark engine
+## Usage
 
-Waybar tooltips, dialogs, the lock screen and failed password attempts get short, dry commentary: insults, passive aggression, the occasional burn. The lines live in `assets/snark-lines.txt`, shared across all of them. It's a joke, but it's wired in properly.
-
-## Layout
-
-```
-hosts/<name>/       one machine: hardware, boot, its own services
-roles/              system config shared by more than one host
-modules/            one-service opt-in modules
-identities/         user account declarations
-profiles/           per-person, per-host home-manager entrypoints
-home/               reusable home-manager modules
-pkgs/               things I packaged or wrote
-themes/             palettes and per-app theme files
-scripts/            helper scripts, one-off and otherwise
-assets/             small shared files: icons, snark lines, screenshots
-```
-
-## Borrowing from it
+### Borrowing from it
 
 Good places to start:
 
@@ -96,22 +129,24 @@ Good places to start:
 - `home/emulation/`: shared emulator setup
 - `hosts/retro/kiosk.nix`: the Moonlight kiosk
 
-Before building anything, run `scripts/doctor.sh`. It lists the placeholders below that are still unreplaced and exits non-zero until they're gone.
+### Setting Up a Host
 
-- `secrets/*.yaml` are placeholders with my key names and no real values. Make your own age keys, put them in `.sops.yaml` and re-encrypt, or anything that reads a secret will fail.
-- Search for `AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY`, `example.ts.net` and the `00:00:00:00:00:0x` Bluetooth addresses. Those were scrubbed from my real values.
-- `hosts/*/hardware.nix` is for my disks. Generate your own.
-- The username `prepko` is hardcoded in places.
+Run `scripts/doctor.sh` first. It lists the placeholders below that are still unreplaced and exits non-zero until they're gone.
 
-Flakes only see tracked files, so `git add` new ones first. Build a host with:
+1. `secrets/*.yaml` are placeholders with my key names and no real values. Make your own age keys, put them in `.sops.yaml` and re-encrypt, or anything that reads a secret will fail.
+2. Search for `AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY`, `example.ts.net` and the `00:00:00:00:00:0x` Bluetooth addresses. Those were scrubbed from my real values.
+3. `hosts/*/hardware.nix` is for my disks. Generate your own.
+4. The username `prepko` is hardcoded in places.
+5. `git add` any new files, since flakes only see tracked files, then build:
 
-```
+```sh
 nh os switch --hostname desktop .     # or surface
 ```
 
-`retro` and `pi` are deployed remotely with `nixos-rebuild --target-host`. `pi` is aarch64, so build it from a machine with aarch64 binfmt.
+> [!TIP]
+> `retro` and `pi` are deployed remotely with `nixos-rebuild --target-host`. `pi` is aarch64, so build it from a machine with aarch64 binfmt.
 
-## About the history
+### About the history
 
 This repo gets one commit per release, tagged by date (`2026.09.30`). The day-to-day work lives in a private repo, so `git blame` here won't tell you much.
 

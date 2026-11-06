@@ -9,27 +9,28 @@
 # show up once installed.
 # workdir matters: the SmartSteamLoader/ColdClientLoader launchers resolve
 # their .cfg/.ini and the game exe relative to the current directory.
+# The scope caps exist because one of these took the desktop down on 2026-11-05:
+# ~20k tiny processes and 45 GB of RAM + swap in 17 minutes, no window. MemoryMax
+# alone wouldn't help, since a capped cgroup just pushes the rest into swap.
+# Header only, like the retro collections: a `game:` block here would own the file
+# and make Pegasus reject the entry skyscraper.metadata.pegasus.txt has for it,
+# taking the art with it.
 { pkgs }:
 let
   games = [
-    { title = "Bluey: The Videogame";      file = "Bluey: The Videogame/Bluey.The.Videogame/Biscuits/Bluey The Videogame.exe"; }
-    { title = "Hook";                      file = "Hole/Hook.exe"; }
-    { title = "Hook 2";                    file = "Hole2/Hook 2.exe"; }
-    { title = "The Jackbox Naughty Pack";  file = "The Jackbox Naughty Pack/The Jackbox Naughty Pack.exe"; }
-    { title = "The Jackbox Party Pack 10"; file = "The Jackbox Party Pack 10/The Jackbox Party Pack 10.exe"; }
-    { title = "The Jackbox Party Pack 11"; file = "The Jackbox Party Pack 11/The Jackbox Party Pack 11.exe"; }
+    "Bluey: The Videogame/Bluey.The.Videogame/Biscuits/Bluey The Videogame.exe"
+    "Hole/Hook.exe"
+    "Hole2/Hook 2.exe"
+    "The Jackbox Naughty Pack/The Jackbox Naughty Pack.exe"
+    "The Jackbox Party Pack 10/The Jackbox Party Pack 10.exe"
+    "The Jackbox Party Pack 11/The Jackbox Party Pack 11.exe"
   ];
 in
 pkgs.writeText "pegasus-metadata-pc" (''
   collection: PC
   shortname: pc
   files:
-'' + pkgs.lib.concatMapStrings (g: "    ${g.file}\n") games + ''
-  launch: ${pkgs.wineWow64Packages.stable}/bin/wine "{file.path}"
+'' + pkgs.lib.concatMapStrings (file: "    ${file}\n") games + ''
+  launch: ${pkgs.systemd}/bin/systemd-run --user --scope --collect --quiet -p TasksMax=256 -p MemoryMax=12G -p MemorySwapMax=4G ${pkgs.wineWow64Packages.stable}/bin/wine "{file.path}"
   workdir: {file.dir}
-
-'' + pkgs.lib.concatMapStrings (g: ''
-  game: ${g.title}
-  file: ${g.file}
-
-'') games)
+'')

@@ -19,7 +19,8 @@
 # in one go — skyscraper-deploy.sh's <token> argument is handled internally.
 #
 # Each console is scraped from screenscraper, thegamesdb, igdb (with creds)
-# and local import art, then merged; see scrape_modules below. ps3 still
+# and local import art, then merged; see scrape_modules below. pc scrapes
+# igdb only, and ps3 still
 # scrapes screenscraper only (scrape_ps3).
 
 set -uo pipefail
@@ -173,7 +174,7 @@ pc_files() {
     echo "==> [pc] $meta missing (tmpfiles link from hosts/desktop/config.nix)" >&2
     return 1
   fi
-  sed -n 's#^file: #/srv/roms/pc/#p' "$meta"
+  sed -n 's#^    #/srv/roms/pc/#p' "$meta"
 }
 
 # Every pass lands in Skyscraper's resource cache and the `-f pegasus` pass
@@ -182,10 +183,16 @@ pc_files() {
 # igdb runs only once sops has rendered its creds; import only for a
 # platform with its own ~/.skyscraper/import/<token>/ art folder, since the
 # bare import/ dir would be read for every platform.
+# pc gets a single pass: igdb matches all of it, while screenscraper misses
+# 5 of 6 and thegamesdb 2 of 6. Art those two already cached still merges in.
 scrape_modules() {
   local token="$1"
-  echo screenscraper thegamesdb
-  [[ -r "$IGDB_INI" ]] && echo igdb
+  if [[ "$token" == pc ]]; then
+    if [[ -r "$IGDB_INI" ]]; then echo igdb; else echo thegamesdb; fi
+  else
+    echo screenscraper thegamesdb
+    [[ -r "$IGDB_INI" ]] && echo igdb
+  fi
   [[ -d "$HOME/.skyscraper/import/$token" ]] && echo import
 }
 

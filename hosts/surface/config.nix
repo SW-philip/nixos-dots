@@ -40,6 +40,7 @@ in
     ../../modules/niri-bridge.nix
     ../../modules/protonvpn.nix
     ../../modules/bluetooth-idle-off.nix
+    ../../modules/tether.nix
     ../../modules/transmission.nix
     ./hardware.nix
     ./boot.nix

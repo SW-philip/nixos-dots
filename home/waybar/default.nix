@@ -13,7 +13,7 @@ let
   # sits in the screen corner.
   pills = {
     "group/pill-conn"  = { orientation = "horizontal"; modules = [ "custom/network" "custom/bluetooth" ]; };
-    "group/pill-sys"   = { orientation = "horizontal"; modules = [ "custom/fleet" "custom/sync" "custom/kdeconnect" ]; };
+    "group/pill-sys"   = { orientation = "horizontal"; modules = [ "custom/fleet" "custom/sync" "custom/kdeconnect" ] ++ lib.optional config.waybar.tether.enable "custom/tether"; };
     "group/pill-audio" = { orientation = "horizontal"; modules = [ "custom/notification" "custom/volume" ]; };
   };
   pillMods = lib.concatMap (g: g.modules) (lib.attrValues pills);
@@ -62,6 +62,7 @@ in
     ./ember-mug.nix
     ./jbl-speaker.nix
     ./kdeconnect.nix
+    ./tether.nix
     ./niri-workspace.nix
     ./notification.nix
   ];
@@ -292,5 +293,6 @@ in
     emberMug.enable = true;
     jblSpeaker.enable = true;
     kdeconnect.enable = true;
+    tether.enable = !isDesktop; # tether is installed on surface only (modules/tether.nix)
   };
 }

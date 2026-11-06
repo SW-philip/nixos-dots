@@ -30,10 +30,14 @@ let
       # BlueZ only reports a nearby paired device (RSSI) while discovering, and
       # nothing else keeps discovery on. A short scan every couple of minutes
       # is enough to see a device come into range without draining the tablet.
-      { while :; do
-          bluetoothctl --timeout 10 scan on >/dev/null 2>&1 || true
-          sleep 110
-        done ; } &
+      # Not on desktop: its USB adapter shares one radio between A2DP and the
+      # scan, so every pass chokes speaker audio (see waybar/jbl-speaker.nix).
+      ${lib.optionalString config.myConfig.onBattery ''
+        { while :; do
+            bluetoothctl --timeout 10 scan on >/dev/null 2>&1 || true
+            sleep 110
+          done ; } &
+      ''}
 
       # "<name> is in range. Connect?" toast, once per device per cooldown. The
       # Ember mug is excluded: its own poller connects and caches its state.

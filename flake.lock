@@ -309,7 +309,8 @@
         "nixpkgs-unstable": "nixpkgs-unstable",
         "posys-cursor": "posys-cursor",
         "sops-nix": "sops-nix",
-        "sqlch": "sqlch"
+        "sqlch": "sqlch",
+        "tether": "tether"
       }
     },
     "rust-analyzer-src": {
@@ -377,11 +378,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1793849211,
-        "narHash": "sha256-7FqSYTMuk0K+el6onlh05MH7KeDohhSYS52EOZD7C1s=",
+        "lastModified": 1793882601,
+        "narHash": "sha256-pwJQc7F0Fo3vqTQIaY3txTgKkokWIyXTRJHJjMqQsKk=",
         "owner": "SW-philip",
         "repo": "sqlch",
-        "rev": "ac80197567fa45761369eb4a2dd44f8f7f1260ff",
+        "rev": "c5b04e77d0677b3c7dfc81b373488418f0c2cd21",
         "type": "github"
       },
       "original": {
@@ -403,6 +404,26 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "tether": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs-unstable"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793848542,
+        "narHash": "sha256-h6KBbzxHhLgueXU40Lb/gabq4TKechbHynv39Z285XU=",
+        "owner": "zackb",
+        "repo": "tether",
+        "rev": "d10ba7cc69c8e145fae7395ed3bf7fadfde4e04a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zackb",
+        "repo": "tether",
         "type": "github"
       }
     }

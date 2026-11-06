@@ -41,7 +41,6 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
 }
 
 .snark { font-style: italic; color: $dim; font-size: 14px; margin-bottom: 14px; }
-.hdr   { font-size: 11px; color: $accent; letter-spacing: 5px; margin: 12px 0 6px 0; border-bottom: 1px solid rgba($accent, 0.5); padding-bottom: 4px; }
 .subhdr { font-size: 10px; color: $dim; letter-spacing: 3px; opacity: 0.8; margin: 8px 0 4px 0; }
 .row   { font-size: 13px; }
 .readout { color: $fg; }
@@ -192,48 +191,12 @@ $fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' wid
 // :hover (not clickable) and no value-based/threshold coloring here
 // (deferred; .readout crit above already does its own coloring for
 // cpu temp, untouched by this pass).
-.readout-pill {
-  // Sits on a .section ($module-bg) — use $bg (the panel's own tone,
-  // not the section's) so the pill actually reads as a filled step
-  // instead of a bare outline. Inverse of .chip/waybar's #custom-*
-  // modules, which sit on $bg and use $module-bg to look like a module.
-  background-color: $bg;
-  border: 1px solid rgba($accent, 0.5);
-  border-radius: 6px;
-  padding: 3px 8px;
-  box-shadow: 0 2px 3px $shadow;
-}
-// min-width is content-box (GTK/CSS3 box-sizing default) — padding
-// (3px 8px → +16px) and border (1px each side → +2px) add on top, so
-// a stat-trio pill's real rendered floor is 96+16+2 = 114px, and a
-// 3-across homogeneous row of them needs 3×114 = 342px. Worst case is
-// 0-100%, "load avg 99.99". See panel's :width 410 (home/eww/eww.yuck)
-// for the budget this needs to fit: 342px row + panel padding/border
-// (36+2) + section padding/border (24+2) = 406px minimum, so 410
-// leaves ~4px slack — reverify both numbers together if either the
-// row's worst-case text, this padding, or panel/section padding change.
+// Same leaf as the ledger .chip. margin reserves the drop shadow (GTK clips it
+// to the margin box); rows are equal-width cells, not min-width budgets.
+.readout-pill { background-color: $module-bg; border: 1px solid rgba($accent, 0.5); border-radius: 13px 3px 13px 3px; padding: 2px 14px; margin: 0 3px 5px; min-height: 24px; box-shadow: 0 2px 3px $shadow; }
+.readout-pill.stat-trio, .readout-pill.stat-pair { padding: 2px 6px; }
 // Placeholder pills keep their slot when there is no data; dimmed, not hidden.
 .readout-pill.inactive { opacity: 0.45; }
-.readout-pill.stat-trio { min-width: 96px; }
-// "peak temp 100°C" is the worst case across both cells in this row —
-// real floor per pill is 140+16+2 = 158px, 2×158 = 316px for the row,
-// comfortably under the 406px budget above (the trio row is the
-// binding constraint, not this one).
-.readout-pill.stat-pair { min-width: 140px; }
-
-// Legendary/rare/common single-line rows (uptime, rebuild age, bt device
-// names, net/vpn/battery) reflow width on every poll as their text grows or
-// shrinks -- visible as stutter since these sit directly under the panel's
-// fixed :width 410, not inside an already-pinned trio/pair row. Pin them to
-// the section's own content floor instead of the panel's: 410 - panel
-// padding/border (36+2) - section padding/border (24+2) = 346px. A wide
-// pill's own chrome (padding 8px each side + 1px border each side) eats 18
-// of that, so 346-18=328 is its ceiling -- 300px leaves slack for a pill's
-// worst case without spilling past the section. row-wide has no pill
-// chrome, so it uses the full 346px budget directly (also 300px, same
-// slack margin). Reverify both if panel/section padding changes.
-.readout-pill.wide { min-width: 300px; }
-.row-wide { min-width: 300px; }
 
 // Tablet-mode launcher: opaque backdrop (translucent panels over a same-palette
 // wallpaper read as no panel), big rounded tiles, glyph over label. Each column
@@ -372,11 +335,11 @@ tooltip label {
 
 // notif-center: tabbed notification panel (keycap tabs, flat cards).
 .nc-panel { background-color: $bg; background-image: linear-gradient(to bottom, rgba($accent, 0.10), rgba($accent, 0) 140px), $fiber; padding: 14px; border: 1px solid $accent; border-radius: 24px 6px 24px 6px; box-shadow: inset 0 0 0 4px $bg, inset 0 0 0 5px rgba($accent, 0.35), 0 6px 20px $shadow; }
-.nc-tabs { margin-bottom: 2px; border-bottom: 1px solid $accent; }
-.nc-tab { min-height: 30px; background-color: transparent; border: none; border-radius: 16px 4px 0 0; padding: 0 16px; }
+.nc-tabs { margin-bottom: 2px; }
+.nc-tab { min-height: 36px; margin: 0 3px 5px; padding: 0 16px; background-color: $module-bg; border: 1px solid rgba($accent, 0.5); border-radius: 16px 4px 16px 4px; box-shadow: 0 2px 3px $shadow; }
 .nc-tab label { color: $dim; font-size: 12px; letter-spacing: 4px; }
-.nc-tab.on { background-color: $accent; }
-.nc-tab.on label { color: $module-bg; }
+.nc-tab.on { border-color: $accent; box-shadow: inset 0 0 0 1px rgba($accent, 0.35), 0 2px 3px $shadow; }
+.nc-tab.on label { color: $accent; }
 .nc-count, .nc-empty { color: $dim; font-size: 12px; letter-spacing: 2px; }
 .nc-empty { padding: 24px 0; }
 .nc-title { color: $accent; font-size: 11px; letter-spacing: 5px; }
@@ -399,11 +362,11 @@ tooltip label {
 .nc-stack-body { padding-top: 2px; }
 .nc-count-row { margin-bottom: 10px; }
 
-// Search leaf: the J/S/G/K shape, gradient-filled; the open state is the same leaf unfurled.
-.nc-leaf-row { min-height: 36px; margin: 0 0 2px; }
-// The pill: opaque base under the gradient so it reads the same over the pane texture.
+// Search leaf: the J/S/G/K shape; the open state is the same leaf unfurled.
+.nc-leaf-row { min-height: 36px; margin: 0 0 5px; }
+// The pill: solid $module-bg fill like the fold headers, so it reads the same over the pane texture.
 // Padding lives on the input, so the pill is exactly as wide as the input and grows with it.
-.nc-leaf { min-height: 34px; padding: 0; border: 1px solid $accent; border-radius: 20px 4px 20px 4px; background-color: $bg; background-image: linear-gradient(120deg, rgba($accent, 0.35), rgba($accent, 0.05) 70%); box-shadow: 0 2px 3px $shadow; }
+.nc-leaf { min-height: 34px; padding: 0; border: 1px solid rgba($accent, 0.5); border-radius: 16px 4px 16px 4px; background-color: $module-bg; box-shadow: 0 2px 3px $shadow; }
 // "search" hint: drawn under the transparent input (negative right margin = same width as the resting input), fades once a query exists.
 .nc-search-hint { min-width: 182px; margin-right: -182px; color: $dim; font-size: 14px; letter-spacing: 5px; transition: opacity 200ms ease-in-out; }
 .nc-search-hint.typed { opacity: 0; }
@@ -412,6 +375,7 @@ tooltip label {
 .nc-search-input { color: $fg; font-size: 16px; letter-spacing: 4px; background: transparent; border: none; box-shadow: none; caret-color: $accent; min-width: 150px; padding: 0 16px; transition: min-width 220ms ease-in-out, padding 220ms ease-in-out; }
 .nc-search-input:focus { min-width: 236px; padding: 0 76px 0 16px; }
 .nc-search-actions { margin-right: 12px; }
+.nc-kbd { border-radius: 12px 3px 12px 3px; padding: 0 6px; }
 .nc-kbd label { color: $dim; font-size: 16px; }
 .nc-kbd.on label { color: $accent; }
 .nc-match-strip { margin-bottom: 10px; }
@@ -427,6 +391,7 @@ tooltip label {
 .nc-x label { color: $dim; font-size: 14px; }
 .nc-x:hover label { color: $fg; }
 .nc-slider-row { padding: 2px 4px; }
+.nc-slider-icon { padding: 0 4px; border: 1px solid transparent; border-radius: 12px 3px 12px 3px; background-color: transparent; }
 .nc-slider-glyph { color: $fg; font-size: 20px; min-width: 28px; }
 .nc-dock { padding-top: 10px; border-top: 1px solid rgba($accent, 0.35); }
 .nc-slider trough { min-height: 8px; background-color: $module-bg; border: 1px solid rgba($accent, 0.5); border-radius: 6px 1px 6px 1px; }
@@ -439,13 +404,52 @@ tooltip label {
 .nc-toggle:active { border-color: $accent; box-shadow: none; }
 .nc-toggle.on { border-color: $accent; box-shadow: inset 0 0 0 1px rgba($accent, 0.35), 0 2px 3px $shadow; }
 .nc-toggle.on label { color: $fg; }
+.nc-fold { min-height: 36px; margin: 0 3px 5px; padding: 0 14px; background-color: $module-bg; border: 1px solid rgba($accent, 0.5); border-radius: 16px 4px 16px 4px; box-shadow: 0 2px 3px $shadow; }
+.nc-fold.open { border-color: $accent; }
+.nc-fold-title { color: $accent; font-size: 11px; letter-spacing: 5px; }
+.nc-fold-tags { color: $dim; font-size: 11px; letter-spacing: 3px; }
 
 // Fluid state changes: classes flip (dim, on, hit, open) and fills, borders and
 // shadows ease instead of snapping; the revealers/stack in eww.yuck do the motion.
-.nc-card, .nc-toggle, .nc-clear, .nc-leaf, .nc-tab, .nc-badge, .nc-kbd {
+.nc-card, .nc-toggle, .nc-fold, .nc-act, .nc-slider-icon, .readout-pill, .nc-clear, .nc-leaf, .nc-tab, .nc-badge, .nc-kbd {
   transition: opacity 200ms ease-in-out, background-color 200ms ease-in-out, border-color 200ms ease-in-out, box-shadow 200ms ease-in-out;
 }
 .nc-tab label, .nc-toggle label, .nc-x label, .nc-slider-glyph, .nc-kbd label { transition: color 200ms ease-in-out; }
 .nc-slider trough { transition: border-color 200ms ease-in-out; }
-.nc-card:hover, .nc-toggle:hover { border-color: rgba($accent, 0.85); }
+.nc-card:hover { border-color: rgba($accent, 0.85); }
 .nc-card.critical:hover { border-color: $crit; }
+
+// Non-toggle actions (VPN, Pick Theme...): icon-only leaves under a grid's toggles; the name is the tooltip.
+.nc-acts { margin-top: 2px; }
+.nc-act { min-width: 38px; min-height: 36px; margin: 0 0 5px 3px; background-color: $module-bg; border: 1px solid rgba($accent, 0.5); border-radius: 13px 3px 13px 3px; box-shadow: 0 2px 3px $shadow; }
+.nc-act label { color: $fg; font-size: 16px; transition: color 200ms ease-in-out; }
+.nc-act.dim label { color: $dim; }
+
+// Hover glow. Inset glow is not clipped by the margin box, the outer one is (3px margin), so both.
+.nc-toggle:hover, .nc-fold:hover, .nc-act:hover, .nc-clear:hover, .nc-slider-icon:hover, .nc-kbd:hover, .pill-hit:hover .readout-pill {
+  border-color: $accent;
+  box-shadow: inset 0 0 8px rgba($accent, 0.35), 0 0 4px rgba($accent, 0.6), 0 2px 3px $shadow;
+}
+.nc-kbd:hover { box-shadow: inset 0 0 8px rgba($accent, 0.45); }
+.nc-slider-icon:hover { box-shadow: inset 0 0 8px rgba($accent, 0.45); border-color: rgba($accent, 0.6); }
+.nc-kbd:hover label, .nc-slider-icon:hover label, .nc-toggle:hover label, .nc-fold:hover .nc-fold-tags { color: $fg; }
+.nc-toggle:active, .nc-act:active { box-shadow: none; }
+
+// Sub-pills inside an open fold: smaller, darker ($bg under the fold's $module-bg), indented.
+.nc-toggle.sub { min-height: 28px; margin: 0 3px 4px 18px; padding: 0 12px; background-color: $bg; border-color: rgba($accent, 0.3); border-radius: 11px 3px 11px 3px; box-shadow: inset 0 1px 3px $shadow; }
+.nc-toggle.sub label { font-size: 11px; letter-spacing: 1px; }
+.nc-toggle.sub.on { border-color: rgba($accent, 0.8); }
+.nc-acts { margin-left: 18px; }
+.nc-act.sub { min-width: 30px; min-height: 28px; margin: 0 0 4px 3px; background-color: $bg; border-color: rgba($accent, 0.3); border-radius: 11px 3px 11px 3px; box-shadow: inset 0 1px 3px $shadow; }
+.nc-act.sub label { font-size: 14px; }
+.nc-toggle.sub:hover, .nc-act.sub:hover { border-color: $accent; box-shadow: inset 0 0 8px rgba($accent, 0.35), 0 0 4px rgba($accent, 0.6), 0 2px 3px $shadow; }
+
+// Notifications pane hover glow. Cards and the search leaf are plain boxes, so hover comes from the eventbox around them.
+.card-hit:hover .nc-card { border-color: $accent; box-shadow: inset 0 0 8px rgba($accent, 0.35), 0 0 4px rgba($accent, 0.6), 0 2px 3px $shadow; }
+.card-hit:hover .nc-card.critical { border-color: $crit; box-shadow: inset 0 0 8px rgba($crit, 0.35), 0 0 4px rgba($crit, 0.6), 0 2px 3px $shadow; }
+.card-hit:hover .nc-stack { box-shadow: inset 0 0 8px rgba($accent, 0.35), 0 4px 0 -2px $module-bg, 0 5px 0 -2px rgba($accent, 0.5), 0 2px 3px $shadow; }
+.card-hit:hover .nc-stack.open { box-shadow: inset 0 0 8px rgba($accent, 0.35), 0 0 4px rgba($accent, 0.6), 0 2px 3px $shadow; }
+.leaf-hit:hover .nc-leaf { border-color: $accent; box-shadow: inset 0 0 8px rgba($accent, 0.35), 0 0 4px rgba($accent, 0.6), 0 2px 3px $shadow; }
+.nc-tab:not(.on):hover { box-shadow: inset 0 0 10px rgba($accent, 0.45); }
+.nc-tab:not(.on):hover label { color: $fg; }
+.nc-tab.on:hover { box-shadow: inset 0 0 10px rgba($accent, 0.45), 0 0 4px rgba($accent, 0.6), 0 2px 3px $shadow; }

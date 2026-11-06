@@ -44,19 +44,26 @@ check_port() {
   printf '%s\n' "${out[@]}" | "${menu[@]}" --lines "${#out[@]}" --prompt "Port $port › " >/dev/null || true
 }
 
-# An instant pkexec failure means no agent is registered: activation restarts polkitd shortly
-# after the agent starts, and a restarted polkitd forgets it. Re-register once and retry.
+# A restarted polkitd (every nrs activation, plus its own idle exits) forgets the agent, and
+# pkexec then exits 127 with no dialog. Re-register the agent when polkitd is newer than it,
+# and once more on a 127.
 root_ports() {
-  local t0 out
-  t0=$(date +%s%N)
-  if out=$("$PKEXEC" "$(readlink -f "$HELPER")" 2>/dev/null); then
-    printf '%s\n' "$out"
-    return 0
+  local out rc=0 pk ag
+  pk=$(systemctl show -p ActiveEnterTimestampMonotonic --value polkit.service)
+  ag=$(systemctl --user show -p ActiveEnterTimestampMonotonic --value polkit-agent.service)
+  if [ "${pk:-0}" -gt "${ag:-0}" ]; then
+    systemctl --user restart polkit-agent.service
+    sleep 1
   fi
-  (($(date +%s%N) - t0 < 1000000000)) || return 1
-  systemctl --user restart polkit-agent.service
-  sleep 1
-  "$PKEXEC" "$(readlink -f "$HELPER")" 2>/dev/null
+  out=$("$PKEXEC" "$(readlink -f "$HELPER")" 2>/dev/null) || rc=$?
+  if [ "$rc" = 127 ]; then
+    systemctl --user restart polkit-agent.service
+    sleep 1
+    rc=0
+    out=$("$PKEXEC" "$(readlink -f "$HELPER")" 2>/dev/null) || rc=$?
+  fi
+  [ "$rc" = 0 ] || return "$rc"
+  printf '%s\n' "$out"
 }
 
 ports_menu() {

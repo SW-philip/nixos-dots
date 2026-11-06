@@ -29,6 +29,26 @@ def write_cfg():
 
 
 class GridTests(unittest.TestCase):
+    def test_read_state_probes_in_parallel(self):
+        grids = {"g": [{"label": str(n), "type": "toggle", "update-command": f"c{n}"} for n in range(4)]}
+
+        def slow(cmd, timeout=0.6):
+            time.sleep(0.3)
+            return "true"
+        t0 = time.monotonic()
+        st = nc.read_state(grids, runner=slow)
+        self.assertLess(time.monotonic() - t0, 0.8)
+        self.assertEqual([r["on"] for r in st["grids"]["g"]], [True] * 4)
+
+    def test_read_state_timeout_keeps_previous_value(self):
+        grids = nc.load_grids(write_cfg())
+        stuck = lambda cmd, timeout=0.6: None
+        st = nc.read_state(grids, runner=stuck, prev={("connectivity", 0): True})
+        self.assertEqual(st["grids"]["connectivity"][0]["on"], True)
+        st = nc.read_state(grids, runner=stuck)
+        self.assertEqual(st["grids"]["connectivity"][0]["on"], False)
+        self.assertEqual([r["i"] for r in st["grids"]["connectivity"]], [0, 1])
+
     def test_load_grids_keys_and_order(self):
         grids = nc.load_grids(write_cfg())
         self.assertEqual(list(grids), ["connectivity", "system"])
@@ -167,6 +187,43 @@ class QueryTests(unittest.TestCase):
         self.assertEqual(emitted, [0, 2])
 
 
+class ActsTests(unittest.TestCase):
+    def test_split_label(self):
+        self.assertEqual(nc.split_label("\U000f0582  VPN"), ("\U000f0582", "VPN"))
+        self.assertEqual(nc.split_label("Free Palestine"), ("F", "Free Palestine"))
+
+    def test_acts_are_the_non_toggle_rows(self):
+        state = {"grids": {"g": [
+            {"i": 0, "label": "A", "toggle": True, "on": True, "glyph": "A", "name": "A"},
+            {"i": 1, "label": "x  VPN", "toggle": False, "on": False, "glyph": "x", "name": "VPN"}]}}
+        acts = nc.apply_query(state, ns.parse_query(""))["acts"]
+        self.assertEqual(acts, {"g": [{"i": 1, "glyph": "x", "name": "VPN", "match": True}]})
+
+    def test_mute_runs_wpctl_toggle(self):
+        seen = []
+        nc.toggle_mute(runner=seen.append)
+        self.assertEqual(seen, ["wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"])
+
+
+class SummaryTests(unittest.TestCase):
+    STATE = {"grids": {
+        "connectivity": [
+            {"i": 0, "label": "Wi-Fi", "toggle": True, "on": True},
+            {"i": 1, "label": "Bluetooth", "toggle": True, "on": True},
+            {"i": 2, "label": "VPN", "toggle": False, "on": False}],
+        "system": [{"i": 0, "label": "Quiet", "toggle": True, "on": False}]}}
+
+    def test_counts_and_tags(self):
+        s = nc.apply_query(self.STATE, ns.parse_query(""))["summary"]
+        self.assertEqual(s["connectivity"], {"on": 2, "total": 2, "tags": "W B", "hit": False})
+        self.assertEqual(s["system"], {"on": 0, "total": 1, "tags": "", "hit": False})
+
+    def test_hit_marks_only_the_matching_grid(self):
+        s = nc.apply_query(self.STATE, ns.parse_query("quiet"))["summary"]
+        self.assertTrue(s["system"]["hit"])
+        self.assertFalse(s["connectivity"]["hit"])
+
+
 class WarmCacheTests(unittest.TestCase):
     def test_feed_primes_once_at_start_even_with_pane_closed(self):
         class Done(Exception):
@@ -186,6 +243,60 @@ class WarmCacheTests(unittest.TestCase):
         except Done:
             pass
         self.assertEqual(emitted, [(0, "FULL")])
+
+    def test_prime_with_pane_open_does_not_refresh_again_on_first_tick(self):
+        class Done(Exception):
+            pass
+
+        tick = [0]
+
+        def sleep(_):
+            tick[0] += 1
+            if tick[0] >= 4:
+                raise Done
+
+        emitted = []
+        try:
+            for line in nc.feed(lambda: "FULL", lambda: True, lambda: float(tick[0]), sleep,
+                                prime=True, interval=5.0):
+                emitted.append((tick[0], line))
+        except Done:
+            pass
+        self.assertEqual(emitted, [(0, "FULL")])
+
+    def test_snapshot_warm_loads_last_refresh_without_probes(self):
+        old = os.environ.get("XDG_RUNTIME_DIR")
+        orig_rs, orig_lv = nc.read_state, nc.levels
+        with tempfile.TemporaryDirectory() as d:
+            os.environ["XDG_RUNTIME_DIR"] = d
+            try:
+                nc.read_state = lambda grids, runner=None, prev=None: {"grids": {"g": [{"i": 0, "label": "WiFi", "toggle": True, "on": True}]}}
+                nc.levels = lambda: {"vol": 5, "muted": False, "bright": 7}
+                nc.Snapshot("").full()
+                nc.read_state = nc.levels = lambda *a, **k: self.fail("probed")
+                fresh = nc.Snapshot("")
+                self.assertTrue(fresh.warm())
+                line = json.loads(fresh.line())
+            finally:
+                nc.read_state, nc.levels = orig_rs, orig_lv
+                if old is None:
+                    del os.environ["XDG_RUNTIME_DIR"]
+                else:
+                    os.environ["XDG_RUNTIME_DIR"] = old
+        self.assertTrue(line["grids"]["g"][0]["on"])
+        self.assertEqual(line["vol"], 5)
+
+    def test_snapshot_warm_is_false_without_a_cache(self):
+        old = os.environ.get("XDG_RUNTIME_DIR")
+        with tempfile.TemporaryDirectory() as d:
+            os.environ["XDG_RUNTIME_DIR"] = d
+            try:
+                self.assertFalse(nc.Snapshot("").warm())
+            finally:
+                if old is None:
+                    del os.environ["XDG_RUNTIME_DIR"]
+                else:
+                    os.environ["XDG_RUNTIME_DIR"] = old
 
     def test_query_only_change_uses_rerender_not_full_state(self):
         class Done(Exception):
@@ -211,7 +322,7 @@ class WarmCacheTests(unittest.TestCase):
     def test_snapshot_reuses_cached_state_across_queries(self):
         calls = {"state": 0, "levels": 0}
         orig_rs, orig_lv = nc.read_state, nc.levels
-        nc.read_state = lambda grids, runner=None: (calls.__setitem__("state", calls["state"] + 1) or
+        nc.read_state = lambda grids, runner=None, prev=None: (calls.__setitem__("state", calls["state"] + 1) or
                                                     {"grids": {"g": [{"i": 0, "label": "WiFi", "toggle": True, "on": False}]}})
         nc.levels = lambda: (calls.__setitem__("levels", calls["levels"] + 1) or {"vol": 5, "muted": False, "bright": 7})
         old = os.environ.get("XDG_RUNTIME_DIR")

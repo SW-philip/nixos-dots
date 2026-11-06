@@ -175,6 +175,10 @@ in
     ++ [ "d /srv/roms/pc 0755 prepko users -"
          "L+ /srv/roms/pc/metadata.pegasus.txt - - - - ${pegasusPc}" ];
 
+  # Nothing was monitored here, so a runaway under user.slice thrashed 25 GB of
+  # swap for 13 minutes until a hard reset. Kills at 80% pressure held 30 s.
+  systemd.oomd.enableUserSlices = true;
+
   networking.nftables.enable = true;
 
   # ConnectBot 1.9.1 on the G1 (Android 2.2) predates the -etm MACs; mkOptionDefault

@@ -18,6 +18,25 @@
 
   home.pointerCursor.size = lib.mkForce 24;
 
+  # Double-clicked .exes go through this entry, so they get the same caps as the
+  # Pegasus PC collection (hosts/desktop/pegasus-pc.nix). A self-launching loader
+  # opened from Nemo got past those caps on 2026-11-05.
+  xdg.desktopEntries.wine = {
+    name = "Wine Windows Program Loader";
+    exec = "${pkgs.systemd}/bin/systemd-run --user --scope --collect --quiet -p TasksMax=256 -p MemoryMax=12G -p MemorySwapMax=4G wine start /unix %f";
+    icon = "wine";
+    noDisplay = true;
+    startupNotify = true;
+    mimeType = [
+      "application/vnd.microsoft.portable-executable"
+      "application/x-ms-dos-executable"
+      "application/x-msi"
+      "application/x-ms-shortcut"
+      "application/x-bat"
+      "application/x-mswinurl"
+    ];
+  };
+
   goodnight.deploy.enable = true;
   goodnight.reboot.enable = true;
   goodnight.jobs = {

@@ -237,6 +237,18 @@ window#waybar {
 #custom-kdeconnect:hover          { color: ${p.SCORE}; }
 
 /* -----------------------------------------------------------------
+   tether (iPhone) — dim offline, FIFTH when fully linked, SCORE with unread
+   ----------------------------------------------------------------- */
+#custom-tether                { color: ${p.REST}; }
+#custom-tether.offline        { opacity: 0.45; }
+#custom-tether.disconnected   { opacity: 0.45; }
+#custom-tether.connected      { color: ${p.FIFTH}; }
+#custom-tether.partial        { color: ${p.REST}; }
+#custom-tether.unread         { color: ${p.SCORE}; }
+#custom-tether.call           { color: ${p.SCORE}; }
+#custom-tether:hover          { color: ${p.SCORE}; }
+
+/* -----------------------------------------------------------------
    lix-logout (power menu) — dim at rest, FORTE on hover
    ----------------------------------------------------------------- */
 #custom-lix-logout       { color: ${p.SCORE}; }

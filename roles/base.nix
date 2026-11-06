@@ -205,7 +205,8 @@ in
     ];
   };
 
-  services.avahi.enable = false;
+  # Weaker than mkDefault: nixpkgs' sunshine module sets mkDefault true, and a tie is a conflict.
+  services.avahi.enable = lib.mkOverride 1100 false;
 
   nix.optimise.automatic = true;
 

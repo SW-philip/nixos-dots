@@ -88,6 +88,10 @@ in
     allowedUDPPorts = map (o: ports.sunshine + o) [ 9 10 11 13 ];
   };
 
+  # The upstream module's mkDefault true ties with roles/base.nix's mkDefault
+  # false. Clients reach Sunshine at its tailnet IP, so mDNS discovery is unused.
+  services.avahi.enable = false;
+
   services.sunshine = {
     enable = true;
     autoStart = true;

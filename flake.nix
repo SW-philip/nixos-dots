@@ -25,6 +25,8 @@
     nirinit.inputs.nixpkgs.follows = "nixpkgs";
     sqlch.url = "github:SW-philip/sqlch/unstable";
     sqlch.inputs.nixpkgs.follows = "nixpkgs";
+    tether.url = "github:zackb/tether";
+    tether.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
   };
 

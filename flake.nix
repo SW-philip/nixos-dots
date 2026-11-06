@@ -27,6 +27,8 @@
     sqlch.inputs.nixpkgs.follows = "nixpkgs";
     tether.url = "github:zackb/tether";
     tether.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    parsly.url = "git+ssh://git@github.com/SW-philip/parsly";
+    parsly.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
   };
 

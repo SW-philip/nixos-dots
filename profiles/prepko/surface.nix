@@ -18,12 +18,14 @@ in
     ../../home/battery-low-notify.nix
     ../../home/network-notify.nix
     ../../home/autobrightness.nix
+    inputs.parsly.homeManagerModules.default
   ];
 
   ########################################
   # Surface HiDPI cursor override (base sets 48px; Surface needs 32px at 1.5x scale)
   ########################################
   home.pointerCursor.size = lib.mkForce 32;
+  parsly.enable = true;
 
   ########################################
   # KDE Connect — hosts/surface/services.nix installs the package + opens

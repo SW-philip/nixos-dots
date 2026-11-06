@@ -254,6 +254,26 @@
         "type": "github"
       }
     },
+    "parsly": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs-unstable"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793982864,
+        "narHash": "sha256-KKPupTicl3FRJL/aqzXvtGFnTk+G6N8ktm5b4SJV8Qs=",
+        "ref": "refs/heads/main",
+        "rev": "01e797915c660f23988f8bb5dd32389edd44259a",
+        "revCount": 41,
+        "type": "git",
+        "url": "ssh://git@github.com/SW-philip/parsly"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/SW-philip/parsly"
+      }
+    },
     "posys-cursor": {
       "inputs": {
         "nixpkgs": [
@@ -307,6 +327,7 @@
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
+        "parsly": "parsly",
         "posys-cursor": "posys-cursor",
         "sops-nix": "sops-nix",
         "sqlch": "sqlch",

@@ -6,18 +6,12 @@ let
   statusScript = pkgs.writeShellScriptBin "waybar-tether-status" ''
     exec ${pkgs.python3}/bin/python3 ${./scripts/tether-status.py} "$@"
   '';
-
-  menuScript = pkgs.writeShellScriptBin "waybar-tether-menu" ''
-    export PATH=${lib.makeBinPath [ pkgs.fuzzel pkgs.libnotify pkgs.coreutils ]}:${sysBin}
-    export TETHER_STATUS=${statusScript}/bin/waybar-tether-status
-    export TETHER_NO_AUTOSTART=1
-    exec ${pkgs.bash}/bin/bash ${./scripts/tether-menu.sh}
-  '';
 in {
+
   options.waybar.tether.enable = lib.mkEnableOption "tether (iPhone) status module";
 
   config = lib.mkIf config.waybar.tether.enable {
-    home.packages = [ statusScript menuScript ];
+    home.packages = [ statusScript ];
 
     programs.waybar.settings.${bar}."custom/tether" = {
       exec = "${statusScript}/bin/waybar-tether-status";
@@ -25,7 +19,7 @@ in {
       interval = 10;
       signal = 4;
       tooltip = true;
-      on-click = "${menuScript}/bin/waybar-tether-menu";
+      on-click = "${config.home.profileDirectory}/bin/parsly toggle";
     };
 
     # The pill must not depend on a GUI having spawned tetherd; Wayland is only for clipboard sync.

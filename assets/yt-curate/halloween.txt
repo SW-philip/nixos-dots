@@ -1,8 +1,4 @@
 # dest: channels/halloween
-<<<<<<< Updated upstream
-https://youtube.com/playlist?list=PLHpoWh1FUx_M  # Halloween Brain Break
+https://youtube.com/playlist?list=PLHpoWh1FUx_M&si=y6TJtEDNjpDm5N0i  # Halloween Brain Break
 https://youtube.com/playlist?list=PLHkZPF04GeM60XHst6jLBbJPJYxvRa34o  # Halloween Music Videos
 https://youtu.be/CrdCj3aJjkE  # ?
-=======
-https://youtube.com/playlist?list=PLHpoWh1FUx_M&si=y6TJtEDNjpDm5N0i  # Halloween Brain Break
->>>>>>> Stashed changes

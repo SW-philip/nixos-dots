@@ -25,7 +25,6 @@
 (deflisten notifs :initial `{"count":0,"items":[],"groups":[],"query":"","matches":0}` `bash SCRIPTS/notif-feed.sh`)
 (defvar notif_tab "notifs")
 (defvar nc_open_group "")
-(defvar nc_open_grid "")
 (defvar nc_search_text "")
 (deflisten launcher_rows :initial "[]" `last=; while :; do cur=$(bash SCRIPTS/launcher-favs.sh); [ "$cur" = "$last" ] || { echo "$cur"; last=$cur; }; sleep 3; done`)
 ;; Tablet shell (surface, cover detached). tablet-shell swaps waybar for the
@@ -484,28 +483,6 @@
     (scale :class "nc-slider" :hexpand true :min 0 :max 100 :value value :timeout "2s"
            :onchange "NOTIF_CONTROLS ${cmd} {}")))
 
-(defwidget nc-grid [title rows grid]
-  (box :orientation "vertical" :space-evenly false :spacing 0 :visible {arraylength(rows) > 0}
-    (eventbox :cursor "pointer" :timeout "2s"
-              :onclick "EWW update nc_open_grid=${nc_open_grid == grid ? '' : grid}"
-      (box :class {(nc_open_grid == grid || (controls.summary[grid].hit ?: false)) ? "nc-fold open" : "nc-fold"}
-           :orientation "horizontal" :space-evenly false :spacing 10
-        (label :class "nc-fold-title" :halign "start" :text title)
-        (label :class "nc-fold-tags" :hexpand true :halign "start" :limit-width 16
-               :text {controls.summary[grid].tags ?: ""})
-        (label :class "nc-badge" :visible {(controls.summary[grid].total ?: 0) > 0}
-               :text "◆ ${controls.summary[grid].on ?: 0}/${controls.summary[grid].total ?: 0}")))
-    (box :orientation "vertical" :space-evenly false :spacing 1
-      (for r in {(nc_open_grid == grid || (controls.summary[grid].hit ?: false)) ? jq(rows, "map(select(.toggle))") : []}
-        (button :class "nc-toggle sub${r.on ? ' on' : ''}${r.match ? '' : ' dim'}" :timeout "8s"
-                :onclick "NOTIF_CONTROLS act ${grid} ${r.i}"
-          (label :halign "start" :text {r.on ? "◆ ${r.label}" : r.label})))
-      (box :class "nc-acts" :orientation "horizontal" :space-evenly false :spacing 6 :halign "start"
-        (for a in {(nc_open_grid == grid || (controls.summary[grid].hit ?: false)) ? (controls.acts[grid] ?: []) : []}
-          (button :class {a.match ? "nc-act sub" : "nc-act sub dim"} :tooltip {a.name} :timeout "8s"
-                  :onclick "NOTIF_CONTROLS act ${grid} ${a.i}"
-            (label :text {a.glyph})))))))
-
 (defwindow notif-center
   :monitor 0
   :geometry (geometry :anchor "top right" :x "8px" :y "8px" :width "360px" :height "92%")
@@ -546,10 +523,16 @@
               (nc-group :g g)))))
       (scroll :vexpand true :vscroll true :hscroll false
         (box :orientation "vertical" :space-evenly false :spacing 4
-          (nc-grid :title "Connectivity" :rows {controls.grids.connectivity ?: []} :grid "connectivity")
-          (nc-grid :title "System" :rows {controls.grids.system ?: []} :grid "system")
-          (nc-grid :title "Appearance" :rows {controls.grids.appearance ?: []} :grid "appearance"))))
+          (for r in {jq(controls, '(.grids.system // []) | map(select(.toggle))')}
+            (button :class "nc-toggle${r.on ? ' on' : ''}${r.match ? '' : ' dim'}" :timeout "8s"
+                    :onclick "NOTIF_CONTROLS act system ${r.i}"
+              (label :halign "start" :text {r.on ? "◆ ${r.name}" : r.name}))))))
     (box :class "nc-dock" :orientation "vertical" :space-evenly false :spacing 6
+      (box :class "nc-acts" :orientation "horizontal" :space-evenly true :spacing 6
+        (for a in {jq(controls, '[("system","connectivity","appearance") as $g | (.acts[$g] // [])[] | . + {grid: $g}]')}
+          (button :class {a.match ? "nc-act" : "nc-act dim"} :tooltip {a.name} :timeout "8s"
+                  :onclick "NOTIF_CONTROLS act ${a.grid} ${a.i}"
+            (label :text {a.glyph}))))
       (box :class {controls.focus == 'vol' ? "nc-hit" : ""}
         (nc-slider :glyph {controls.muted ? "󰝟" : "󰕾"} :value {controls.vol} :cmd "vol" :onclick "NOTIF_CONTROLS mute"))
       (box :class {controls.focus == 'bright' ? "nc-hit" : ""}

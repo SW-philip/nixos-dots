@@ -6,13 +6,13 @@ mkdir -p "$CACHE"
 FAVES="$CACHE/favorites"
 touch "$FAVES"
 
-# fuzzel --dmenu: centered, flat, colours from ~/.config/fuzzel/fuzzel.ini.
-launcher=(fuzzel --dmenu --lines 12)
+# menu --dmenu: centered, flat, colours from ~/.config/rofi/colors.rasi.
+launcher=(menu --dmenu --lines 12)
 
 ADAPTER="/org/bluez/hci0"
 
 if ! busctl get-property org.bluez "$ADAPTER" org.bluez.Adapter1 Powered | grep -q "true"; then
-    notify-send "Bluetooth" "Please turn Bluetooth on first."
+    notify-send -a bluetooth "Bluetooth" "Please turn Bluetooth on first."
     exit 1
 fi
 
@@ -55,7 +55,7 @@ choice=$(printf '%s\n' "${choices[@]}" | "${launcher[@]}" --prompt '🔊 choose 
 [[ -z "$choice" ]] && exit 0
 
 if [[ "$choice" == "$SCAN_ITEM" ]]; then
-    notify-send "Bluetooth" "🔍 scanning for new devices..."
+    notify-send -a bluetooth "Bluetooth" "🔍 scanning for new devices..."
     bluetoothctl scan on >/dev/null 2>&1 &
     SCAN_PID=$!
     sleep 4
@@ -82,7 +82,7 @@ if [[ "$action" == "rename" ]]; then
         # stream (escape any quotes already in the typed name first).
         escaped_alias=${new_alias//\"/\\\"}
         printf 'info %s\nset-alias "%s"\nquit\n' "$mac" "$escaped_alias" | bluetoothctl >/dev/null 2>&1
-        notify-send "Bluetooth" "Renamed to \"$new_alias\""
+        notify-send -a bluetooth "Bluetooth" "Renamed to \"$new_alias\""
     fi
     exit 0
 fi
@@ -90,13 +90,13 @@ fi
 if [[ "$action" == "tether (PAN)" ]]; then
     if nmcli -g GENERAL.STATE device show "$mac" 2>/dev/null | grep -q "^100"; then
         nmcli device disconnect "$mac" >/dev/null 2>&1
-        notify-send "Bluetooth" "Tether disconnected"
+        notify-send -a bluetooth "Bluetooth" "Tether disconnected"
     else
-        notify-send "Bluetooth" "Connecting tether..."
+        notify-send -a bluetooth "Bluetooth" "Connecting tether..."
         if nmcli device connect "$mac" >/dev/null 2>&1; then
-            notify-send "Bluetooth" "Tethered"
+            notify-send -a bluetooth "Bluetooth" "Tethered"
         else
-            notify-send "Bluetooth" "Tether failed"
+            notify-send -a bluetooth "Bluetooth" "Tether failed"
         fi
     fi
     exit 0
@@ -106,7 +106,7 @@ if [[ "$action" == "edit visible info" ]]; then
     if [[ -f "$HOME/.cache/bt-device-info/${mac}.json" ]]; then
         bt-device-fields-menu.sh "$mac"
     else
-        notify-send "Bluetooth" "No info gathered for this device yet -- connect it first."
+        notify-send -a bluetooth "Bluetooth" "No info gathered for this device yet -- connect it first."
     fi
     exit 0
 fi
@@ -114,19 +114,19 @@ fi
 if [[ "$action" == "toggle favorite" ]]; then
     if grep -qx "$mac" "$FAVES"; then
         sed -i "/$mac/d" "$FAVES"
-        notify-send "Bluetooth" "Removed favorite"
+        notify-send -a bluetooth "Bluetooth" "Removed favorite"
     else
         echo "$mac" >> "$FAVES"
-        notify-send "Bluetooth" "Added favorite"
+        notify-send -a bluetooth "Bluetooth" "Added favorite"
     fi
     exit 0
 fi
 
 if printf "info %s\nquit\n" "$mac" | bluetoothctl | grep -q "Connected: yes"; then
     printf "disconnect %s\nquit\n" "$mac" | bluetoothctl >/dev/null
-    notify-send "Bluetooth" "Disconnected"
+    notify-send -a bluetooth "Bluetooth" "Disconnected"
 else
-    notify-send "Bluetooth" "Connecting..."
+    notify-send -a bluetooth "Bluetooth" "Connecting..."
 
     # bluetoothctl's "connect" is async: it prints only "Attempting to
     # connect..." synchronously and returns to the prompt immediately, while
@@ -142,7 +142,7 @@ else
     )
 
     if grep -q "Connection successful" <<<"$result"; then
-        notify-send "Bluetooth" "Connected"
+        notify-send -a bluetooth "Bluetooth" "Connected"
 
         mac_under="${mac//:/_}"
         sleep 2
@@ -150,6 +150,6 @@ else
           '.[] | select(.info.props["node.name"] | startswith($name)?) | .id' | head -n1)
         [[ -n "$sink_id" ]] && wpctl set-default "$sink_id"
     else
-        notify-send "Bluetooth" "Connection failed"
+        notify-send -a bluetooth "Bluetooth" "Connection failed"
     fi
 fi

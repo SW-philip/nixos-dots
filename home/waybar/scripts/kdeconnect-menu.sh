@@ -4,13 +4,13 @@
 # gets a different menu than the Android phone (has both) automatically.
 set -euo pipefail
 
-# fuzzel --dmenu: centered, flat, colours from ~/.config/fuzzel/fuzzel.ini.
-launcher=(fuzzel --dmenu --lines 10)
+# menu --dmenu: centered, flat, colours from ~/.config/rofi/colors.rasi.
+launcher=(menu --dmenu --lines 10)
 
 mapfile -t paired < <(kdeconnect-cli -l --id-name-only 2>/dev/null)
 
 if [[ "${#paired[@]}" -eq 0 ]]; then
-    notify-send "KDE Connect" "No paired devices — pair from the phone's KDE Connect app first."
+    notify-send -a kdeconnect "KDE Connect" "No paired devices — pair from the phone's KDE Connect app first."
     exit 1
 fi
 
@@ -45,8 +45,8 @@ has_plugin() {
     return 1
 }
 
-# Browse an arbitrary local path via fuzzel --dmenu (no zenity/GTK pickers in
-# this repo — see home/waybar/scripts/weather.py). fuzzel --dmenu allows
+# Browse an arbitrary local path via menu --dmenu (no zenity/GTK pickers in
+# this repo — see home/waybar/scripts/weather.py). menu --dmenu allows
 # custom entries by default, so typing an absolute path works too, not just
 # navigating.
 pick_file() {
@@ -112,17 +112,17 @@ case "$action" in
     ;;
   ping)
     kdeconnect-cli -d "$device_id" --ping
-    notify-send "KDE Connect" "Pinged ${device_name}"
+    notify-send -a kdeconnect "KDE Connect" "Pinged ${device_name}"
     ;;
   sendfile)
     if path=$(pick_file); then
         kdeconnect-cli -d "$device_id" --share "$path"
-        notify-send "KDE Connect" "Sent $(basename "$path") to ${device_name}"
+        notify-send -a kdeconnect "KDE Connect" "Sent $(basename "$path") to ${device_name}"
     fi
     ;;
   clipboard)
     kdeconnect-cli -d "$device_id" --send-clipboard
-    notify-send "KDE Connect" "Clipboard sent to ${device_name}"
+    notify-send -a kdeconnect "KDE Connect" "Clipboard sent to ${device_name}"
     ;;
   browse)
     kdeconnect-cli -d "$device_id" --mount >/dev/null 2>&1
@@ -132,7 +132,7 @@ case "$action" in
         nemo "$mount_point" &
         disown
     else
-        notify-send "KDE Connect" "Could not mount ${device_name} — is it unlocked and reachable?"
+        notify-send -a kdeconnect "KDE Connect" "Could not mount ${device_name} — is it unlocked and reachable?"
     fi
     ;;
   runcommand)
@@ -141,7 +141,7 @@ case "$action" in
     # ':' or ' ' comes first.
     mapfile -t cmds < <(kdeconnect-cli -d "$device_id" --list-commands 2>/dev/null)
     if [[ "${#cmds[@]}" -eq 0 ]]; then
-        notify-send "KDE Connect" "No remote commands configured on ${device_name}"
+        notify-send -a kdeconnect "KDE Connect" "No remote commands configured on ${device_name}"
     else
         cmd_choice=$(printf '%s\n' "${cmds[@]#*[: ]}" | sed 's/^ *//' | "${launcher[@]}" --prompt "Command:")
         [[ -z "$cmd_choice" ]] && exit 0
@@ -157,7 +157,7 @@ case "$action" in
     ;;
   lock)
     kdeconnect-cli -d "$device_id" --lock
-    notify-send "KDE Connect" "Locked ${device_name}"
+    notify-send -a kdeconnect "KDE Connect" "Locked ${device_name}"
     ;;
   sms)
     dest=$(printf '' | "${launcher[@]}" --prompt "Phone number:")
@@ -165,11 +165,11 @@ case "$action" in
     msg=$(printf '' | "${launcher[@]}" --prompt "Message:")
     [[ -z "$msg" ]] && exit 0
     kdeconnect-cli -d "$device_id" --send-sms "$msg" --destination "$dest"
-    notify-send "KDE Connect" "SMS sent via ${device_name}"
+    notify-send -a kdeconnect "KDE Connect" "SMS sent via ${device_name}"
     ;;
   unpair)
     kdeconnect-cli -d "$device_id" --unpair
-    notify-send "KDE Connect" "Unpaired ${device_name}"
+    notify-send -a kdeconnect "KDE Connect" "Unpaired ${device_name}"
     ;;
   refresh)
     kdeconnect-cli --refresh

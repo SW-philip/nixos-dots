@@ -10,6 +10,7 @@
   @define-color gh_dim     ${p.LYRIC};
   @define-color gh_accent  ${p.ROOT};
   @define-color gh_sep     ${p.MUTE};
+  @define-color gh_danger  ${p.FORTE};
 
   popover.menu > contents {
       background-color: @gh_surface;
@@ -80,6 +81,38 @@
       border-radius: 8px;
   }
   scrollbar slider:hover { background-color: alpha(@gh_text, 0.45); }
+
+  /* libadwaita alert dialog (Close Window?, confirm-close) — Josefin leaf, same as lix-logout: window 24/6, buttons 16/4 */
+  dialog-host > dialog.alert sheet {
+      background-color: @gh_surface;
+      color: @gh_text;
+      border: 1px solid @gh_border;
+      border-radius: 24px 6px 24px 6px;
+      box-shadow: 0 8px 32px rgba(${p.STAFF}, ${p.STAFF_A_DROP});
+  }
+  dialog.alert .message-area .heading { color: @gh_text; }
+  dialog.alert .message-area .body    { color: @gh_dim; }
+  dialog.alert .response-area > button {
+      background-color: @gh_overlay;
+      color: @gh_text;
+      border: 1px solid @gh_border;
+      border-radius: 16px 4px 16px 4px;
+      box-shadow: none;
+  }
+  dialog.alert .response-area > button:hover,
+  dialog.alert .response-area > button:focus {
+      background-color: alpha(@gh_accent, 0.20);
+  }
+  dialog.alert .response-area > button.destructive-action {
+      background-color: alpha(@gh_danger, 0.18);
+      color: @gh_danger;
+      border-color: alpha(@gh_danger, 0.45);
+  }
+  dialog.alert .response-area > button.destructive-action:hover,
+  dialog.alert .response-area > button.destructive-action:focus {
+      background-color: alpha(@gh_danger, 0.32);
+  }
+  floating-sheet > dimming { background-color: rgba(${p.STAFF}, ${p.STAFF_A_OUTER}); }
 
   tooltip {
       background-color: @gh_surface;

@@ -41,7 +41,7 @@ in
     ../../modules/protonvpn.nix
     ../../modules/bluetooth-idle-off.nix
     ../../modules/tether.nix
-    ../../modules/transmission.nix
+    ../../modules/qbittorrent.nix
     ./hardware.nix
     ./boot.nix
     ./features.nix

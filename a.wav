@@ -1,0 +1,24 @@
+import math, struct, wave
+
+  SR = 44100
+  def render(f, secs=1.0):
+      out = []
+      for i in range(int(SR * secs)):
+          t = i / SR
+          env = math.exp(-4 * t)                  # fade out
+          out.append(math.sin(2 * math.pi * f * t) * env)
+      return out
+
+  SR = 44100
+  def render(f, secs=1.0):
+      out = []
+      for i in range(int(SR * secs)):
+          t = i / SR
+          env = math.exp(-4 * t)                  # fade out
+          out.append(math.sin(2 * math.pi * f * t) * env)
+      return out
+
+  samples = render(440)                           # an A
+  with wave.open("a.wav", "wb") as w:
+      w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+      w.writeframes(b"".join(struct.pack("<h", int(s * 30000)) for s in samples))

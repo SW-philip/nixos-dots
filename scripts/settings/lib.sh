@@ -5,12 +5,12 @@
 # shellcheck disable=SC2034 # read by the handlers that source this file
 PIN_FILE="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/audio-output-pinned"
 
-# SETTINGS_PICKER swaps fuzzel for a shim in tests.
+# SETTINGS_PICKER swaps rofi for a shim in tests.
 pick() {
   if [[ -n "${SETTINGS_PICKER:-}" ]]; then
     "$SETTINGS_PICKER" "$1"
   else
-    fuzzel --dmenu --lines 12 --prompt "$1 "
+    menu --dmenu --lines 12 --prompt "$1 "
   fi
 }
 
@@ -23,7 +23,7 @@ has_cap() { [[ " ${SETTINGS_CAPS:-} " == *" $1 "* ]]; }
 #   10   Escape: "back to the hub" (cancel_rc)
 #   11   a failure was already toasted; enclosing levels pass it up without
 #        toasting again, and the hub exits 1 so callers still see a failure
-#   >=128 fuzzel was killed (a second Mod+S press); passed straight through
+#   >=128 rofi was killed (a second Mod+S press); passed straight through
 run_menu() {
   local prompt=$1 cancel_rc=${2:-10}
   local -a labels=() cmds=() argv=()

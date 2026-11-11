@@ -67,16 +67,16 @@ let
       fi
     done
 
-    choice=$(printf '%s\n' "''${entries[@]}" | fuzzel --dmenu --prompt "Power Profile › " --width 300 --lines ''${#entries[@]}) || exit 0
+    choice=$(printf '%s\n' "''${entries[@]}" | menu --dmenu --prompt "Power Profile › " --width 30 --lines ''${#entries[@]}) || exit 0
     [[ -z "$choice" ]] && exit 0
 
     selected=$(echo "$choice" | sed 's/  \[on\]$//')
     [[ "$selected" == "$current" ]] && exit 0
 
     if powerprofilesctl set "$selected" 2>/dev/null; then
-      notify-send -u low "Power Profile" "Switched to $selected" 2>/dev/null || true
+      notify-send -a power-profile -u low "Power Profile" "Switched to $selected" 2>/dev/null || true
     else
-      notify-send -u normal "Power Profile" "Failed to set $selected — EPP locked (governor stuck?)" 2>/dev/null || true
+      notify-send -a power-profile -u normal "Power Profile" "Failed to set $selected — EPP locked (governor stuck?)" 2>/dev/null || true
     fi
   '';
 
@@ -125,7 +125,7 @@ let
     add_row "Ledger TV → Bottom" ledger-tv bottom "$ledger_tv_edge"
     ''}
 
-    choice=$(printf '%s\n' "''${labels[@]}" | fuzzel --dmenu --prompt "Panel Edges › " --width 300 --lines ''${#labels[@]}) || exit 0
+    choice=$(printf '%s\n' "''${labels[@]}" | menu --dmenu --prompt "Panel Edges › " --width 30 --lines ''${#labels[@]}) || exit 0
     [[ -z "$choice" ]] && exit 0
 
     sel_slot=""
@@ -143,9 +143,9 @@ let
     [[ "$sel_edge" == "$current" ]] && exit 0
 
     if err=$(eww-panel-edge "$sel_slot" "$sel_edge" 2>&1); then
-      notify-send -u low "Panel Edges" "$choice" 2>/dev/null || true
+      notify-send -a panel-edges -u low "Panel Edges" "$choice" 2>/dev/null || true
     else
-      notify-send -u normal "Panel Edges" "Failed to set $choice: $err" 2>/dev/null || true
+      notify-send -a panel-edges -u normal "Panel Edges" "Failed to set $choice: $err" 2>/dev/null || true
     fi
   '';
 
@@ -249,6 +249,29 @@ let
     }
   ];
 
+  # Sounds on arrival (scripts/sfx.py renders assets/sounds). One entry per
+  # urgency so each notification matches exactly one script; no `"` in exec.
+  # These senders play their own sounds, so the generic ones skip them.
+  notifySoundOnce = pkgs.writeShellScript "notify-sound-once" ''
+    stamp="''${XDG_RUNTIME_DIR:-/tmp}/notify-sound.stamp"
+    exec 9>"$stamp.lock"
+    ${pkgs.util-linux}/bin/flock 9
+    now=$(${pkgs.coreutils}/bin/date +%s)
+    last=$(${pkgs.coreutils}/bin/cat "$stamp" 2>/dev/null || echo 0)
+    [ $((now - last)) -ge 15 ] || exit 0
+    echo "$now" > "$stamp"
+    exec ${pkgs.pipewire}/bin/pw-play "$1"
+  '';
+  noBattery = "^(?!(battery|usb|monitor)$).*";
+  # Rate-limited: a burst (resume, reconnect) must ring once, not per
+  # notification. Stamp is checked under flock so parallel script runs agree.
+  playSound = wav: "${notifySoundOnce} ${wav}";
+  notifySoundScripts = {
+    low      = { app-name = noBattery; urgency = "Low";      exec = playSound ../../assets/sounds/notify.wav; };
+    normal   = { app-name = noBattery; urgency = "Normal";   exec = playSound ../../assets/sounds/notify.wav; };
+    critical = { app-name = noBattery; urgency = "Critical"; exec = playSound ../../assets/sounds/alert.wav; };
+  };
+
   # Static swaync config.json — palette-independent, only style.css carries colors.
   # keyboard-shortcuts=true gives the control center exclusive keyboard focus,
   # so on surface every open/close moves text focus away and back and squeekboard
@@ -277,7 +300,7 @@ let
       "hide-on-action": true,
       "notification-inline-replies": true,
       "script-fail-notify": true,
-      "scripts": {},
+      "scripts": ${builtins.toJSON notifySoundScripts},
       "notification-visibility": {},
       "widgets": ${builtins.toJSON (
         [ "title" "notifications" "label#hdr-audio" "volume" ]
@@ -308,15 +331,16 @@ let
     }
   '';
 
-  # Static fuzzel.ini — palette-independent; colors are included from a
-  # separate file drmis regenerates per-theme (see fuzzelColors below).
-  fuzzelConfig = pkgs.writeText "fuzzel-config.ini" (import ../fuzzel/config.nix { inherit l; });
+  # Static rofi config.rasi — palette-independent; colors are imported from a
+  # separate file drmis regenerates per-theme (see rofiColors below).
+  rofiConfig = pkgs.writeText "rofi-config.rasi" (import ../rofi/config.nix);
+  menu       = import ../rofi/menu.nix { inherit pkgs; };
 
   # ── Extracted theme generators ────────────────────────────────────────────
   mkSwayncCss       = import ./swaync/style.nix;
   mkGhosttyConfig   = import ../ghostty/config.nix;
   mkGhosttyCss      = import ../ghostty/style.nix;
-  mkFuzzelColors    = import ../fuzzel/colors.nix;
+  mkRofiColors      = import ../rofi/colors.nix;
   mkSqueekboardCss  = import ./squeekboard.nix;
   mkLixLogoutCSS    = import ../lix-logout/style.nix;
   mkUniremoteCss    = import ../uniremote/style.nix;
@@ -327,7 +351,8 @@ let
   mkNixMark         = import ../nix-mark/mark.nix;
 
   # ── Utility scripts ────────────────────────────────────────────────────────
-  s = import ./scripts.nix { inherit pkgs lib; };
+  # surface (8 GB) keeps the still pit
+  s = import ./scripts.nix { inherit pkgs lib; animatePit = config.myConfig.isDesktop; };
 
   # Desktop audio routing follows the display (see kanshi profiles below).
   # tvCriteria is the TV's EDID identity from `niri msg outputs` — matching the
@@ -414,7 +439,7 @@ let
       waybarSh       = pkgs.writeText "waybar-palette-${slug}.sh"       t.shContent;
       nemoCss        = pkgs.writeText "nemo-gtk3-${slug}.css"           (import ../nemo/gtk3.css.nix t.palette);
       squeekboardCss = pkgs.writeText "squeekboard-gtk-${slug}.css"     (mkSqueekboardCss { p = t.palette; });
-      fuzzelColors   = pkgs.writeText "fuzzel-colors-${slug}.ini"       (mkFuzzelColors  { p = t.palette; inherit lib; });
+      rofiColors     = pkgs.writeText "rofi-colors-${slug}.rasi"        (mkRofiColors    { p = t.palette; inherit lib; });
       lixLogoutCss   = pkgs.writeText "lix-logout-style-${slug}.css"    (mkLixLogoutCSS  { p = t.palette; inherit l; });
       uniremoteCss   = pkgs.writeText "uniremote-style-${slug}.css"     (mkUniremoteCss  { p = t.palette; });
       ghostty        = pkgs.writeText "ghostty-config-${slug}"          (mkGhosttyConfig { p = t.palette; });
@@ -471,7 +496,7 @@ let
       waybarSh           = copy ".config/waybar/palette.sh";
       nemoCss            = copy ".config/gtk-3.0/gtk.css";
       squeekboardCss     = copy ".config/squeekboard-gtk/gtk-3.0/gtk.css";
-      fuzzelColors       = copy ".config/fuzzel/fuzzel-colors.ini";
+      rofiColors         = copy ".config/rofi/colors.rasi";
       lixLogoutCss       = copy ".config/lix-logout/style.css";
       uniremoteCss       = copy ".config/uniremote/style.css";
       ghostty            = copy ".config/ghostty/config";
@@ -532,7 +557,7 @@ let
         }) themeConfigs;
     });
 
-  drmisPython = pkgs.python3.withPackages (ps: [ ps.rich ps.readchar ]);
+  drmisPython = pkgs.python3.withPackages (ps: [ ps.rich ps.readchar ps.pillow ]);
 
   # A directory, not a single file: drmis.py is the core and drmis_tui.py is
   # imported lazily. @THEME_MAP_PATH@ is substituted into the core only.
@@ -543,7 +568,7 @@ let
   '';
 
   drmis = pkgs.writeShellScriptBin "drmis" ''
-    export PATH="${lib.makeBinPath [ pkgs.resvg ]}:$PATH"
+    export PATH="${lib.makeBinPath [ pkgs.resvg pkgs.theme-fade ]}:$PATH"
     exec ${drmisPython}/bin/python3 -c 'import sys; sys.path.insert(0, "${drmisSrc}"); import drmis; drmis.main()' "$@"
   '';
 
@@ -561,6 +586,23 @@ in
 
   # Workspace-tier wallpaper: an awww daemon in its own namespace (surface
   # `awww-daemoncard`, no backdrop rule, so it lives inside each workspace).
+  # Desktop auto-login (hosts/desktop/config.nix) drops a flag file; lock once
+  # on that first session so streaming/auto-login never leaves it unlocked.
+  systemd.user.services.autologin-lock = {
+    Unit = config.lib.niri.unit { wayland = true; } {
+      Description = "Lock the auto-logged-in session";
+    };
+    Service = {
+      ExecStart = "${pkgs.writeShellScript "autologin-lock" ''
+        flag="$XDG_RUNTIME_DIR/autologin-lock"
+        [ -e "$flag" ] || exit 0
+        rm -f "$flag"
+        exec ${lockScreenBin}
+      ''}";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   systemd.user.services.wallpaper-card = {
     Unit = config.lib.niri.unit { wayland = true; } {
       Description = "awww daemon: workspace-tier wallpaper";
@@ -593,9 +635,22 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  systemd.user.services.swaybg = {
+  # Resident because GTK4 start-up takes >1s: a per-fade spawn lands after the change it should hide.
+  systemd.user.services.theme-fade = {
+    Unit = config.lib.niri.unit { wayland = true; } {
+      Description = "theme-fade: full-screen dip overlay daemon";
+    };
+    Service = {
+      ExecStart = "${pkgs.theme-fade}/bin/theme-fade daemon";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.wallpaper-pit = {
     Unit = {
-      Description = "swaybg wallpaper";
+      Description = "overview pit backdrop (pit-fall, or swaybg)";
       After = [ "graphical-session.target" ];
       PartOf = [ "graphical-session.target" ];
       # drmis restarts this on every theme switch; systemd's default
@@ -605,7 +660,7 @@ in
       StartLimitIntervalSec = 0;
     };
     Service = {
-      ExecStart = "${s.swaybgLauncher}";
+      ExecStart = "${s.pitLauncher}";
       Restart = "on-failure";
       RestartSec = "2s";
     };
@@ -615,12 +670,12 @@ in
   };
 
   home.packages = [
-    pkgs.swaybg s.toggleDisplayMode s.surfaceMode drmis s.mprisWatch s.toggleOsk s.launcher
+    pkgs.swaybg pkgs.rofi menu s.toggleDisplayMode s.surfaceMode drmis s.mprisWatch s.toggleOsk s.launcher
     pkgs.satty pkgs.losslesscut-bin s.shootAnnotate s.screenRecordToggle
   ];
 
   xdg.configFile."swaync/config.json" = lib.mkForce { source = swayncConfig; force = true; };
-  xdg.configFile."fuzzel/fuzzel.ini"  = { source = fuzzelConfig; force = true; };
+  xdg.configFile."rofi/config.rasi"   = { source = rofiConfig; force = true; };
 
   xdg.configFile."xdg-desktop-portal/niri-portals.conf".text = ''
     [preferred]

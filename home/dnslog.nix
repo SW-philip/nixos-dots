@@ -9,7 +9,7 @@ in
 {
   home.packages = [ dnslog ];
 
-  # the push button: fuzzel's "DNS Log" pulls fresh entries and keeps following
+  # the push button: the menu's "DNS Log" pulls fresh entries and keeps following
   xdg.desktopEntries.dnslog = {
     name = "DNS Log";
     icon = "network-server";

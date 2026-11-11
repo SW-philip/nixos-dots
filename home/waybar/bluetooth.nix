@@ -9,7 +9,7 @@ let
 
   btmenuScript = pkgs.writeShellScriptBin "quantum-btmenu" ''
     export PATH=${lib.makeBinPath [
-      pkgs.fuzzel pkgs.bluez pkgs.glib pkgs.jq pkgs.libnotify pkgs.wireplumber pkgs.coreutils pkgs.gnused pkgs.gawk
+      (import ../rofi/menu.nix { inherit pkgs; }) pkgs.bluez pkgs.glib pkgs.jq pkgs.libnotify pkgs.wireplumber pkgs.coreutils pkgs.gnused pkgs.gawk
     ]}:$PATH
 
     export WAYLAND_DISPLAY=''${WAYLAND_DISPLAY:-wayland-0}

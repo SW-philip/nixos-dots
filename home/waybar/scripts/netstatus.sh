@@ -62,9 +62,10 @@ get_speed() {
 
 # VPN status
 vpn_region=""
-for _name in protonvpn-ny protonvpn-au protonvpn-ca; do
+for _name in protonvpn-oh protonvpn-ny protonvpn-au protonvpn-ca; do
   if systemctl is-active --quiet "wg-quick-${_name}.service" 2>/dev/null; then
     case "$_name" in
+      protonvpn-oh) vpn_region="OH" ;;
       protonvpn-ny) vpn_region="NY" ;;
       protonvpn-au) vpn_region="AU" ;;
       protonvpn-ca) vpn_region="CA" ;;

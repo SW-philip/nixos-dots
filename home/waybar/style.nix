@@ -120,7 +120,9 @@ window#waybar {
    modules, so their resize pushes against notification's fixed edge
    rather than recentering the whole cluster on the bar's midpoint.
    ----------------------------------------------------------------- */
-#custom-clock { font-weight: 700; letter-spacing: 0.05em; color: ${p.SCORE}; }
+#custom-clock { font-weight: 700; letter-spacing: 0.05em; color: ${p.SCORE}; transition: opacity 300ms ease-in-out; }
+/* the hourly surprise face swaps under this (quantum_clock.py SURPRISE_FADE) */
+#custom-clock.dim { opacity: 0; }
 
 /* -----------------------------------------------------------------
    Weather — bimodal, not just the resting "{icon} {temp}°F": clicking

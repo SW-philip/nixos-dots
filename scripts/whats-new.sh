@@ -38,7 +38,7 @@ commits=$(sed -n '/^commits:/,$p' "$OUT" | sed 1d | head -3)
 
 cat "$OUT"
 if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
-  ( act=$(notify-send -A open=Open "Switched to generation $n" "$body" 2>/dev/null || true)
+  ( act=$(notify-send -a whats-new -A open=Open "Switched to generation $n" "$body" 2>/dev/null || true)
     [[ $act == open ]] && exec ghostty --class=dev.prepko.whats-new -e less -R "$OUT" ) >/dev/null 2>&1 &
   disown
 fi

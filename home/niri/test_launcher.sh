@@ -11,10 +11,10 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 mkdir -p "$TMP/bin"
 
-# Stubs log their argv instead of touching a real fuzzel/eww.
-cat > "$TMP/bin/fuzzel" <<'STUB'
+# Stubs log their argv instead of touching a real menu/eww.
+cat > "$TMP/bin/menu" <<'STUB'
 #!/usr/bin/env bash
-echo "fuzzel $*" >> "$STUB_LOG"
+echo "menu $*" >> "$STUB_LOG"
 # dmenu mode: keep the rows it was fed, answer with the index in $STUB_PICK
 case " $* " in *" --dmenu "*) cat >> "$STUB_LOG.in"; echo "${STUB_PICK:-}" ;; esac
 STUB
@@ -26,7 +26,7 @@ cat > "$TMP/bin/eww" <<'STUB'
 #!/usr/bin/env bash
 echo "eww $*" >> "$STUB_LOG"
 STUB
-chmod +x "$TMP/bin/fuzzel" "$TMP/bin/eww" "$TMP/bin/niri"
+chmod +x "$TMP/bin/menu" "$TMP/bin/eww" "$TMP/bin/niri"
 
 export STUB_LOG="$TMP/log"
 export LAUNCHER_EWW="$TMP/bin/eww"
@@ -36,13 +36,13 @@ export LAUNCHER_FAVS="$TMP/none.json"
 
 run() { : > "$STUB_LOG"; bash "$LAUNCHER"; cat "$STUB_LOG"; }
 
-[ "$(run | cut -d" " -f1-2)" = "fuzzel --placeholder" ] && pass "no state file => fuzzel" || fail "no state file => fuzzel"
+[ "$(run | cut -d" " -f1-2)" = "menu --placeholder" ] && pass "no state file => fuzzel" || fail "no state file => fuzzel"
 
 echo attached > "$TMP/surface-cover"
-[ "$(run | cut -d" " -f1-2)" = "fuzzel --placeholder" ] && pass "attached => fuzzel" || fail "attached => fuzzel"
+[ "$(run | cut -d" " -f1-2)" = "menu --placeholder" ] && pass "attached => fuzzel" || fail "attached => fuzzel"
 
 echo garbage > "$TMP/surface-cover"
-[ "$(run | cut -d" " -f1-2)" = "fuzzel --placeholder" ] && pass "unknown state => fuzzel" || fail "unknown state => fuzzel"
+[ "$(run | cut -d" " -f1-2)" = "menu --placeholder" ] && pass "unknown state => fuzzel" || fail "unknown state => fuzzel"
 
 echo detached > "$TMP/surface-cover"
 [ "$(run)" = "eww open --toggle launcher-tablet" ] && pass "detached => eww open --toggle launcher-tablet" || fail "detached => eww open --toggle launcher-tablet"
@@ -53,7 +53,7 @@ cat > "$TMP/favs.json" <<'JSON'
 [{"icon":"I","label":"Firefox","cmd":"firefox"},
  {"icon":"I","label":"Terminal","cmd":"ghostty -e htop"},
  {"icon":"I","label":"Files","cmd":"nemo"},
- {"icon":"I","label":"All apps","cmd":"fuzzel"}]
+ {"icon":"I","label":"All apps","cmd":"menu"}]
 JSON
 cat > "$TMP/registry.json" <<'JSON'
 {"self":"surface","apps":{
@@ -73,7 +73,7 @@ pick 2
 [ "$(last)" = "niri msg action spawn -- sh -c nemo" ] && pass "non-registry app spawns as before" || fail "non-registry app spawns as before ($(last))"
 grep -q "All apps" "$STUB_LOG.in" && pass "All apps row is listed" || fail "All apps row is listed"
 pick 3
-[ "$(grep -c '^fuzzel' "$STUB_LOG")" = 2 ] && ! grep -q '^niri' "$STUB_LOG" && ! last | grep -q -- --dmenu \
+[ "$(grep -c '^menu' "$STUB_LOG")" = 2 ] && ! grep -q '^niri' "$STUB_LOG" && ! last | grep -q -- --dmenu \
   && pass "All apps opens plain fuzzel, spawns nothing" || fail "All apps opens plain fuzzel, spawns nothing"
 
 [ "$fails" -eq 0 ] || { echo "$fails failure(s)"; exit 1; }

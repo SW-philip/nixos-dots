@@ -2,7 +2,7 @@
 let
   usbNotifyScript = pkgs.writeShellApplication {
     name = "usb-notify";
-    runtimeInputs = [ pkgs.systemd pkgs.gawk pkgs.libnotify ];
+    runtimeInputs = [ pkgs.systemd pkgs.gawk pkgs.libnotify pkgs.pipewire ];
     text = ''
       # udevadm monitor's block-per-event format, same awk state-machine shape
       # as surface-kbd-monitor (profiles/surface-tablet.nix): accumulate
@@ -37,8 +37,12 @@ let
         }
       ' | while IFS='|' read -r action label; do
         case "$action" in
-          add)    notify-send -u normal "USB" "$label connected" 2>/dev/null || true ;;
-          remove) notify-send -u low    "USB" "$label disconnected" 2>/dev/null || true ;;
+          add)
+            notify-send -a usb -u normal "USB" "$label connected" 2>/dev/null || true
+            pw-play ${../assets/sounds/connect.wav} >/dev/null 2>&1 || true ;;
+          remove)
+            notify-send -a usb -u low "USB" "$label disconnected" 2>/dev/null || true
+            pw-play ${../assets/sounds/disconnect.wav} >/dev/null 2>&1 || true ;;
         esac
       done
     '';

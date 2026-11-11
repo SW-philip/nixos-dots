@@ -56,16 +56,32 @@ def parse_get_output(raw):
 # handshake variance) intermittently timed this out even on a fully
 # reachable, already-connected mug. 20s gives real margin; two more
 # attributes (meta, firmware) add more read round-trips, not less margin.
-def fetch_fields(mac, timeout=20):
+def fetch_fields(mac, timeout=20, grace=5):
+    cmd = ["ember-mug", "get", "-m", mac, "--imperial", "-r", "battery",
+           "current-temp", "target-temp", "led-colour", "liquid-state",
+           "meta", "firmware"]
     try:
-        result = subprocess.run(
-            ["ember-mug", "get", "-m", mac, "--imperial", "-r", "battery",
-             "current-temp", "target-temp", "led-colour", "liquid-state",
-             "meta", "firmware"],
-            capture_output=True, text=True, timeout=timeout, check=True,
-        )
-        return parse_get_output(result.stdout)
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError, ValueError, IndexError):
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True)
+    except OSError:
+        return None
+    try:
+        stdout, _ = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        # subprocess.run SIGKILLs on timeout, which drops the BLE client from
+        # D-Bus mid-GATT-read; ask first so the CLI can disconnect cleanly.
+        proc.terminate()
+        try:
+            proc.communicate(timeout=grace)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+        return None
+    if proc.returncode != 0:
+        return None
+    try:
+        return parse_get_output(stdout)
+    except (ValueError, IndexError):
         return None
 
 

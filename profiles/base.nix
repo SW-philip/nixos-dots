@@ -147,6 +147,8 @@ in
     ../home/usb-notify.nix
     ../home/bluetooth-battery-notify.nix
     ../home/bluetooth-device-probe.nix
+    ../home/screenshot-sound.nix
+    ../home/resource-warn.nix
     ../home/sqlch-sync.nix
     ../home/niri-bridge
     ../home/claude-tidy.nix
@@ -378,7 +380,7 @@ in
       # -e pins nh's elevation strategy to the real setuid sudo wrapper —
       # nh's "auto" detection can otherwise resolve the non-setuid
       # /run/current-system/sw/bin/sudo and fail activation.
-      nrs = "nh os switch -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos && whats-new";
+      nrs = "{ nh os switch -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos && whats-new; } || sfx error";
       nrb = "nh os boot -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos";
       nrt = "nh os test -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos";
       nfu = "nix flake update";
@@ -620,11 +622,11 @@ in
           on-timeout = if config.myConfig.hasBacklight then "${pkgs.brightnessctl}/bin/brightnessctl -s s 10%" else "${ddcDim} dim";
           on-resume = if config.myConfig.hasBacklight then "${pkgs.brightnessctl}/bin/brightnessctl -r" else "${ddcDim} restore";
         }
-      ] ++ lib.optionals (!config.myConfig.isDesktop) [
         {
-          timeout = 480;
+          timeout = if config.myConfig.isDesktop then 600 else 480;
           on-timeout = "pidof hyprlock || ${config.myConfig.lockScreenScript}";
         }
+      ] ++ lib.optionals (!config.myConfig.isDesktop) [
         {
           timeout = 600;
           on-timeout = "niri msg action power-off-monitors 2>/dev/null; true";
@@ -638,7 +640,7 @@ in
         # prepko straight back into niri (initial_session in
         # hosts/desktop/config.nix), so dropping to the greeter there just
         # forces a re-login (and a keyring re-unlock) for no security
-        # benefit — desktop should only ever lock on idle, never log out.
+        # benefit — desktop locks on idle (10 min) but never logs out.
         timeout = 1080;
         on-timeout = "${hypridleQuitGuard}";
       };
@@ -665,8 +667,17 @@ in
     mame-tools pythonEnv claude-code
     sqlch            # prepko only: it has a YouTube source, so never system-wide
     grim slurp wl-clipboard
-    fuzzel cliphist
+    cliphist
     ffmpeg mediainfo vlc playerctl libnotify
+    fluidsynth soundfont-fluid
+    (writeShellScriptBin "sfx" ''
+      # sfx <name>: play assets/sounds/<name>.wav (e.g. sfx error)
+      exec ${pipewire}/bin/pw-play ${../assets/sounds}/"$1".wav
+    '')
+    (writeShellScriptBin "midiplay" ''
+      exec ${fluidsynth}/bin/fluidsynth -a pulseaudio -q -i \
+        ${soundfont-fluid}/share/soundfonts/FluidR3_GM2-2.sf2 "$@"
+    '')
 
     libreoffice
     nemo

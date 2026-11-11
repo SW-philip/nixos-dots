@@ -14,6 +14,7 @@ __pycache__/
 
 # Theme wallpapers (stay on disk, not in git)
 themes/**/wallpaper-*.png
+themes/**/wallpaper-pit.json
 # ...except Kid's: home/kid/niri.nix imports it as a Nix path
 # literal (they has no ~/nixos for a runtime lookup like the theme rotation uses).
 !themes/Light/kid/wallpaper-kid.png

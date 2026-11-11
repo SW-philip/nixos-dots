@@ -3,11 +3,13 @@
 _final: prev: {
   sqlch                  = prev.callPackage ../pkgs/sqlch { src = inputs.sqlch; };
   uniremote              = prev.callPackage ../pkgs/uniremote { };
-  orch                   = prev.callPackage ../pkgs/orch { };
   pandora                = prev.callPackage ../pkgs/pandora { };
   python-ember-mug       = prev.callPackage ../pkgs/python-ember-mug { };
   greeter                = prev.callPackage ../pkgs/greeter { };
   lix-logout             = prev.callPackage ../pkgs/lix-logout { };
+  theme-fade             = prev.callPackage ../pkgs/theme-fade { };
+  pit-fall               = prev.callPackage ../pkgs/pit-fall { };
+  geforce-now            = prev.callPackage ../pkgs/geforce-now { };
   # niri-bridge needs rustc >=1.98; nixos-26.05 (the pinned `nixpkgs`
   # this overlay applies to) ships 1.95. Pull just the toolchain from
   # nixpkgs-unstable's raw legacyPackages (an overlay-applied unstable set

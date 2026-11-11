@@ -41,7 +41,9 @@ in ''
   }
 
   background {
-      path        = ${home}/.local/state/wallpaper-img
+      # drmis bakes the greeter's clock glow into lock-bg.png (hyprlock label
+      # shadows don't draw).
+      path        = ${home}/.local/state/lock-bg.png
       blur_passes = 0
       brightness  = 1.0
       contrast    = 1.0
@@ -55,9 +57,10 @@ in ''
       size          = ${s markPx}
       rounding      = 0
       border_size   = 0
-      shadow_passes = 2
-      shadow_size   = ${s 5}
+      shadow_passes = 3
+      shadow_size   = ${s 10}
       shadow_color  = rgba(${h p.HALL}f2)
+      shadow_boost  = 1.6
       position      = 0, ${s markOff}
       halign        = center
       valign        = center
@@ -69,10 +72,10 @@ in ''
       color         = rgba(${h p.SCORE}ff)
       font_size     = ${pt 96}
       font_family   = Josefin Sans SemiBold
-      shadow_passes = 3
-      shadow_size   = ${s 12}
-      shadow_color  = rgba(${h p.HALL}e6)
-      shadow_boost  = 1.4
+      shadow_passes = 4
+      shadow_size   = ${s 24}
+      shadow_color  = rgba(${h p.HALL}f2)
+      shadow_boost  = 2.2
       position      = 0, ${s clockMid}
       halign        = center
       valign        = center
@@ -84,9 +87,10 @@ in ''
       color         = rgba(${h p.REST}ff)
       font_size     = ${pt 32}
       font_family   = Josefin Sans
-      shadow_passes = 2
-      shadow_size   = ${s 6}
+      shadow_passes = 3
+      shadow_size   = ${s 12}
       shadow_color  = rgba(${h p.HALL}f2)
+      shadow_boost  = 1.8
       position      = 0, ${s dateOff}
       halign        = center
       valign        = center

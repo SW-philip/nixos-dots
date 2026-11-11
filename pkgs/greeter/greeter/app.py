@@ -188,18 +188,26 @@ class GreeterWindow(Gtk.ApplicationWindow):
         self.pw.add_css_class("field")
         self.pw.set_halign(Gtk.Align.CENTER)
         self.pw.connect("activate", self._submit)
-        auth.append(self.pw)
+        self.pw.connect("changed", lambda _e: self.status.set_visible(False))
+
+        # failure line sits inside the field, over the (now empty) entry
+        self.status = Gtk.Label(label="")
+        self.status.add_css_class("msg")
+        self.status.set_halign(Gtk.Align.CENTER)
+        self.status.set_valign(Gtk.Align.CENTER)
+        self.status.set_can_target(False)
+        self.status.set_visible(False)
+        field_box = Gtk.Overlay()
+        field_box.set_halign(Gtk.Align.CENTER)
+        field_box.set_child(self.pw)
+        field_box.add_overlay(self.status)
+        auth.append(field_box)
 
         self.session_btn = Gtk.Button(label=f"{self.sessions[self.session_idx]['name']}  ▾")
         self.session_btn.add_css_class("chip")
         self.session_btn.set_halign(Gtk.Align.CENTER)
         self.session_btn.connect("clicked", self._cycle_session)
         auth.append(self.session_btn)
-
-        self.status = Gtk.Label(label="")
-        self.status.add_css_class("msg")
-        self.status.set_halign(Gtk.Align.CENTER)
-        auth.append(self.status)
 
         # ── overlay: wallpaper (or .root ground) · band · auth · power ──
         overlay = Gtk.Overlay()
@@ -248,8 +256,9 @@ class GreeterWindow(Gtk.ApplicationWindow):
         self.pw.remove_css_class("fail")
 
     def _fail(self, msg):
-        self.status.set_label(msg)
         self.pw.set_text("")
+        self.status.set_label(msg)
+        self.status.set_visible(True)
         self.pw.add_css_class("fail")
         self.pw.grab_focus()
 

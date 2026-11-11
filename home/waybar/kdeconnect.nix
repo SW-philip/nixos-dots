@@ -11,7 +11,7 @@ let
 
   menuScript = pkgs.writeShellScriptBin "waybar-kdeconnect-menu" ''
     export PATH=${lib.makeBinPath [
-      pkgs.kdePackages.kdeconnect-kde pkgs.fuzzel pkgs.libnotify pkgs.nemo
+      pkgs.kdePackages.kdeconnect-kde (import ../rofi/menu.nix { inherit pkgs; }) pkgs.libnotify pkgs.nemo
       pkgs.coreutils pkgs.gnugrep pkgs.gnused
     ]}:$PATH
     export WAYLAND_DISPLAY=''${WAYLAND_DISPLAY:-wayland-0}

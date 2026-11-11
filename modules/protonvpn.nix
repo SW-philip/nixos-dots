@@ -9,7 +9,7 @@ in
 {
   options.protonvpn.regions = lib.mkOption {
     type = lib.types.listOf lib.types.str;
-    default = [ "au" "ca" "ny" ];
+    default = [ "au" "ca" "ny" "oh" ];
     description = "Regions with a wg-quick config in secrets/shared.yaml as protonvpn_<region>_conf.";
   };
 

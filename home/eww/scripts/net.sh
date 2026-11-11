@@ -28,7 +28,7 @@ if [[ "$kind" == "wifi" ]] && command -v nmcli >/dev/null 2>&1; then
 fi
 
 vpn=false; vpn_name=""
-for n in protonvpn-ny protonvpn-au protonvpn-ca; do
+for n in protonvpn-oh protonvpn-ny protonvpn-au protonvpn-ca; do
   if systemctl is-active --quiet "wg-quick-${n}.service" 2>/dev/null; then
     vpn=true; vpn_name=${n#protonvpn-}; vpn_name=${vpn_name^^}
     break

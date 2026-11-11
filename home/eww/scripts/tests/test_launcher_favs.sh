@@ -41,7 +41,7 @@ SEED="$DIR/../../launcher-favs.json"
 out="$(run "$SEED")"
 [ "$(jq -c '[.[]|length]' <<<"$out")" = "[4,4,4,2]" ] && pass "seed is 4+4+4+2" || fail "seed is 4+4+4+2"
 [ "$(jq '[.[][]|select(.cmd|contains("'"'"'"))]|length' <<<"$out")" = "0" ] && pass "seed cmds have no single quote" || fail "seed cmds have no single quote"
-[ "$(jq -r '.[3][1].cmd' <<<"$out")" = "fuzzel" ] && pass "last tile is All apps -> fuzzel" || fail "last tile is All apps -> fuzzel"
+[ "$(jq -r '.[3][1].cmd' <<<"$out")" = "menu" ] && pass "last tile is All apps -> menu" || fail "last tile is All apps -> menu"
 
 out="$(PORTRAIT=1 run "$TMP/twelve.json")"
 [ "$(jq -c '[.[]|length]' <<<"$out")" = "[3,3,3,3]" ] && pass "portrait: rows of 3" || fail "portrait: rows of 3"

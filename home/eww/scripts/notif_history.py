@@ -39,7 +39,7 @@ class History:
         nid = int(body[0])
         app, _replaces, icon, summary, text, _actions, hints, _timeout = args[:8]
         entry = {"id": nid, "app": app, "summary": summary, "body": text,
-                 "icon": icon, "urgency": _urgency(hints), "time": now}
+                 "icon": icon, "urgency": _urgency(hints), "time": now, "origin": _origin(hints)}
         self.items = [i for i in self.items if i["id"] != nid]
         self.items.insert(0, entry)
         del self.items[self.cap:]
@@ -65,6 +65,13 @@ class History:
                 "matches": sum(notif_search.item_matches(i, q) for i in self.items)}
 
 
+def _origin(hints):
+    """Original sender when a bridge (tether) relays it: the hint carries the phone app's name."""
+    raw = hints.get("x-kde-display-appname")
+    val = getattr(raw, "value", raw)
+    return val if isinstance(val, str) else ""
+
+
 def _urgency(hints):
     raw = hints.get("urgency")
     level = getattr(raw, "value", raw)
@@ -72,15 +79,20 @@ def _urgency(hints):
 
 
 def group_items(items, window=GROUP_WINDOW):
-    """Stack same-app items (newest first in) and sort critical first, low last."""
+    """Stack same-sender items (newest first in) and sort critical first, low last.
+    A bridge's relayed app (tether -> Redfin) is its own sender: one Tether
+    stack would lump messages, email and listings together."""
     groups = []
     for it in items:
         for g in groups:
-            if g["app"] == it["app"] and g["items"][0]["time"] - it["time"] <= window:
+            if (g["app"], g["origin"]) == (it["app"], it.get("origin", "")) \
+                    and g["items"][0]["time"] - it["time"] <= window:
                 g["items"].append(it)
                 break
         else:
-            groups.append({"app": it["app"], "items": [it]})
+            groups.append({"app": it["app"], "origin": it.get("origin", ""),
+                           "label": f'{it["app"]}/{it["origin"]}' if it.get("origin") else it["app"],
+                           "items": [it]})
     for g in groups:
         g["count"] = len(g["items"])
         g["ids"] = " ".join(str(i["id"]) for i in g["items"])

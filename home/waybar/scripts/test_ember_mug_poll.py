@@ -54,23 +54,49 @@ class TestParseGetOutput(unittest.TestCase):
 
 class TestFetchFields(unittest.TestCase):
     def test_returns_parsed_fields_on_success(self):
-        completed = subprocess.CompletedProcess(
-            args=[], returncode=0,
-            stdout=("35.0%, on charging base\n140.0\n132.5\n#672419\nPerfect\n"
-                     "Mug ID: 1234, Serial Number: EMBR00231\n"
-                     "Version: 142, Hardware: 3, Bootloader: 1\n"))
-        with mock.patch.object(ember_mug_poll.subprocess, "run", return_value=completed):
+        out = ("35.0%, on charging base\n140.0\n132.5\n#672419\nPerfect\n"
+               "Mug ID: 1234, Serial Number: EMBR00231\n"
+               "Version: 142, Hardware: 3, Bootloader: 1\n")
+        proc = mock.MagicMock(returncode=0)
+        proc.communicate.return_value = (out, "")
+        with mock.patch.object(ember_mug_poll.subprocess, "Popen", return_value=proc):
             fields = ember_mug_poll.fetch_fields("00:00:00:00:00:01")
         self.assertEqual(fields["name"], "Work Mug")
         self.assertEqual(fields["serial_number"], "EMBR00231")
         self.assertEqual(fields["firmware_version"], "142")
 
     def test_returns_none_on_timeout(self):
-        with mock.patch.object(
-            ember_mug_poll.subprocess, "run",
-            side_effect=subprocess.TimeoutExpired(cmd="ember-mug", timeout=10),
-        ):
+        proc = mock.MagicMock()
+        proc.communicate.side_effect = [
+            subprocess.TimeoutExpired(cmd="ember-mug", timeout=10), ("", "")]
+        with mock.patch.object(ember_mug_poll.subprocess, "Popen", return_value=proc):
             self.assertIsNone(ember_mug_poll.fetch_fields("00:00:00:00:00:01"))
+
+
+class TestFetchFieldsTermination(unittest.TestCase):
+    """A timed-out poll must be asked to exit (SIGTERM) so the CLI can drop its
+    GATT link cleanly; subprocess.run's timeout path SIGKILLs it instead."""
+
+    def _proc(self, communicate):
+        proc = mock.MagicMock()
+        proc.communicate.side_effect = communicate
+        return proc
+
+    def test_timeout_terminates_before_killing(self):
+        proc = self._proc([subprocess.TimeoutExpired("ember-mug", 20), ("", "")])
+        with mock.patch.object(ember_mug_poll.subprocess, "Popen", return_value=proc):
+            self.assertIsNone(ember_mug_poll.fetch_fields("00:00:00:00:00:01"))
+        proc.terminate.assert_called_once()
+        proc.kill.assert_not_called()
+
+    def test_kills_only_if_terminate_is_ignored(self):
+        proc = self._proc([
+            subprocess.TimeoutExpired("ember-mug", 20),
+            subprocess.TimeoutExpired("ember-mug", 5), ("", "")])
+        with mock.patch.object(ember_mug_poll.subprocess, "Popen", return_value=proc):
+            self.assertIsNone(ember_mug_poll.fetch_fields("00:00:00:00:00:01"))
+        proc.terminate.assert_called_once()
+        proc.kill.assert_called_once()
 
 
 class TestWriteCache(unittest.TestCase):

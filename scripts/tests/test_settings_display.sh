@@ -7,7 +7,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/settings_testlib.sh"
 H="$SETTINGS_DIR/display.sh"
 
 shim kanshictl
-shim niri '[[ "$*" == *focused-output* ]] && echo "{\"name\":\"DP-1\"}"; exit 0'
+shim niri '[[ "$*" == *focused-output* ]] && echo "{\"name\":\"DP-1\"}"
+[[ "$*" == *"--json outputs"* ]] && echo "{\"DP-2\":{\"logical\":{\"scale\":${DP2_SCALE:-1.25}}}}"
+exit 0'
 shim brightnessctl 'echo "intel_backlight,backlight,500,50%,1000"'
 shim systemctl '[[ "$*" == *is-active* ]] && exit "${ACTIVE_RC:-0}"; exit 0'
 shim notify-send
@@ -16,7 +18,7 @@ FLAG="$XDG_RUNTIME_DIR/sunshine-streaming"
 out=$(SETTINGS_CAPS="desktop" bash "$H" --list)
 assert_has "desktop: both monitors" "Both monitors" "$out"
 assert_has "desktop: dp-2 only" "DP-2 only" "$out"
-assert_has "desktop: stream layout" "Stream layout" "$out"
+assert_has "desktop: moonlight toggle" "Moonlight mode: off" "$out"
 assert_has "desktop: scale submenu" "Scale" "$out"
 assert_lacks "desktop: no brightness" "Brightness" "$out"
 
@@ -35,6 +37,17 @@ out=$(SETTINGS_CAPS="desktop" bash "$H" --list)
 assert_has "streaming: notice row" "Streaming" "$out"
 assert_lacks "streaming: no both-monitors row" "Both monitors" "$out"
 assert_lacks "streaming: no scale row" "Scale" "$out"
+assert_has "streaming: moonlight toggle stays" "Moonlight mode" "$out"
+
+: > "$FAKE_LOG"; printf 'Moonlight mode\n' > "$PICKS"
+SETTINGS_CAPS="desktop" bash "$H" >/dev/null
+assert_has "moonlight on: stream profile" "kanshictl switch desktop-stream" "$(cat "$FAKE_LOG")"
+
+: > "$FAKE_LOG"; printf 'Moonlight mode\n' > "$PICKS"
+SETTINGS_CAPS="desktop" DP2_SCALE=1.75 bash "$H" >/dev/null
+assert_has "moonlight off mid-stream: scale only" "niri msg output DP-2 scale 1.25" "$(cat "$FAKE_LOG")"
+assert_lacks "moonlight off mid-stream: no kanshi" "kanshictl" "$(cat "$FAKE_LOG")"
+
 printf 'Clear stale stream flag\n' > "$PICKS"
 SETTINGS_CAPS="desktop" bash "$H" >/dev/null
 assert_eq "clear flag: removed" no "$([[ -e "$FLAG" ]] && echo yes || echo no)"
@@ -42,6 +55,10 @@ assert_eq "clear flag: removed" no "$([[ -e "$FLAG" ]] && echo yes || echo no)"
 : > "$FAKE_LOG"; printf 'Both monitors\n' > "$PICKS"
 SETTINGS_CAPS="desktop" bash "$H" >/dev/null
 assert_has "switch profile" "kanshictl switch desktop-dual" "$(cat "$FAKE_LOG")"
+
+: > "$FAKE_LOG"; printf 'Moonlight mode\n' > "$PICKS"
+SETTINGS_CAPS="desktop" DP2_SCALE=1.75 bash "$H" >/dev/null
+assert_has "moonlight off: back to dual" "kanshictl switch desktop-dual" "$(cat "$FAKE_LOG")"
 
 : > "$FAKE_LOG"; printf 'Scale\n1.5\n' > "$PICKS"
 SETTINGS_CAPS="desktop" bash "$H" >/dev/null

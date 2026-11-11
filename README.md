@@ -44,7 +44,7 @@ Detaching the Surface keyboard switches the desktop into tablet mode. The ledger
 
 Every colour comes from a palette file. `scripts/auto-theme.py` generates a palette from a few seed colours, and `drmis` switches the whole desktop to one live. There are 42 palettes in `themes/` (22 dark, 20 light). Each has an SVG wallpaper, but most of the PNG ones aren't in the repo.
 
-The desktop is niri with Waybar, eww, swaync, fuzzel and ghostty. eww draws the ledger, the wing, the notification center and the tablet UI. hyprlock is still the lock screen, and the login greeter is a small GTK app in `pkgs/greeter`.
+The desktop is niri with Waybar, eww, swaync, rofi and ghostty. eww draws the ledger, the wing, the notification center and the tablet UI. hyprlock is still the lock screen, and the login greeter is a small GTK app in `pkgs/greeter`.
 
 Desktop and Surface use [Lix](https://lix.systems), lanzaboote secure boot, LUKS, btrfs subvolumes and impermanence. Secrets are sops-nix with age. Tailscale connects all the machines.
 

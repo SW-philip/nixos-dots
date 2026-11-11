@@ -122,6 +122,6 @@ mv "$report.tmp" "$report"
 if [[ $new_fail -eq 1 && ${GOODNIGHT_NOTIFY:-} == 1 ]] && command -v notify-send >/dev/null; then
   body=$(jq -r '.hosts | to_entries[] | select(.value.status == "ok") | .key as $h
     | .value.new[] | select(.level == "fail") | "\($h): \(.text)"' "$report")
-  notify-send -u critical "goodnight: new failure" "$body" || true
+  notify-send -a goodnight -u critical "goodnight: new failure" "$body" || true
 fi
 exit "$new_fail"

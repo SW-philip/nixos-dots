@@ -23,7 +23,7 @@ case "${1:-}" in
 esac
 
 # Second press closes the open menu, like the launcher.
-if [[ -z "${SETTINGS_PICKER:-}" ]] && pkill -x fuzzel; then exit 0; fi
+if [[ -z "${SETTINGS_PICKER:-}" ]] && pkill -x rofi; then exit 0; fi
 
 while :; do
   rc=0

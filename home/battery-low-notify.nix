@@ -5,7 +5,7 @@ let
   hysteresis = 5;
   batteryCheckScript = pkgs.writeShellApplication {
     name = "battery-low-notify";
-    runtimeInputs = [ pkgs.coreutils pkgs.libnotify ];
+    runtimeInputs = [ pkgs.coreutils pkgs.libnotify pkgs.pipewire ];
     text = ''
       BAT="/sys/class/power_supply/BAT1"
       STATE_DIR="$HOME/.local/state/battery-low-notify"
@@ -29,7 +29,8 @@ let
 
       if [ "$capacity" -le "$CRITICAL_PCT" ]; then
         if [ ! -f "$critical_flag" ]; then
-          notify-send -u critical "Battery" "$capacity% remaining — plug in soon" 2>/dev/null || true
+          notify-send -a battery -u critical "Battery" "$capacity% remaining — plug in soon" 2>/dev/null || true
+          pw-play ${../assets/sounds/alert.wav} >/dev/null 2>&1 || true
           touch "$critical_flag" "$low_flag"
         fi
       elif [ "$capacity" -le "$LOW_PCT" ]; then
@@ -37,7 +38,8 @@ let
           rm -f "$critical_flag"
         fi
         if [ ! -f "$low_flag" ]; then
-          notify-send -u normal "Battery" "$capacity% remaining" 2>/dev/null || true
+          notify-send -a battery -u normal "Battery" "$capacity% remaining" 2>/dev/null || true
+          pw-play ${../assets/sounds/low-battery.wav} >/dev/null 2>&1 || true
           touch "$low_flag"
         fi
       elif [ "$capacity" -ge $((LOW_PCT + HYSTERESIS)) ]; then

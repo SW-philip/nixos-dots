@@ -30,7 +30,7 @@ def write_cfg():
 
 class GridTests(unittest.TestCase):
     def test_read_state_probes_in_parallel(self):
-        grids = {"g": [{"label": str(n), "type": "toggle", "update-command": f"c{n}"} for n in range(4)]}
+        grids = {"system": [{"label": str(n), "type": "toggle", "update-command": f"c{n}"} for n in range(4)]}
 
         def slow(cmd, timeout=0.6):
             time.sleep(0.3)
@@ -38,16 +38,15 @@ class GridTests(unittest.TestCase):
         t0 = time.monotonic()
         st = nc.read_state(grids, runner=slow)
         self.assertLess(time.monotonic() - t0, 0.8)
-        self.assertEqual([r["on"] for r in st["grids"]["g"]], [True] * 4)
+        self.assertEqual([r["on"] for r in st["grids"]["system"]], [True] * 4)
 
     def test_read_state_timeout_keeps_previous_value(self):
         grids = nc.load_grids(write_cfg())
         stuck = lambda cmd, timeout=0.6: None
-        st = nc.read_state(grids, runner=stuck, prev={("connectivity", 0): True})
-        self.assertEqual(st["grids"]["connectivity"][0]["on"], True)
+        st = nc.read_state(grids, runner=stuck, prev={("system", 0): True})
+        self.assertEqual(st["grids"]["system"][0]["on"], True)
         st = nc.read_state(grids, runner=stuck)
-        self.assertEqual(st["grids"]["connectivity"][0]["on"], False)
-        self.assertEqual([r["i"] for r in st["grids"]["connectivity"]], [0, 1])
+        self.assertEqual(st["grids"]["system"][0]["on"], False)
 
     def test_load_grids_keys_and_order(self):
         grids = nc.load_grids(write_cfg())
@@ -59,13 +58,16 @@ class GridTests(unittest.TestCase):
 
     def test_read_state_toggle_on_off_and_plain(self):
         grids = nc.load_grids(write_cfg())
-        out = {"wifi-state": "true\n", "dnd-state": "false\n"}
-        st = nc.read_state(grids, runner=lambda c, timeout=2.0: out.get(c, ""))
-        wifi, vpn = st["grids"]["connectivity"]
-        self.assertEqual((wifi["toggle"], wifi["on"]), (True, True))
-        self.assertEqual((vpn["toggle"], vpn["on"]), (False, False))
-        self.assertEqual(st["grids"]["system"][0]["on"], False)
-        self.assertEqual(st["grids"]["connectivity"][1]["i"], 1)
+        out = {"dnd-state": "true\n"}
+        probed = []
+        def runner(c, timeout=2.0):
+            probed.append(c)
+            return out.get(c, "")
+        st = nc.read_state(grids, runner=runner)
+        self.assertEqual(probed, ["dnd-state"])
+        self.assertEqual(st["grids"]["system"][0]["on"], True)
+        vpn, = st["grids"]["connectivity"]
+        self.assertEqual((vpn["toggle"], vpn["on"], vpn["i"]), (False, False, 1))
 
     def test_run_action_runs_command_only(self):
         grids = nc.load_grids(write_cfg())
@@ -79,7 +81,7 @@ class GridTests(unittest.TestCase):
         nc.run_action(grids, "nope", 0, runner=lambda c, timeout=2.0: self.fail("ran"))
 
     def test_run_action_default_does_not_wait(self):
-        grids = {"g": [{"command": "sleep 5"}]}
+        grids = {"system": [{"command": "sleep 5"}]}
         t0 = time.monotonic()
         nc.run_action(grids, "g", 0)
         self.assertLess(time.monotonic() - t0, 1.0)

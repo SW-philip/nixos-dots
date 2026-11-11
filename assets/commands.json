@@ -15,7 +15,7 @@
   {"group": "Fleet", "name": "fleet-status", "desc": "Probe every host and write the JSON snapshot ff and waybar read"},
   {"group": "Fleet", "name": "quivr", "desc": "Live per-host stats over ssh"},
   {"group": "Fleet", "name": "on", "desc": "Run a Wayland app on another host as a native window here"},
-  {"group": "Fleet", "name": "ssh-tunnel", "desc": "Pick a host and port in fuzzel, forward it over ssh, open the browser"},
+  {"group": "Fleet", "name": "ssh-tunnel", "desc": "Pick a host and port in the menu, forward it over ssh, open the browser"},
   {"group": "Fleet", "name": "reaper", "desc": "One pass over the fleet for stale processes"},
   {"group": "Fleet", "name": "theme-sync", "desc": "Keep desktop and surface on the same theme, newest change wins"},
   {"group": "Fleet", "name": "sync-status", "desc": "Summarise Syncthing health into one JSON snapshot"},
@@ -26,7 +26,7 @@
 
   {"group": "Desktop", "name": "settings", "desc": "Settings hub: network, bluetooth, audio, display, interface (Mod+S)"},
   {"group": "Desktop", "name": "snark", "desc": "Turn the commentary in tooltips, the ledger and the lock screen off or on: snark [status|on|off|toggle]"},
-  {"group": "Desktop", "name": "launcher", "desc": "App launcher (fuzzel list, or the tile grid in tablet mode)"},
+  {"group": "Desktop", "name": "launcher", "desc": "App launcher (rofi list, or the tile grid in tablet mode)"},
   {"group": "Desktop", "name": "drmis", "desc": "Switch the live theme: next, prev, mode toggle"},
   {"group": "Desktop", "name": "shoot-annotate", "desc": "Screenshot a region and annotate it in satty"},
   {"group": "Desktop", "name": "screen-record-toggle", "desc": "Start or stop a screen recording"},

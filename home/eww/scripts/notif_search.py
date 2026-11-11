@@ -26,7 +26,7 @@ def item_matches(item, q):
         return False
     if q["app"] and q["app"] not in item["app"].lower():
         return False
-    hay = f'{item["app"]} {item["summary"]} {item["body"]}'.lower()
+    hay = f'{item["app"]} {item.get("origin", "")} {item["summary"]} {item["body"]}'.lower()
     return all(t in hay for t in q["terms"])
 
 

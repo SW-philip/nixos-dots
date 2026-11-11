@@ -5,7 +5,7 @@ let
 
   appLaunch = pkgs.writeShellApplication {
     name = "app-launch";
-    runtimeInputs = with pkgs; [ jq libnotify coreutils fuzzel ];
+    runtimeInputs = with pkgs; [ jq libnotify coreutils (import ../rofi/menu.nix { inherit pkgs; }) ];
     text = builtins.readFile ../../scripts/app-launch.sh;
   };
 
@@ -47,6 +47,11 @@ in
           default = config.exec;
           description = "argv used on another host; differs for apps that hand off to a running instance.";
         };
+        keywords = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "Launcher search terms; the packaged entry's own name is all rofi would match otherwise.";
+        };
         hosts = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           description = "Fleet hosts that have this app installed (check-apps verifies it).";
@@ -73,6 +78,7 @@ in
     # %U kept: xdg-open and file managers pass URLs/files through this entry
     xdg.desktopEntries = lib.mapAttrs (id: a: {
       inherit (a) name icon;
+      settings.Keywords = lib.concatStringsSep ";" a.keywords + ";";
       exec = "app-launch ${id} %U";
       terminal = false;
       categories = [ "Utility" ];
@@ -92,20 +98,22 @@ in
         name = "Ghostty";
         icon = "com.mitchellh.ghostty";
         exec = [ "ghostty" "--gtk-single-instance=true" ];
+        keywords = [ "terminal" "console" "shell" ];
         remoteExec = [ "ghostty" "--gtk-single-instance=false" ];
         hosts = [ "desktop" "surface" ];
       };
       # a running Firefox swallows a second launch (shared user D-Bus), so remote gets its own profile.
       # A bare --profile dir, not -P: home-manager owns profiles.ini (read-only), so Firefox can't add a named profile.
-      # drmis only themes the profiles listed in profiles.ini, so each launch copies the host's deployed
-      # userChrome/userContent in and turns on the pref that makes Firefox read them.
+      # drmis only themes the profiles listed in profiles.ini, so chrome/ links to the default profile's
+      # (a copy went stale at the next theme switch). user.js turns on the pref that makes Firefox read it.
       "firefox" = {
         name = "Firefox";
         icon = "firefox";
         exec = [ "firefox" "--name" "firefox" ];
+        keywords = [ "browser" "web" "internet" ];
         remoteExec = [
           "sh" "-c"
-          ''d="$HOME/.local/share/firefox-remote"; mkdir -p "$d/chrome"; cp -f "$HOME"/.mozilla/firefox/default/chrome/user*.css "$d/chrome/" 2>/dev/null; echo 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);' > "$d/user.js"; exec firefox --no-remote --profile "$d"''
+          ''d="$HOME/.local/share/firefox-remote"; mkdir -p "$d"; [ -L "$d/chrome" ] || rm -rf "$d/chrome"; ln -sfn "$HOME/.mozilla/firefox/default/chrome" "$d/chrome"; printf '%s\n' 'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);' 'user_pref("browser.startup.page", 3);' > "$d/user.js"; exec firefox --no-remote --profile "$d"''
         ];
         hosts = [ "desktop" "surface" ];
       };
@@ -113,12 +121,14 @@ in
         name = "VLC media player";
         icon = "vlc";
         exec = [ "vlc" ];
+        keywords = [ "video" "audio" "player" "media" ];
         hosts = [ "desktop" "surface" ];
       };
       "org.kde.kdenlive" = {
         name = "Kdenlive";
         icon = "kdenlive";
         exec = [ "kdenlive" ];
+        keywords = [ "video" "editor" ];
         hosts = [ "desktop" "surface" ];
       };
       # zed forwards a second launch to the running instance over its own IPC; a separate data dir avoids that
@@ -126,6 +136,7 @@ in
         name = "Zed";
         icon = "zed";
         exec = [ "zeditor" ];
+        keywords = [ "text" "code" "editor" "ide" ];
         remoteExec = [ "sh" "-c" "exec zeditor --user-data-dir \"$HOME/.local/share/zed-remote\"" ];
         hosts = [ "desktop" "surface" ];
       };

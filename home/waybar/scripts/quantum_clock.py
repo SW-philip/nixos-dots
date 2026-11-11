@@ -35,6 +35,7 @@ H24_FILE = CACHE_DIR / "24h"
 CLOCK_DEFAULT = "moon"
 CLOCK_MODES = ["moon", "progress", "natural", "caliper", "binary"]
 SURPRISE_SECS = 5
+SURPRISE_FADE = 0.3  # = the #custom-clock.dim opacity transition in style.nix
 
 SYNODIC = 29.530588853
 REF_NEW_JD = 2451550.259  # 2000-01-06 18:14 UTC
@@ -310,6 +311,7 @@ def stream() -> int:
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     palette = Palette()
     surprise_mode, surprise_until, last_stamp = None, 0.0, ""
+    was_surprise = False
     while True:
         ep = time.time()
         mode = current_mode()
@@ -323,7 +325,15 @@ def stream() -> int:
                 surprise_until = ep + SURPRISE_SECS
             if surprise_mode and ep < surprise_until:
                 mode = surprise_mode
+        is_surprise = mode == surprise_mode and ep < surprise_until
         try:
+            if is_surprise != was_surprise:
+                # dim the outgoing face; the new one fades up as the class drops
+                frame = render(ep, current_mode() if is_surprise else surprise_mode, palette.get())
+                emit({**frame, "class": [frame["class"], "dim"]})
+                time.sleep(SURPRISE_FADE)
+                ep = time.time()
+            was_surprise = is_surprise
             emit(render(ep, mode, palette.get()))
         except OSError as e:
             print(f"quantum-clock: palette: {e}", file=sys.stderr)

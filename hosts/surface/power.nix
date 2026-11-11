@@ -25,9 +25,9 @@ in
 
   boot.extraModprobeConfig = ''
     options snd_hda_intel power_save=1 power_save_controller=Y
-    # Intel BT L2CAP ERTM handling drops DS4/DS3 controllers seconds after
-    # connect ("Connection terminated by remote user" loop in bluetoothctl).
-    options bluetooth disable_ertm=1
+    # bluetooth disable_ertm is deliberately unset here: tetherd needs L2CAP
+    # ERTM for iPhone Messages/Contacts (MAP/PBAP). The old workaround for
+    # DS4/DS3 drops ("Connection terminated by remote user") is on desktop only.
   '';
 
   # ACTION=="add" alone covers this: systemd-udevd replays "add" for every

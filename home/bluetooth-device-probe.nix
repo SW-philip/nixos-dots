@@ -4,7 +4,7 @@ let
 
   probeScript = pkgs.writeShellApplication {
     name = "bluetooth-device-probe";
-    runtimeInputs = [ pkgs.glib pkgs.bluez pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.libnotify ];
+    runtimeInputs = [ pkgs.glib pkgs.bluez pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.libnotify pkgs.pipewire ];
     text = ''
       export PATH="${scriptsDir}:$PATH"
 
@@ -38,6 +38,30 @@ let
             sleep 110
           done ; } &
       ''}
+
+      # chime <wav> <mac>: connect/disconnect sound. The Ember mug is skipped:
+      # its own poller reconnects constantly and would chime all day.
+      # A paired device that flaps (weak link, iPhone re-pairing LE/BR-EDR) would
+      # otherwise ring on every edge: one chime per device+direction per 60 s.
+      # The log line names the device when one still rings.
+      chime_dir="''${XDG_RUNTIME_DIR:-/tmp}/bt-chime"
+      mkdir -p "$chime_dir"
+      chime() {
+        local info name key now last
+        info=$(bluetoothctl info "$2" 2>/dev/null) || return 0
+        # Scanning surfaces strangers' random-address BLE devices; bluez emits
+        # Connected: false when it expires them. Only paired devices chime.
+        grep -q 'Paired: yes' <<<"$info" || return 0
+        name=$(sed -n 's/^[[:space:]]*Name: //p' <<<"$info" | head -n1)
+        case "$name" in *Mug*|*Ember*) return 0 ;; esac
+        key="$chime_dir/$2-$(basename "$1")"
+        now=$(date +%s)
+        last=$(cat "$key" 2>/dev/null || echo 0)
+        (( now - last >= 60 )) || return 0
+        echo "$now" > "$key"
+        echo "chime $(basename "$1") $2 ''${name:-unknown}" >&2
+        pw-play "$1" >/dev/null 2>&1 || true
+      }
 
       # "<name> is in range. Connect?" toast, once per device per cooldown. The
       # Ember mug is excluded: its own poller connects and caches its state.
@@ -76,12 +100,18 @@ let
           *dev_*"'org.bluez.Device1'"*"'Connected': <true>"*)
             mac=$(mac_from_line "$line")
             [[ "$mac" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] || continue
+            chime ${../assets/sounds/connect.wav} "$mac" &
             (
               first=$(bt-device-probe.sh probe "$mac")
               if [[ "$first" == "1" ]]; then
                 "${scriptsDir}/bt-device-fields-menu.sh" "$mac"
               fi
             ) &
+            ;;
+          *dev_*"'org.bluez.Device1'"*"'Connected': <false>"*)
+            mac=$(mac_from_line "$line")
+            [[ "$mac" =~ ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$ ]] || continue
+            chime ${../assets/sounds/disconnect.wav} "$mac" &
             ;;
           *dev_*"'org.bluez.Device1'"*"'RSSI'"*)
             mac=$(mac_from_line "$line")

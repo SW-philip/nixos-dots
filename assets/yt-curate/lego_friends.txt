@@ -1,0 +1,56 @@
+# dest: television/lego_friends
+# LEGO Friends: The Next Chapter (2023), full episodes from the official LEGO channel
+# yt-curate drops new episodes loose here (dest can't hold spaces); file them into
+# "television/LEGO Friends The Next Chapter (2023)/Season NN/" by hand. The
+# .archive stays here so a rerun skips what is already filed.
+https://www.youtube.com/watch?v=dNxg_AShgp0  # NEW BEGINNINGS 🥳🎉 | S1 Special | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=FQFUrW-UP1g  # ZAC'S FIRST DAY AT HEARTLAKE 👋🙋 | S1E1 |  #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=BUzD9UO7hmM  # SPOOKY SLEEPOVER WITH LEGO FRIENDS 🎃👻😱 | S1E2 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=R7uZx-eC8rY  # LIANN'S DRAWING DISASTER ✍️🎨 | S1E3 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=hsD_NPv9SMI  # OPERATION PUPPY CLEANUP! 💻🐶🧽 | S1E4 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=d7_xBuC2Ob8  # THE BIG PUPPY ESCAPE 🐶🐾 | S1E5 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=qxv4imgI6Q8  # ALIYA SPEAKS FROM THE HEART ❤️🧠 | S1E6 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=tcf9krsPWoE  # LEO'S FUNDRAISING FIASCO 😅🚨 | S1E7 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=JPKELmRnHfk  # THE DECIDING VOTE 🤔💭 | S1E8 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=19ZsEBNAhQw  # THE FRIENDS COMMUNITY SPIRIT 👨‍👩‍👧‍👦 ❤️ | S1E9 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=7Y-DTljsOoM  # TEAMWORK MAKES THE DREAM WORK 👫❤️| S1E10 | #FullEpisode | LEGO Friends The Next Chapter
+https://www.youtube.com/watch?v=510SJjltsgI  # FARM FEST 🚜🐴🧑‍🌾 | S2E1 | #FullEpisode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=bitEZrgOVO4  # SPACE RACE COMPETITION 🚀🧑‍🚀🏅 | S2E2 | #FullEpisode | LEGO® Friends: The Next Chapter
+https://www.youtube.com/watch?v=a3kvHFxQUHg  # LIANN’S MAGIC LUCKY CHARMS 🍀🪨🪄   | S2E3 | #FullEpisode | LEGO® Friends: The Next Chapter
+https://www.youtube.com/watch?v=t_khCv75HdU  # AUTUMN’S STUNTS TROUBLE 🧗‍♀️🛶🚵 | S2E4 | #FullEpisode | LEGO® Friends: The Next Chapter
+https://www.youtube.com/watch?v=DLb4Lyu5QLo  # ZAC’S JOB HUNT 🌲🧻🛶🚴‍♀️ | S2E5 | #FullEpisode | LEGO® Friends: The Next Chapter
+https://www.youtube.com/watch?v=4qzinIY3uKI  # LEY-LA, RISE OF A MUSIC STAR 🎸🎶🌟 | S2E6 | #FullEpisode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=GYnmfYrWwj4  # Friends Fright Challenge😱👻🎃 | S2E7 | #FullEpisode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=ZfgS_-NIqO0  # OLLY’S QUEST FOR FAME 🌟💎🤩 | S2E8 | #FullEpisode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=n5mI7ZBMh34  # SECRET CRUSH💖🤫👫 | S2E9 | #FullEpisode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=FZ03bzG9o04  # MUSIC “BATTLE OF THE STARS”🎤🌟🎵 | S2E10 | #FullEpisode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=94V2RTZbLds  # FRIENDS REUNITE | S2E11 | #FullEpisode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=d3ZbT2XXXHQ  # Fake News Frenzy! 📺 😱 | Season 3 Episode 1 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=eh7cLAfuIYY  # Rescue that Piano! 🎹 🎵 | Season 3 Episode 2 | Full Episode| LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=g8B1DzClO2E  # Pranks with Friends 🤪| Season 3 Episode 3 |Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=f18AMKsw-h4  # Pickle’s 🐶 Perfect Dog Feast 😋 | Season 3 Episode 4 | Full Episode| LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=rfhE3Qvw4Jw  # 📚 Comics & Confessions! 😂😱 | Season 3 Episode 5 | Full Episode| LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=zGiJu-dMiVs  # 🍳Cooking Dreams at Risk 😱| Season 3 Episode 6 | Full Episode| LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=V4I7KCAH5dI  # Locked in the Comic Shop! 📚😱| Season 3 Episode 7 | Full Episode| LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=G1QQseW_dK4  # Babysitting FAIL?! 👶😱 | Season 3 Episode 8 | Full Episode| LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=PQZQ6ZEndEQ  # Zac's Awesome Soccer Skills 🌟⚽ | Season 3 Episode 9 | Full Episode| LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=3-eLOvkyaYY  # Too Many Cooks in the Kitchen 🍳| Season 3 Episode 10 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=gPzgHu_d8sc  # 💖 Falling for Heartlake City 💖 | Season 3 Episode 11 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=jArbxTAjv_8  # Creative Cooking Challenge! 🍳🎉 | Season 3 Episode 12 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=eEhwOzgyB-0  # The Importance of KINDNESS! 💚 | Season 3 Episode 13 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=1jkUBJEcZ5c  # Beach Job CHAOS! 🏖️ | Season 3 Episode 14 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=rlOTbtJDm9c  # Finding Our Values 🌟 | Season 3 Episode 15 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=nrCos_-Cr4g  # Tackling Athletic CHALLENGES! 🏈 | Season 3 Episode 16 | Full Episode |LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=wWED58gANxw  # Dolphin Name Contest! 🌊🐬 | Season 3 Episode 17 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=yys-DHohmoQ  # Cooking With ODD ingredients! 🤔| Season 3 Episode 18 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=AI1Xsg4fyLE  # Full Episode FINALE 🎬😂 Movie Ticket Chaos! | Season 3, Episode 20 | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=iVGWoKwLATI  # Can They FIND the Lost Horse?🐴 | Season 4 Episode 1 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=bePbcxndtG4  # The First Secret Mission🕵️‍♀️ | Season 4 Episode 2 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=tfCOwjGdlEE  # Pets Got Talent Show 🐴🐶🐱 | Season 4 Episode 3 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=kt8dA_BLQWY  # Aliya's Unicorn Dreams 😱🦄 | Season 4 Episode 4 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=rBN6I3bUJvo  # Amusement Park Rescue 🎡😱 | Season 4 Episode 5 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=7tMOzXdmfuE  # Pet Gecko on the Loose 🦎 | Season 4 Episode 6 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=yNlhe2Fv7b0  # Unicorn Cafe Birthday Chaos | Season 4 Episode 7 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=NIBK27DGK9w  # Horse Sleepover Party 🐴 | Season 4 Episode 8 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=GPETBGXDQEc  # Raccoon Treehouse Takeover 🦝 | Season 4 Episode 9 | Full Episode | LEGO Friends: The Next Chapter
+https://www.youtube.com/watch?v=psZyjj3n8Ws  # Pets on the case! 🔍😱 | Season 4 Episode 10 | Full Episode | LEGO Friends: The Next Chapter

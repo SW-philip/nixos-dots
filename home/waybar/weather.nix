@@ -7,7 +7,7 @@ let
   python = pkgs.python3.withPackages (ps: with ps; [ requests ]);
 
   weatherScript = pkgs.writeShellScriptBin "waybar-weather" ''
-    export PATH="${lib.makeBinPath [ python pkgs.fuzzel pkgs.coreutils ]}:$PATH"
+    export PATH="${lib.makeBinPath [ python (import ../rofi/menu.nix { inherit pkgs; }) pkgs.coreutils ]}:$PATH"
     if [ -f /run/secrets/openweathermap_api_key ]; then
       export OPENWEATHERMAP_API_KEY="$(cat /run/secrets/openweathermap_api_key)"
     elif [ -f "$HOME/.config/waybar/.weather_api_key" ]; then

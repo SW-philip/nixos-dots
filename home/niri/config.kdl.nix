@@ -180,7 +180,7 @@ animations {
 // than relying on an unconfirmed default. Xray mode — cheap, blurs a
 // static wallpaper snapshot rather than live content — is a per-rule
 // background-effect property, not set here. Desktop (GTX 1660) drops
-// xray on fuzzel + the ghostty surfaces for real live frost; surface
+// xray on rofi + the ghostty surfaces for real live frost; surface
 // (Iris iGPU) keeps xray everywhere. The auto-wallpaper is smooth and
 // same-palette, so xray blur over it is visually a no-op — live blur is
 // the only way the effect actually reads.
@@ -189,8 +189,9 @@ blur {
     passes 3
 }
 
-// swaybg shows the stepped "pit" and is pinned into the backdrop, so it sits
-// still beneath the workspace cards in the overview. The real wallpaper is
+// wallpaper-pit (pit-fall, or swaybg) draws the decaying "pit" and is pinned
+// into the backdrop, so it sits still beneath the workspace cards in the
+// overview. The real wallpaper is
 // the unpinned `awww-daemoncard` layer: it belongs to each workspace, so it
 // slides with workspace switches and shrinks into a card in the overview.
 layer-rule {
@@ -488,12 +489,13 @@ window-rule {
 // waybar/swaync stay opaque on purpose (still true as of 2026-09-04) —
 // this doesn't apply to them.
 
-// fuzzel's wlr-layer-shell namespace defaults to "launcher" — still used
-// for the dmenu-style pickers (Mod+V clipboard, power-profile). Paired with
-// home/fuzzel/colors.nix's alpha background. Desktop drops xray for live
+// rofi's wlr-layer-shell namespace is "rofi" — covers the launcher and every
+// dmenu-style picker (Mod+V clipboard, power-profile). Paired with
+// home/rofi/colors.nix's alpha background; corner radii match the leaf window. Desktop drops xray for live
 // frost; surface keeps xray.
 layer-rule {
-    match namespace="^launcher$"
+    match namespace="^rofi$"
+    geometry-corner-radius 24 6 24 6
     background-effect {
         blur true
         ${if isDesktop then "" else "xray true"}
@@ -506,7 +508,7 @@ binds {
     Mod+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
     Mod+Space  hotkey-overlay-title="Launcher" { spawn "${launcherBin}"; }
     Mod+E      hotkey-overlay-title="Files" { spawn "nemo"; }
-    Mod+V      hotkey-overlay-title="Clipboard history" { spawn "bash" "-c" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
+    Mod+V      hotkey-overlay-title="Clipboard history" { spawn "bash" "-c" "cliphist list | menu --dmenu | cliphist decode | wl-copy"; }
     Mod+B      hotkey-overlay-title="Toggle sidebar" { spawn "${sidebarToggleBin}"; }
     Mod+S hotkey-overlay-title="Settings" { spawn "settings"; }
     ${if hasTouch then ''Mod+Shift+W hotkey-overlay-title="On-screen keyboard" { spawn "${toggleOskBin}"; }'' else ""}
@@ -542,7 +544,7 @@ binds {
 
     // Resize
     Mod+R { switch-preset-column-width; }
-    Mod+Shift+R hotkey-overlay-title="Reload niri config" { spawn "bash" "-c" "niri msg action load-config-file && notify-send -u low niri 'config reloaded'"; }
+    Mod+Shift+R hotkey-overlay-title="Reload niri config" { spawn "bash" "-c" "niri msg action load-config-file && notify-send -a niri -u low niri 'config reloaded'"; }
     Mod+Minus { set-column-width "-5%"; }
     Mod+Equal { set-column-width "+5%"; }
     Mod+Shift+Minus { set-window-height "-5%"; }
@@ -572,8 +574,8 @@ binds {
     Mod+Ctrl+Shift+Comma  hotkey-overlay-title="Previous theme" { spawn "drmis" "prev"; }
     Mod+Ctrl+Shift+Period hotkey-overlay-title="Next theme" { spawn "drmis" "next"; }
     Mod+Ctrl+Shift+M      hotkey-overlay-title="Toggle light/dark" { spawn "drmis" "mode" "toggle"; }
-    Mod+Ctrl+D hotkey-overlay-title="Monitors: both" { spawn "bash" "-c" "kanshictl switch desktop-dual && notify-send -u low Monitors 'both'"; }
-    Mod+Ctrl+S hotkey-overlay-title="Monitors: DP-2 only" { spawn "bash" "-c" "kanshictl switch desktop-single-dp2 && notify-send -u low Monitors 'DP-2 only'"; }
+    Mod+Ctrl+D hotkey-overlay-title="Monitors: both" { spawn "bash" "-c" "kanshictl switch desktop-dual && notify-send -a display -u low Monitors 'both'"; }
+    Mod+Ctrl+S hotkey-overlay-title="Monitors: DP-2 only" { spawn "bash" "-c" "kanshictl switch desktop-single-dp2 && notify-send -a display -u low Monitors 'DP-2 only'"; }
 
     // Panel edges (wing/ledger eww bars — see home/eww/scripts/panel-edge.sh)
     // One overlay line covers all four arrows.

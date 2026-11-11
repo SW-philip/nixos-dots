@@ -9,8 +9,8 @@ mkdir -p "$CACHE"
 FAVES="$CACHE/favorites"
 touch "$FAVES"
 
-# fuzzel --dmenu: centered, flat, colours from ~/.config/fuzzel/fuzzel.ini.
-launcher=(fuzzel --dmenu --lines 14)
+# menu --dmenu: centered, flat, colours from ~/.config/rofi/colors.rasi.
+launcher=(menu --dmenu --lines 14)
 
 WIFI_LOG=$(mktemp)
 trap 'rm -f "$WIFI_LOG"' EXIT
@@ -78,7 +78,7 @@ choice=$(printf '%s\n' "${choices[@]}" | "${launcher[@]}" --prompt '📡 wifi:')
 [[ -z "$choice" ]] && exit 0
 
 if [[ "$choice" == *"Rescan networks"* ]]; then
-  notify-send "Wi-Fi" "🔁 rescanning..."
+  notify-send -a wifi "Wi-Fi" "🔁 rescanning..."
   # List now uses --rescan no, so force a real scan here before re-opening.
   nmcli dev wifi list --rescan yes >/dev/null 2>&1 || true
   exec "$0"
@@ -100,23 +100,23 @@ if [[ "$ssid" == "$active_ssid" ]]; then
   if [[ "$action" == "toggle favorite" ]]; then
     if grep -qxF "$ssid" "$FAVES"; then
       grep -vxF "$ssid" "$FAVES" > "$FAVES.tmp" && mv "$FAVES.tmp" "$FAVES"
-      notify-send "Wi-Fi" "Removed $ssid from favorites"
+      notify-send -a wifi "Wi-Fi" "Removed $ssid from favorites"
     else
       echo "$ssid" >> "$FAVES"
-      notify-send "Wi-Fi" "Added $ssid to favorites"
+      notify-send -a wifi "Wi-Fi" "Added $ssid to favorites"
     fi
     exit 0
   fi
 
   nmcli con down "$ssid" || true
-  notify-send "Wi-Fi" "📴 disconnected from $ssid"
+  notify-send -a wifi "Wi-Fi" "📴 disconnected from $ssid"
   exit 0
 fi
 
-notify-send "Wi-Fi" "connecting to $ssid..."
+notify-send -a wifi "Wi-Fi" "connecting to $ssid..."
 
 if nmcli -w 10 dev wifi connect "$ssid" >"$WIFI_LOG" 2>&1; then
-  notify-send "Wi-Fi" "✅ connected to $ssid"
+  notify-send -a wifi "Wi-Fi" "✅ connected to $ssid"
   exit 0
 fi
 
@@ -125,10 +125,10 @@ if grep -qi "Secrets were required" "$WIFI_LOG"; then
   [[ -z "$pass" ]] && exit 0
 
   if nmcli dev wifi connect "$ssid" password "$pass"; then
-    notify-send "Wi-Fi" "✅ connected to $ssid"
+    notify-send -a wifi "Wi-Fi" "✅ connected to $ssid"
   else
-    notify-send "Wi-Fi" "❌ authentication failed"
+    notify-send -a wifi "Wi-Fi" "❌ authentication failed"
   fi
 else
-  notify-send "Wi-Fi" "❌ failed to connect to $ssid"
+  notify-send -a wifi "Wi-Fi" "❌ failed to connect to $ssid"
 fi

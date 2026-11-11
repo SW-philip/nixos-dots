@@ -4,11 +4,12 @@ SYSTEMCTL="/run/current-system/sw/bin/systemctl"
 SUDO="/run/wrappers/bin/sudo"
 
 declare -A VPN_SERVICES=(
+  ["Ohio (P2P)"]="protonvpn-oh"
   ["New York"]="protonvpn-ny"
   ["Brisbane, AU"]="protonvpn-au"
   ["Canada"]="protonvpn-ca"
 )
-VPN_ORDER=("New York" "Brisbane, AU" "Canada")
+VPN_ORDER=("Ohio (P2P)" "New York" "Brisbane, AU" "Canada")
 
 # Detect active ProtonVPN tunnel
 active_vpn_svc=""
@@ -44,25 +45,25 @@ fi
 entries+=("󰖪  Disconnect")
 
 choice=$(printf '%s\n' "${entries[@]}" \
-  | fuzzel --dmenu --prompt "Network › " --width 300 --lines 5) || exit 0
+  | menu --dmenu --prompt "Network › " --width 30 --lines 6) || exit 0
 [ -z "$choice" ] && exit 0
 
 if [[ "$choice" == *"Disconnect"* ]]; then
   [ -n "$active_vpn_svc" ] && $SUDO -n $SYSTEMCTL stop "$active_vpn_svc" 2>/dev/null
   $tailscale_on && $SUDO -n $SYSTEMCTL stop tailscaled.service 2>/dev/null
-  notify-send "Network" "Disconnected" -i network-vpn-off
+  notify-send -a vpn "Network" "Disconnected" -i network-vpn-off
   exit 0
 fi
 
 if [[ "$choice" == *"Tailscale"* ]]; then
   if $tailscale_on; then
     $SUDO -n $SYSTEMCTL stop tailscaled.service && \
-      notify-send "Tailscale" "Disconnected" -i network-vpn-off || \
-      notify-send "Tailscale" "Disconnect failed" -i network-error
+      notify-send -a vpn "Tailscale" "Disconnected" -i network-vpn-off || \
+      notify-send -a vpn "Tailscale" "Disconnect failed" -i network-error
   else
     $SUDO -n $SYSTEMCTL start tailscaled.service && \
-      notify-send "Tailscale" "Connected" -i network-vpn-symbolic || \
-      notify-send "Tailscale" "Connect failed" -i network-error
+      notify-send -a vpn "Tailscale" "Connected" -i network-vpn-symbolic || \
+      notify-send -a vpn "Tailscale" "Connect failed" -i network-error
   fi
   exit 0
 fi
@@ -74,8 +75,8 @@ target="${VPN_SERVICES[$selected_label]:-}"
 
 if [ "$selected_label" = "$active_vpn_label" ]; then
   $SUDO -n $SYSTEMCTL stop "$active_vpn_svc" && \
-    notify-send "VPN" "Disconnected — $selected_label" -i network-vpn-off || \
-    notify-send "VPN" "Disconnect failed" -i network-error
+    notify-send -a vpn "VPN" "Disconnected — $selected_label" -i network-vpn-off || \
+    notify-send -a vpn "VPN" "Disconnect failed" -i network-error
   exit 0
 fi
 
@@ -84,7 +85,7 @@ fi
 [ -n "$active_vpn_svc" ] && $SUDO -n $SYSTEMCTL stop "$active_vpn_svc" 2>/dev/null
 
 if ! $SUDO -n $SYSTEMCTL start "wg-quick-${target}.service"; then
-  notify-send "VPN" "Connect failed — service wouldn't start" -i network-error
+  notify-send -a vpn "VPN" "Connect failed — service wouldn't start" -i network-error
   exit 1
 fi
 
@@ -104,9 +105,9 @@ for _ in $(seq 1 20); do
 done
 
 if [ "$handshake" = "1" ]; then
-  notify-send "VPN" "Connected — $selected_label" -i network-vpn-symbolic
+  notify-send -a vpn "VPN" "Connected — $selected_label" -i network-vpn-symbolic
 else
   $SUDO -n $SYSTEMCTL stop "wg-quick-${target}.service" 2>/dev/null
-  notify-send "VPN" "Connect failed — no handshake from $selected_label" -i network-error
+  notify-send -a vpn "VPN" "Connect failed — no handshake from $selected_label" -i network-error
   exit 1
 fi

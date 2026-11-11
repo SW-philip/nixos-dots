@@ -1,10 +1,17 @@
 # Niri session utility scripts — shell derivations for Wayland tools, screen capture,
 # MPRIS, and waybar mode. Extracted from home/niri/default.nix for modularity.
-{ pkgs, lib }:
+{ pkgs, lib, animatePit ? false }:
 rec {
-  swaybgLauncher = pkgs.writeShellScript "swaybg-launcher" ''
+  pitLauncher = pkgs.writeShellScript "pit-launcher" ''
     # the overview pit; the `card` awww daemon draws the real wallpaper inside the workspaces
     img="$HOME/.local/state/wallpaper-pit.png"
+    ${lib.optionalString animatePit ''
+      # pit-fall animates the loose shards; a still swaybg pit if it can't start
+      if [ -e "$img" ] && [ -e "''${img%.png}.json" ]; then
+        ${pkgs.pit-fall}/bin/pit-fall "$img" "''${img%.png}.json" && exit 0
+        echo "pit-fall failed; falling back to swaybg" >&2
+      fi
+    ''}
     [ -e "$img" ] || img="$(cat "$HOME/.local/state/wallpaper")"
     exec ${pkgs.swaybg}/bin/swaybg -o '*' -i "$img" -m fill
   '';
@@ -119,15 +126,15 @@ rec {
   '';
 
   # Four-finger tap (osk-gesture.py) with Pegasus focused: touchscreens have no
-  # keyboard to quit with. Ask first via a fuzzel dmenu (touch-tappable), then
+  # keyboard to quit with. Ask first via a menu dmenu (touch-tappable), then
   # close the window. Any other focused window: do nothing.
   pegasusExit = pkgs.writeShellScriptBin "pegasus-exit" ''
     NIRI=/run/current-system/sw/bin/niri
     win=$($NIRI msg --json focused-window 2>/dev/null) || exit 0
     id=$(echo "$win" | ${pkgs.jq}/bin/jq -r '.id // empty')
     echo "$win" | ${pkgs.jq}/bin/jq -e '(.app_id // "") | ascii_downcase | contains("pegasus")' >/dev/null || exit 0
-    ${pkgs.procps}/bin/pgrep -x fuzzel >/dev/null && exit 0
-    pick=$(printf 'Quit Pegasus\nCancel\n' | ${pkgs.fuzzel}/bin/fuzzel --dmenu --prompt 'Leave Pegasus? ')
+    ${pkgs.procps}/bin/pgrep -x rofi >/dev/null && exit 0
+    pick=$(printf 'Quit Pegasus\nCancel\n' | ${(import ../rofi/menu.nix { inherit pkgs; })}/bin/menu --dmenu --prompt 'Leave Pegasus? ')
     [ "$pick" = "Quit Pegasus" ] && exec $NIRI msg action close-window --id "$id"
   '';
 
@@ -149,18 +156,17 @@ rec {
     exec ${pkgs.bash}/bin/bash ${./tablet-shell.sh}
   '';
 
-  # Crossfade over the tablet-mode switchover (see home/niri/tablet-fade.sh).
+  # Crossfade over the tablet-mode switchover: pkgs/theme-fade (layer-shell overlay, exclusive zone -1).
   tabletFade = pkgs.writeShellScriptBin "tablet-fade" ''
-    export TABLET_EWW=${pkgs.eww}/bin/eww
-    export TABLET_SYSTEMCTL=${pkgs.systemd}/bin/systemctl
-    export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.procps ]}:$PATH"
-    exec ${pkgs.bash}/bin/bash ${./tablet-fade.sh} "$@"
+    exec ${pkgs.theme-fade}/bin/theme-fade "$@"
   '';
 
   # Single writer of the surface-cover state file: hardware (Type Cover present) unless
   # surface-mode forces desktop, which reads as "attached" so every consumer (waybar,
   # scale, squeekboard, firefox UA) takes the desktop layout. `fade` crossfades on change.
-  # flock: the udev loop and surface-mode can fire together.
+  # flock: the udev loop and surface-mode can fire together. Children run with fd 9
+  # closed (9>&-): tablet-shell's `eww open` can become a long-lived daemon, and one that
+  # inherits the lock blocks every later update (re-attach never switched back).
   surfaceCoverUpdate = pkgs.writeShellScriptBin "surface-cover-update" ''
     export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep pkgs.util-linux ]}:$PATH"
     SC=${pkgs.systemd}/bin/systemctl
@@ -174,17 +180,17 @@ rec {
     prev=$(cat "$state" 2>/dev/null || true)
     do_fade=0
     if [ "''${1:-}" = fade ] && [ "$prev" != "$want" ]; then do_fade=1; fi
-    if [ "$do_fade" = 1 ]; then ${tabletFade}/bin/tablet-fade out || true; fi
+    if [ "$do_fade" = 1 ]; then ${tabletFade}/bin/tablet-fade out 9>&- || true; fi
     echo "$want" > "$state"
     # the OSK follows the physical cover, not the layout: desktop mode still needs typing
     if [ "$cover" = 1 ]; then
-      $SC --user stop squeekboard.service 2>/dev/null || true
+      $SC --user stop squeekboard.service 9>&- 2>/dev/null || true
     else
-      $SC --user start squeekboard.service 2>/dev/null || true
+      $SC --user start squeekboard.service 9>&- 2>/dev/null || true
     fi
-    ${surfaceScale}/bin/surface-scale || true
-    ${tabletShell}/bin/tablet-shell || true
-    if [ "$do_fade" = 1 ]; then ${tabletFade}/bin/tablet-fade in || true; fi
+    ${surfaceScale}/bin/surface-scale 9>&- || true
+    ${tabletShell}/bin/tablet-shell 9>&- || true
+    if [ "$do_fade" = 1 ]; then ${tabletFade}/bin/tablet-fade in 9>&- || true; fi
   '';
 
   # With the Type Cover off, tablet mode is automatic; this pins the desktop layout
@@ -203,10 +209,10 @@ rec {
     exec ${surfaceCoverUpdate}/bin/surface-cover-update fade
   '';
 
-  # Cover detached: the tablet tile grid (eww window launcher-tablet). Otherwise fuzzel's
+  # Cover detached: the tablet tile grid (eww window launcher-tablet). Otherwise menu's
   # drun list, with a random dry placeholder line. Desktop has no cover-state file, so it
-  # always gets fuzzel. PATH is appended so a caller's own PATH wins (tests stub fuzzel
-  # that way); fuzzel lives in the user profile. Fuzzel isn't single-instance, so a second
+  # always gets the menu. PATH is appended so a caller's own PATH wins (tests stub menu
+  # that way); menu lives in the user profile. Rofi isn't single-instance, so a second
   # press kills the open one (toggle).
   launcher = pkgs.writeShellScriptBin "launcher" ''
     export PATH="$PATH:/etc/profiles/per-user/$(id -un)/bin"
@@ -214,19 +220,19 @@ rec {
     if [ "$(cat "$state" 2>/dev/null)" = detached ]; then
       exec "''${LAUNCHER_EWW:-${pkgs.eww}/bin/eww}" open --toggle launcher-tablet
     fi
-    pkill -x fuzzel && exit 0
+    pkill -x rofi && exit 0
     ph="$(shuf -n1 ${../../assets/launcher-lines.txt})"
-    # Same curated list as the tablet grid, shown as a fuzzel list. Missing/empty file =>
+    # Same curated list as the tablet grid, shown as a menu list. Missing/empty file =>
     # full drun, so the launcher never comes up dead.
     favs="''${LAUNCHER_FAVS:-$HOME/.local/share/eww/launcher-favs.json}"
     list=$(${pkgs.jq}/bin/jq -c '.' "$favs" 2>/dev/null)
-    [ -n "$list" ] && [ "$list" != "[]" ] || exec fuzzel --placeholder "$ph"
+    [ -n "$list" ] && [ "$list" != "[]" ] || exec menu --placeholder "$ph"
     idx=$(echo "$list" | ${pkgs.jq}/bin/jq -r '.[] | "\(.icon)  \(.label)"' \
-      | fuzzel --placeholder "$ph" --dmenu --index) || exit 0
+      | menu --placeholder "$ph" --dmenu --index) || exit 0
     [ -n "$idx" ] || exit 0
     cmd=$(echo "$list" | ${pkgs.jq}/bin/jq -r ".[$idx].cmd")
-    # the "All apps" row: the first fuzzel has exited by now, so this is the plain drun list
-    [ "$cmd" = fuzzel ] && exec fuzzel --placeholder "$ph"
+    # the "All apps" row: the first menu has exited by now, so this is the plain drun list
+    [ "$cmd" = menu ] && exec menu --placeholder "$ph"
     # a bare command that is a registry app's binary goes through app-launch (host picker);
     # anything with arguments is left exactly as written
     reg="''${APP_LAUNCH_REGISTRY:-$HOME/.config/app-launch/registry.json}"
@@ -251,11 +257,11 @@ rec {
     # ("gpu-screen-reco") so -x against the 19-char name never matched and
     # every press started a new recorder instead of stopping the running one.
     if pkill -INT -f 'gpu-screen-recorder -w screen'; then
-      notify-send "Screen recording" "Stopped — opening in LosslessCut"
+      notify-send -a recording "Screen recording" "Stopped — opening in LosslessCut"
       exit 0
     fi
     out="$HOME/Videos/recording-$(date +%Y%m%d-%H%M%S).mp4"
-    notify-send "Screen recording" "Started"
+    notify-send -a recording "Screen recording" "Started"
     gpu-screen-recorder -w screen -f 60 -a default_output -o "$out"
     losslesscut "$out"
   '';

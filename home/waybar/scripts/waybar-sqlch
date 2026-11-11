@@ -376,7 +376,7 @@ def resolve_cover_path(cover_url: str | None) -> str | None:
 def cmd_art():
     artist, track = current_track()
     if not artist or not track:
-        subprocess.run(["notify-send", "sqlch", "No track metadata available"], check=False)
+        subprocess.run(["notify-send", "-a", "sqlch", "sqlch", "No track metadata available"], check=False)
         return
 
     enrich = enrich_lookup(artist, track)
@@ -387,24 +387,24 @@ def cmd_art():
         genres = ", ".join(enrich.get("genres", [])) or "—"
         album = enrich.get("album") or "—"
         subprocess.run([
-            "notify-send",
+            "notify-send", "-a", "sqlch",
             "-i", local,
             f"{artist} — {track}",
             f"{album}\nGenres: {genres}",
         ], check=False)
     elif cover_url:
         # had a URL but resolve_cover_path() failed to download/cache it
-        subprocess.run(["notify-send", "sqlch", f"{artist} — {track}\n(cover unavailable)"], check=False)
+        subprocess.run(["notify-send", "-a", "sqlch", "sqlch", f"{artist} — {track}\n(cover unavailable)"], check=False)
     else:
         genres_str = ""
         if enrich and enrich.get("genres"):
             genres_str = "\nGenres: " + ", ".join(enrich["genres"])
-        subprocess.run(["notify-send", "sqlch", f"{artist} — {track}{genres_str}"], check=False)
+        subprocess.run(["notify-send", "-a", "sqlch", "sqlch", f"{artist} — {track}{genres_str}"], check=False)
 
 def cmd_clear_cache():
     artist, track = current_track()
     if not artist or not track:
-        subprocess.run(["notify-send", "sqlch", "No track metadata available"], check=False)
+        subprocess.run(["notify-send", "-a", "sqlch", "sqlch", "No track metadata available"], check=False)
         cmd_status()
         return
     try:
@@ -414,11 +414,11 @@ def cmd_clear_cache():
         if key in cache:
             del cache[key]
             cache_path.write_text(json.dumps(cache))
-            subprocess.run(["notify-send", "-u", "low", "sqlch", f"Cache cleared: {artist} — {track}"], check=False)
+            subprocess.run(["notify-send", "-a", "sqlch", "-u", "low", "sqlch", f"Cache cleared: {artist} — {track}"], check=False)
         else:
-            subprocess.run(["notify-send", "-u", "low", "sqlch", f"Not cached: {artist} — {track}"], check=False)
+            subprocess.run(["notify-send", "-a", "sqlch", "-u", "low", "sqlch", f"Not cached: {artist} — {track}"], check=False)
     except Exception:
-        subprocess.run(["notify-send", "sqlch", "Cache clear failed"], check=False)
+        subprocess.run(["notify-send", "-a", "sqlch", "sqlch", "Cache clear failed"], check=False)
     cmd_status()
 
 def cmd_pick():
@@ -443,7 +443,7 @@ def cmd_pick():
                 id_map[display] = st["id"]
 
         chosen = subprocess.run(
-            ["fuzzel", "--dmenu"],
+            ["menu", "--dmenu"],
             input="\n".join(lines),
             capture_output=True, text=True, timeout=10
         )

@@ -47,7 +47,7 @@ let
 
         if [ "$pct" -lt "$THRESHOLD" ]; then
           if [ ! -f "$flag" ]; then
-            notify-send -u normal "Bluetooth" "$name battery low ($pct%)" 2>/dev/null || true
+            notify-send -a bluetooth -u normal "Bluetooth" "$name battery low ($pct%)" 2>/dev/null || true
             touch "$flag"
           fi
         else

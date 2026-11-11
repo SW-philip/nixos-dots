@@ -9,7 +9,7 @@ Features
 * Reads a colour palette from ~/.config/waybar/palette.sh
 * Caches state (default / forecast) in $XDG_CACHE_HOME
 * Location managed via ~/.config/waybar/weather_location.json
-* All UI via fuzzel --dmenu (Wayland native, no zenity/GTK dialogs)
+* All UI via menu --dmenu (Wayland native, no zenity/GTK dialogs)
 * Auto-detect disabled — VPN makes IP geolocation useless.
   If no saved location is set, prompts immediately to add one.
 * Middle-click to switch or add locations. Right-click opens radar.
@@ -234,11 +234,11 @@ def resolve_location(cfg: dict) -> Tuple[Optional[float], Optional[float], str]:
     return None, None, "None"
 
 # ──────────────────────────────────────────────────────────────────────
-# menu helpers — fuzzel --dmenu (centered, flat, colours from fuzzel.ini)
+# menu helpers — menu --dmenu (centered, flat, colours from rofi config.rasi)
 # ──────────────────────────────────────────────────────────────────────
 
 def _wayland_env() -> dict:
-    """Ensure WAYLAND_DISPLAY and XDG_RUNTIME_DIR are set for fuzzel."""
+    """Ensure WAYLAND_DISPLAY and XDG_RUNTIME_DIR are set for menu."""
     env = os.environ.copy()
     runtime = env.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
     env.setdefault("XDG_RUNTIME_DIR", runtime)
@@ -257,7 +257,7 @@ def _wayland_env() -> dict:
 def menu_select(prompt: str, options: List[str]) -> Optional[str]:
     """Show a picker list. Returns chosen string or None."""
     result = subprocess.run(
-        ["fuzzel", "--dmenu", "--prompt", f"{prompt} "],
+        ["menu", "--dmenu", "--prompt", f"{prompt} "],
         input="\n".join(options),
         capture_output=True,
         text=True,
@@ -267,9 +267,9 @@ def menu_select(prompt: str, options: List[str]) -> Optional[str]:
     return chosen if chosen else None
 
 def menu_input(prompt: str) -> Optional[str]:
-    """Free-text input (empty list — fuzzel --dmenu returns the typed text)."""
+    """Free-text input (empty list — menu --dmenu returns the typed text)."""
     result = subprocess.run(
-        ["fuzzel", "--dmenu", "--prompt", f"{prompt} "],
+        ["menu", "--dmenu", "--prompt", f"{prompt} "],
         input="",
         capture_output=True,
         text=True,

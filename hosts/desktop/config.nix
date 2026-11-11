@@ -42,7 +42,7 @@ in
     ../../modules/niri-bridge.nix
     ../../modules/btrbk.nix
     ../../modules/overnight-notify.nix
-    ../../modules/transmission.nix
+    ../../modules/qbittorrent.nix
     ./myln.nix
     ./impermanence.nix
   ];
@@ -56,16 +56,28 @@ in
   # The Samsung TV, when it's the greeter's screen.
   greetd.tvOutput = "HDMI-A-1";
 
-  # Auto-login straight into niri so sunshine.service (graphical-session.target,
-  # modules/sunshine.nix) is always up for remote streaming, even right after a
-  # cold boot with nobody at the console. greetd falls back to the normal
-  # lix/dsa greeter (default_session) if this session ever exits. Same pattern
-  # as the disabled block in hosts/surface/config.nix (kept off there
-  # deliberately -- Kid's machine should still require a login).
+  # Auto-login into niri so sunshine.service (graphical-session.target,
+  # modules/sunshine.nix) is up for remote streaming after a cold boot. The
+  # session starts locked: the flag file makes niri's startup spawn
+  # (home/niri/config.kdl.nix) run the lock screen, so unlocking needs the
+  # password, locally or over Moonlight. greetd falls back to the greeter
+  # (default_session) if the session exits. Surface keeps this off (Kid).
   services.greetd.settings.initial_session = {
-    command = "niri-session";
+    command = "${pkgs.writeShellScript "autologin-niri" ''
+      touch "$XDG_RUNTIME_DIR/autologin-lock"
+      exec niri-session
+    ''}";
     user    = "prepko";
   };
+
+  # Local password login on tty2 (Ctrl+Alt+F2), independent of the Sunshine
+  # session: log in at the getty, then run `niri-tty`.
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "niri-tty" ''
+      [ "$(tty)" = /dev/tty2 ] || { echo "niri-tty: run from the tty2 login (Ctrl+Alt+F2)" >&2; exit 1; }
+      exec niri-session
+    '')
+  ];
 
   ############################################################
   # Secrets (SOPS)
@@ -140,6 +152,24 @@ in
     "vm.page-cluster" = 0;
     # rp_filter is left loose on purpose (tailscale and wireguard route
     # asymmetrically); the rest of the hardening sysctls live in roles/common.nix.
+  };
+
+  # Torrents land on the 2.8 TB /srv disk, not the root SSD. /srv is nofail,
+  # so wait for it rather than writing into the bare mountpoint.
+  services.qbittorrent.serverConfig.BitTorrent.Session = {
+    DefaultSavePath = "/srv/torrents";
+    TempPath        = "/srv/torrents/.incomplete";
+  };
+  systemd.services.qbittorrent.unitConfig.RequiresMountsFor = [ "/srv/torrents" ];
+  # Headless Chromium that gets Jackett past Cloudflare checks (1337x and
+  # friends). Desktop only: too heavy for surface. Runs only alongside Jackett.
+  services.flaresolverr = { enable = true; port = (import ../ports.nix).flaresolverr; };
+  systemd.services.flaresolverr.wantedBy = lib.mkForce [ ];
+  systemd.services.jackett.wants = [ "flaresolverr.service" ];
+  systemd.services.flaresolverr.partOf = [ "jackett.service" ];
+  systemd.tmpfiles.settings.torrents = {
+    "/srv/torrents".d             = { mode = "0775"; user = "qbittorrent"; group = "users"; };
+    "/srv/torrents/.incomplete".d = { mode = "0775"; user = "qbittorrent"; group = "users"; };
   };
 
   ############################################################

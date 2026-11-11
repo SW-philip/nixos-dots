@@ -11,5 +11,5 @@
   {"icon": "󰊴", "label": "Games", "cmd": "pegasus-fe"},
   {"icon": "󰎈", "label": "Hydrogen", "cmd": "hydrogen"},
   {"icon": "󰽰", "label": "Helio", "cmd": "helio"},
-  {"icon": "󰀻", "label": "All apps", "cmd": "fuzzel"}
+  {"icon": "󰀻", "label": "All apps", "cmd": "menu"}
 ]

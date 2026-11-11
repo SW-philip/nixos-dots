@@ -238,7 +238,7 @@ notify_diverged() {
   [[ "$(cat "$stamp" 2>/dev/null)" == "$tips" ]] && return 0
   mkdir -p "$(dirname "$stamp")"
   printf '%s\n' "$tips" > "$stamp"
-  notify-send -u critical "tree-sync" "wip DIVERGED from the pi: run tree-sync status" || true
+  notify-send -a tree-sync -u critical "tree-sync" "wip DIVERGED from the pi: run tree-sync status" || true
 }
 
 main() {

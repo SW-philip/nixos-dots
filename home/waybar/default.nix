@@ -215,7 +215,7 @@ in
         "PATH=${pkgs.lib.makeBinPath [
           pkgs.bash
           pkgs.bluez
-          pkgs.fuzzel
+          (import ../rofi/menu.nix { inherit pkgs; })
           pkgs.coreutils
           pkgs.procps
           pkgs.util-linux

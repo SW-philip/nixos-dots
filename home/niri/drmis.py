@@ -196,9 +196,9 @@ def cache_wallpaper(src, state_dir):
     return str(dest)
 
 def cache_extras(live, slug, state_dir):
-    """Same NFS-avoidance as cache_wallpaper, for the overview pit (swaybg) and the
+    """Same NFS-avoidance as cache_wallpaper, for the overview pit (wallpaper-pit) and the
     per-workspace blob layouts (wallpaper-card): a missing source drops its stale copy."""
-    pairs = [(Path(live) / "wallpaper-pit.png", state_dir / "wallpaper-pit.png")]
+    pairs = [(Path(live) / f"wallpaper-pit.{ext}", state_dir / f"wallpaper-pit.{ext}") for ext in ("png", "json")]
     pairs += [(Path(live) / f"wallpaper-{slug}-pos{n}.png", state_dir / f"wallpaper-cache-pos{n}.png")
               for n in range(1, 5)]
     for src, dest in pairs:
@@ -209,6 +209,21 @@ def cache_extras(live, slug, state_dir):
         except OSError:
             tmp.unlink(missing_ok=True)
             dest.unlink(missing_ok=True)
+
+def render_lock_bg(src, hall_hex, dest):
+    """Wallpaper with a blurred HALL glow behind the clock band: hyprlock's own
+    label/image shadows don't draw, so the greeter's text-shadow is baked in."""
+    from PIL import Image, ImageDraw, ImageFilter
+    img = Image.open(src).convert("RGB")
+    w, h = img.size
+    mask = Image.new("L", (w, h), 0)
+    cx, cy, rx, ry = w / 2, h / 2, 0.36 * h, 0.21 * h
+    ImageDraw.Draw(mask).ellipse((cx - rx, cy - ry, cx + rx, cy + ry), fill=215)
+    mask = mask.filter(ImageFilter.GaussianBlur(0.09 * h))
+    glow = Image.new("RGB", (w, h), hall_hex)
+    tmp = Path(str(dest) + ".tmp")
+    Image.composite(glow, img, mask).save(tmp, "PNG")
+    os.replace(tmp, dest)
 
 def resolve_theme_alias(slug):
     return {"dark": "main", "light": "dawn"}.get(slug, slug)
@@ -228,6 +243,12 @@ def do_let(slug, theme_map):
     cache_extras(live, slug, state_dir)
     (state_dir / "wallpaper").write_text(wallpaper)
     deploy_symlink(wallpaper, state_dir / "wallpaper-img")
+    hall = parse_palette(theme_file(cfgs, "waybarSh")).get("HALL")
+    try:
+        if hall:
+            render_lock_bg(wallpaper, hall, state_dir / "lock-bg.png")
+    except Exception as e:  # noqa: BLE001 — lock falls back to the plain wallpaper
+        print(f"drmis: lock-bg skipped ({e})", file=sys.stderr)
     for profile_dir in firefox_profiles():
         chrome = profile_dir / "chrome"
         chrome.mkdir(parents=True, exist_ok=True)
@@ -250,15 +271,31 @@ def do_let(slug, theme_map):
         pass
     print(f"drmis let: applied {slug}")
 
+def fade(direction):
+    """Dip the screen through a theme switch; no-op when the overlay isn't installed."""
+    try:
+        subprocess.run(["theme-fade", direction], stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        pass
+
 def do_set(slug, theme_map):
     slug = resolve_theme_alias(slug)
+    if slug not in theme_map.get("themes", {}):
+        print(f"drmis: unknown theme '{slug}'", file=sys.stderr); sys.exit(1)
+    fade("out")
+    try:
+        apply_set(slug, theme_map)
+    finally:
+        fade("in")
+
+def apply_set(slug, theme_map):
     themes = theme_map.get("themes", {})
     if slug not in themes:
         print(f"drmis: unknown theme '{slug}'", file=sys.stderr); sys.exit(1)
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     STATE_FILE.write_text(slug)
     do_let(slug, theme_map)
-    subprocess.run(["systemctl", "--user", "restart", "swaybg", "wallpaper-card", "wallpaper-follow"], stderr=subprocess.DEVNULL)
+    subprocess.run(["systemctl", "--user", "restart", "wallpaper-pit", "wallpaper-card", "wallpaper-follow"], stderr=subprocess.DEVNULL)
     subprocess.run(["pkill", "-USR1", "zsh"],                      stderr=subprocess.DEVNULL)
     # -x: a bare "waybar" also matches (and kills) the waybar-cache-* helpers
     subprocess.run(["pkill", "-SIGUSR1", "-x", r"\.?waybar(-wrapped)?"], stderr=subprocess.DEVNULL)
@@ -299,7 +336,7 @@ def do_step(direction, theme_map):
     if nxt is None:
         print("drmis: no themes found", file=sys.stderr); sys.exit(1)
     do_set(nxt, theme_map)
-    subprocess.run(["notify-send", "-u", "low", "Theme", nxt], stderr=subprocess.DEVNULL)
+    subprocess.run(["notify-send", "-a", "theme", "-u", "low", "Theme", nxt], stderr=subprocess.DEVNULL)
 
 def do_next(theme_map):
     do_step(1, theme_map)

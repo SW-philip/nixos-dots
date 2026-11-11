@@ -4,8 +4,8 @@ set -uo pipefail
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/bt-device-info"
 PREFS_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/bt-device-info/prefs"
 
-# fuzzel --dmenu: centered, flat, colours from ~/.config/fuzzel/fuzzel.ini.
-launcher=(fuzzel --dmenu --lines 10)
+# menu --dmenu: centered, flat, colours from ~/.config/rofi/colors.rasi.
+launcher=(menu --dmenu --lines 10)
 
 mac="${1:?mac required}"
 cache_file="$CACHE_DIR/${mac}.json"
@@ -19,7 +19,7 @@ if [[ ${#field_keys[@]} -eq 0 ]]; then
   # Information Service). Fall into the loop anyway -- "Done" then writes the
   # prefs marker, without which a paired+trusted device would re-open this
   # menu on every connect.
-  notify-send "Bluetooth" "No optional info gathered for this device yet."
+  notify-send -a bluetooth "Bluetooth" "No optional info gathered for this device yet."
 fi
 
 mkdir -p "$PREFS_DIR"
@@ -56,7 +56,7 @@ while true; do
       bt-device-probe.sh probe --force "$mac" >/dev/null
       mapfile -t field_keys < <(jq -r 'keys[] | select(. != "type")' "$cache_file" 2>/dev/null)
     else
-      notify-send "Bluetooth" "Connect the device first to re-probe."
+      notify-send -a bluetooth "Bluetooth" "Connect the device first to re-probe."
     fi
     continue
   fi

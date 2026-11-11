@@ -31,7 +31,7 @@ let
           trap 'kill "$!" 2>/dev/null; exit 0' TERM
           sleep "$IDLE_SECS" &
           wait "$!"
-          notify-send "Bluetooth" "Still powered on with nothing connected after $((IDLE_SECS / 60)) minutes."
+          notify-send -a bluetooth "Bluetooth" "Still powered on with nothing connected after $((IDLE_SECS / 60)) minutes."
         ) &
         timer_pid=$!
       }

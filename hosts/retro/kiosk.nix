@@ -140,6 +140,11 @@ in
     startLimitBurst = 5;
   };
 
+  # nixpkgs only drops getty.target's Wants=autovt@tty1 when a display manager
+  # is enabled, and cage isn't one: every switch-to-configuration started the
+  # tty1 getty, whose Conflicts= stopped the kiosk. Masked, the Wants is a no-op.
+  systemd.services."autovt@tty1".enable = false;
+
   hardware.graphics = {
     enable = true;
     extraPackages = [ pkgs.intel-media-driver ];

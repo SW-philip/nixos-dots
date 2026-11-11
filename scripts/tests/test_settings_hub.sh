@@ -73,7 +73,7 @@ printf 'Mid\touter\n' | run_menu "Outer"; rc=$?
 assert_eq "nested: propagates 11" 11 "$rc"
 assert_eq "nested: one toast" 1 "$(grep -c '^notify-send' "$FAKE_LOG")"
 
-# fuzzel killed by a second `settings` press (>=128) ends the hub, no loop
+# rofi killed by a second `settings` press (>=128) ends the hub, no loop
 printf '#!/usr/bin/env bash\ncat >/dev/null\nexit 143\n' > "$T/shim/killed"; chmod +x "$T/shim/killed"
 SETTINGS_PICKER="$T/shim/killed" bash "$HUB"; rc=$?
 assert_eq "killed picker: exits 143" 143 "$rc"

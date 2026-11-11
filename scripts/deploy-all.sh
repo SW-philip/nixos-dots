@@ -222,11 +222,9 @@ declare -A status
 fail=0
 for h in "${order[@]}"; do
   say "phase 2: switch $h"
-  if ! switch_host "$h"; then
-    status[$h]="SWITCH FAILED"; fail=1
-    echo "deploy-all: stopping — $h failed, remaining hosts untouched" >&2
-    break
-  fi
+  # switch-to-configuration exits 4 when a user-unit reload races a dying
+  # user manager (pi's `git` ssh logins); the probe below decides if it mattered.
+  switched=1; note=""; switch_host "$h" || { switched=0; note=" (switch exit tolerated)"; }
   if ! probed="$(probe_retry "$h")"; then
     status[$h]="PROBE FAILED (could not read its generation)"; fail=1
     echo "deploy-all: stopping — cannot verify $h" >&2
@@ -234,12 +232,21 @@ for h in "${order[@]}"; do
   fi
   mapfile -t got <<<"$probed"
   if [[ "${got[0]}" != "${out[$h]}" || "${got[1]}" != "${out[$h]}" ]]; then
-    status[$h]="WRONG GENERATION (running ${got[0]}, profile ${got[1]})"; fail=1
+    why="WRONG GENERATION"; [[ $switched -eq 1 ]] || why="SWITCH FAILED"
+    status[$h]="$why (running ${got[0]}, profile ${got[1]})"; fail=1
     echo "deploy-all: stopping — $h is not on the built generation" >&2
     break
   fi
-  failed_units="${got[*]:2}"
-  status[$h]="ok${failed_units:+ — failed units: $failed_units}"
+  failed_units="$(printf '%s\n' "${got[@]:2}" | grep -vxE 'deploy-switch-.*\.service|goodnight-switch\.service' | xargs || true)"
+  if [[ $switched -eq 0 ]]; then
+    if [[ -n "$failed_units" ]]; then
+      status[$h]="SWITCH FAILED — failed units: $failed_units"; fail=1
+      echo "deploy-all: stopping — $h switch failed and units are down" >&2
+      break
+    fi
+    echo "deploy-all: $h switch exited non-zero but it is on the built generation with no failed units — continuing" >&2
+  fi
+  status[$h]="ok${failed_units:+ — failed units: $failed_units}$note"
 done
 
 say "summary"

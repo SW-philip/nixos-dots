@@ -70,11 +70,11 @@ while IFS= read -r p; do
 done < <(jq -r '.[].path' <<<"$conflicts")
 
 if (( ${#new_paths[@]} > 3 )); then
-  "$NOTIFY" "Sync conflict" "${#new_paths[@]} new sync conflicts — run sync-conflicts" || true
+  "$NOTIFY" -a sync "Sync conflict" "${#new_paths[@]} new sync conflicts — run sync-conflicts" || true
 else
   for p in "${new_paths[@]}"; do
     side=$(jq -r --arg p "$p" '.[] | select(.path == $p) | if .loser_is_local then "your edit" else "the other host'\''s edit" end' <<<"$conflicts")
-    "$NOTIFY" "Sync conflict" "$p — $side lost and was kept as a conflict copy" || true
+    "$NOTIFY" -a sync "Sync conflict" "$p — $side lost and was kept as a conflict copy" || true
   done
 fi
 

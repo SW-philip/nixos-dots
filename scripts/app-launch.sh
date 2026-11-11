@@ -5,7 +5,6 @@ set -euo pipefail
 REGISTRY=${APP_LAUNCH_REGISTRY:-$HOME/.config/app-launch/registry.json}
 FLEET=${APP_LAUNCH_FLEET:-$HOME/.cache/fleet-status.json}
 STATE=${APP_LAUNCH_STATE:-$HOME/.local/state/app-launch}
-FUZZEL_COLORS=$HOME/.config/fuzzel/fuzzel-colors.ini
 
 [[ $# -ge 1 ]] || { echo "usage: app-launch <desktop-id> [args...]" >&2; exit 2; }
 id=$1; shift
@@ -19,7 +18,7 @@ here=$(jq -r --arg self "$self" '(.hosts | index($self)) != null' <<<"$app")
 
 fail() {
   echo "app-launch: $1" >&2
-  notify-send -u critical "app-launch" "$1"
+  notify-send -a app-launch -u critical "app-launch" "$1"
   exit 1
 }
 
@@ -54,17 +53,8 @@ else
     # shellcheck disable=SC2086  # PICKER is a command line, split on purpose
     pick=$(printf '%s\n' "${ordered[@]}" | $APP_LAUNCH_PICKER) || exit 0
   else
-    # small box in the launcher's colours swapped: background<->text, selection<->its text
-    ini() { sed -n "s/^$1=\\([0-9a-fA-F]\\{6\\}\\).*/\\1/p" "$FUZZEL_COLORS" 2>/dev/null; }
-    bg=$(ini background); fg=$(ini text)
-    colors=()
-    if [[ -n $bg && -n $fg ]]; then
-      colors=(--background-color "${fg}ff" --text-color "${bg}ff" --border-color "${bg}ff"
-              --selection-color "${bg}ff" --selection-text-color "${fg}ff"
-              --match-color "$(ini match)ff" --selection-match-color "$(ini selection-match)ff")
-    fi
     pick=$(printf '%s\n' "${ordered[@]}" |
-      fuzzel --dmenu --prompt "Open on › " --width 20 --lines "${#ordered[@]}" "${colors[@]}") || exit 0
+      menu --dmenu --prompt "Open on › " --width 20 --lines "${#ordered[@]}") || exit 0
   fi
   [[ -n $pick ]] || exit 0
 
@@ -79,6 +69,6 @@ on "$pick" "${remote_cmd[@]}" && exit 0
 rc=$?
 # a quick non-zero exit is a failed launch; a long-lived app closing is not worth a notification
 if (( SECONDS - start < 10 )); then
-  notify-send -u critical "app-launch" "$id on $pick failed (exit $rc)"
+  notify-send -a app-launch -u critical "app-launch" "$id on $pick failed (exit $rc)"
 fi
 exit "$rc"

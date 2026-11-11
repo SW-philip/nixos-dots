@@ -10,7 +10,9 @@ let
     tailscale-serve-https = 443; # jellyfin, tailnet interface only
     adguard-ui = 3080;
     go-librespot = 3678;
-    transmission-rpc = 9091;
+    qbittorrent-webui = 8080; # web UI + API, 127.0.0.1 only
+    jackett = 9117;
+    flaresolverr = 8191; # Jackett's Cloudflare helper, desktop only
     jellyfin = 8096;
     ersatztv = 8409;
     iptv-serve = 8765;

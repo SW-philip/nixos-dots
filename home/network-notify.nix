@@ -37,10 +37,13 @@ let
       new=$(comm -23 <(printf '%s\n' "$visible_saved") <(sort -u "$SEEN_FILE") || true)
       to_notify=$(printf '%s\n' "$new" | grep -vxF "$active_ssid" || true)
 
-      while IFS= read -r ssid; do
-        [ -n "$ssid" ] || continue
-        notify-send -u normal "WiFi" "$ssid is back in range" 2>/dev/null || true
-      done <<< "$to_notify"
+      # One summary, not one per SSID: after a resume every saved network looks
+      # new at once. The synchronous hint makes a later poll replace it.
+      names=$(printf '%s\n' "$to_notify" | grep -v '^$' | paste -sd ',' - | sed 's/,/, /g' || true)
+      if [ -n "$names" ]; then
+        notify-send -a wifi -u normal -h string:x-canonical-private-synchronous:wifi-range \
+          "WiFi back in range" "$names" 2>/dev/null || true
+      fi
 
       if [ -n "$visible_saved" ]; then
         echo "$visible_saved" | sort -u > "$SEEN_FILE"

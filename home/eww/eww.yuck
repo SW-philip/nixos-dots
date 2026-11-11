@@ -5,7 +5,6 @@
 (defvar ledger_hover_tv false)
 (defvar ledger_open false)
 (defvar wing_open false)
-(defvar fade_on false)
 
 (deflisten vitals  :initial "{}" `bash SCRIPTS/feed.sh 5 0 'bash SCRIPTS/vitals.sh'`)
 (deflisten storage :initial "{}" `bash SCRIPTS/feed.sh 61 1 'bash SCRIPTS/storage.sh'`)
@@ -206,7 +205,7 @@
       ;; side, so all three ride out together instead of the hem staying put.
       (revealer :transition "slideright" :duration "200ms" :reveal {tablet ? wing_open : reveal}
         (panel :dock "left"))
-      (box :class {(tablet ? wing_open : reveal) ? "edge hover left" : "edge left"})
+      (box :class {(tablet ? wing_open : reveal) ? "edge hover left" : "edge left"} :valign "center")
       (tap-handle :open wing_open :var "wing_open" :side "left"
                   :glyph {wing_open ? "◀" : "▶"}))))
 
@@ -219,7 +218,7 @@
     (box :orientation "horizontal" :space-evenly false :halign "end" :valign "center"
       (tap-handle :open wing_open :var "wing_open" :side "right"
                   :glyph {wing_open ? "▶" : "◀"})
-      (box :class {(tablet ? wing_open : reveal) ? "edge hover" : "edge"})
+      (box :class {(tablet ? wing_open : reveal) ? "edge hover" : "edge"} :valign "center")
       (revealer :transition "slideleft" :duration "200ms" :reveal {tablet ? wing_open : reveal}
         (panel)))))
 
@@ -232,7 +231,7 @@
     (box :orientation "horizontal" :space-evenly false :halign "start" :valign "center"
       (revealer :transition "slideright" :duration "200ms" :reveal reveal_tv
         (panel :dock "left"))
-      (box :class {reveal_tv ? "edge hover left" : "edge left"}))))
+      (box :class {reveal_tv ? "edge hover left" : "edge left"} :valign "center"))))
 
 (defwindow status-tv-right
   :monitor 1
@@ -241,7 +240,7 @@
   (eventbox :onhover "EWW update reveal_tv=true"
             :onhoverlost "EWW update reveal_tv=false"
     (box :orientation "horizontal" :space-evenly false :halign "end" :valign "center"
-      (box :class {reveal_tv ? "edge hover" : "edge"})
+      (box :class {reveal_tv ? "edge hover" : "edge"} :valign "center")
       (revealer :transition "slideleft" :duration "200ms" :reveal reveal_tv
         (panel)))))
 
@@ -275,7 +274,7 @@
       (revealer :transition "slidedown" :duration "200ms" :reveal {tablet ? ledger_open : ledger_hover}
         (ledger-content :dock "top"))
       (box :class {(tablet ? ledger_open : ledger_hover) ? "ledger-strip hover top" : "ledger-strip top"}
-           :orientation "vertical" :space-evenly false :valign "start")
+           :orientation "vertical" :space-evenly false :halign "center" :valign "start")
       ;; Pull tab sits on the shade's hem: it rides down with the panel.
       (tap-handle :open ledger_open :var "ledger_open" :side "top"
                   :glyph {ledger_open ? "▲" : "▼"}))))
@@ -291,7 +290,7 @@
       (tap-handle :open ledger_open :var "ledger_open" :side "bottom"
                   :glyph {ledger_open ? "▼" : "▲"})
       (box :class {(tablet ? ledger_open : ledger_hover) ? "ledger-strip hover" : "ledger-strip"}
-           :orientation "vertical" :space-evenly false :valign "end")
+           :orientation "vertical" :space-evenly false :halign "center" :valign "end")
       (revealer :transition "slideup" :duration "200ms" :reveal {tablet ? ledger_open : ledger_hover}
         (ledger-content)))))
 
@@ -305,7 +304,7 @@
       (revealer :transition "slidedown" :duration "200ms" :reveal ledger_hover_tv
         (ledger-content :dock "top"))
       (box :class {ledger_hover_tv ? "ledger-strip hover top" : "ledger-strip top"}
-           :orientation "vertical" :space-evenly false :valign "start"))))
+           :orientation "vertical" :space-evenly false :halign "center" :valign "start"))))
 
 (defwindow ledger-tv-bottom
   :monitor 1
@@ -315,12 +314,12 @@
             :onhoverlost "EWW update ledger_hover_tv=false"
     (box :orientation "vertical" :space-evenly false :valign "end"
       (box :class {ledger_hover_tv ? "ledger-strip hover" : "ledger-strip"}
-           :orientation "vertical" :space-evenly false :valign "end")
+           :orientation "vertical" :space-evenly false :halign "center" :valign "end")
       (revealer :transition "slideup" :duration "200ms" :reveal ledger_hover_tv
         (ledger-content)))))
 
 ;; Tablet-mode launcher: opened by the launcher script (cover detached) instead of
-;; fuzzel's list. Tiles come from ~/.local/share/eww/launcher-favs.json in rows of
+;; the menu's list. Tiles come from ~/.local/share/eww/launcher-favs.json in rows of
 ;; four. A tile closes the window and starts the app through the compositor so eww's
 ;; button timeout can't kill it; the backdrop closes it too.
 (defwindow launcher-tablet
@@ -407,18 +406,6 @@
           (label :class "ts-glyph" :text "󰐥")
           (label :class "ts-label" :text "Power"))))))
 
-;; Tablet-mode switchover fade (home/niri/tablet-fade.sh), 300ms crossfade both
-;; directions. The size is fixed and larger than any logical screen (the largest
-;; is 1368 at scale 2.0): a "100%" window is resolved when opened, so it would
-;; stop covering the output once the scale changes underneath it. (fade_on is
-;; declared with the other vars at the top.)
-(defwindow tablet-fade
-  :monitor 0
-  :geometry (geometry :anchor "center" :width "1400px" :height "1400px")
-  :stacking "overlay" :focusable false :exclusive false
-  (revealer :transition "crossfade" :duration "300ms" :reveal fade_on
-    (box :class "tablet-fade-box" :hexpand true :vexpand true)))
-
 ;; notif-center: tabbed replacement for swaync's control-center panel.
 (defwidget nc-tab [id label]
   (button :class {notif_tab == id ? "nc-tab on" : "nc-tab"} :timeout "2s"
@@ -431,17 +418,19 @@
     (label :class "nc-title" :text title)
     (box :class "nc-rule-r" :hexpand true :valign "center")))
 
-(defwidget nc-card [n]
-  (eventbox :class "card-hit"
-    (box :class "nc-card ${n.urgency}${n.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
-      (box :orientation "vertical" :space-evenly false :spacing 2 :hexpand true
-        (box :orientation "horizontal" :space-evenly false
-          (label :class "nc-app" :halign "start" :text {n.app})
-          (box :hexpand true)
-          (button :class "nc-x" :timeout "2s" :onclick "NOTIF_HISTORY dismiss ${n.id}" "󰅖"))
-        (label :class "nc-sum" :halign "start" :xalign 0 :wrap true :text {n.summary})
-        (label :class "nc-body" :halign "start" :xalign 0 :wrap true :limit-width 120
-               :visible {n.body != ""} :text {n.body})))))
+(defwidget nc-card [n ?fan]
+  (box :orientation "vertical" :space-evenly false :spacing 3
+    (label :class "nc-origin" :halign "start" :visible {fan && (n.origin ?: "") != ""} :text {n.origin ?: ""})
+    (eventbox :class "card-hit"
+      (box :class "nc-card ${n.urgency}${n.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
+        (box :orientation "vertical" :space-evenly false :spacing 2 :hexpand true
+          (box :orientation "horizontal" :space-evenly false
+            (label :class "nc-app" :halign "start" :visible {!(fan && (n.origin ?: "") != "")} :text {(n.origin ?: "") != "" ? n.origin : n.app})
+            (box :hexpand true)
+            (button :class "nc-x" :timeout "2s" :onclick "NOTIF_HISTORY dismiss ${n.id}" "󰅖"))
+          (label :class "nc-sum" :halign "start" :xalign 0 :wrap true :text {n.summary})
+          (label :class "nc-body" :halign "start" :xalign 0 :wrap true :limit-width 120
+                 :visible {n.body != ""} :text {n.body}))))))
 
 ;; A stack of same-app notifications: tap the header to fan it out. A stack that
 ;; holds a critical item stays open.
@@ -452,7 +441,7 @@
       (box :class "nc-card nc-stack ${g.urgency}${nc_open_group == g.key ? ' open' : ''}${g.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
         (box :orientation "vertical" :space-evenly false :spacing 0 :hexpand true
           (box :orientation "horizontal" :space-evenly false :spacing 8
-            (label :class "nc-app" :halign "start" :text {g.app})
+            (label :class "nc-app" :halign "start" :text {g.label})
             (label :class "nc-badge" :text "×${g.count}")
             (box :hexpand true)
             (button :class "nc-x" :timeout "2s" :onclick "NOTIF_HISTORY dismiss ${g.ids}" "󰅖"))
@@ -467,7 +456,7 @@
               :reveal {nc_open_group == g.key || g.urgency == 'critical'}
       (box :class "nc-fan" :orientation "vertical" :space-evenly false :spacing 3
         (for n in {g.items}
-          (nc-card :n n))))))
+          (nc-card :n n :fan true))))))
 
 (defwidget nc-group [g]
   (box :orientation "vertical" :space-evenly false

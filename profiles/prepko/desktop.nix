@@ -7,6 +7,7 @@
     ../../home/openrgb/rgb-reactive.nix
     ../../home/ps-controller-colors.nix
     ../../home/goodnight.nix
+    ../../home/empty-dirs.nix
     ../../home/pi-git-mirror.nix
     ../../home/flake-check.nix
     ../../home/reaper.nix
@@ -14,6 +15,7 @@
     ../../home/bluetooth-idle-notify.nix
     ../../home/archive.nix
     ../../home/overnight-notify.nix
+    ../../home/torrent.nix
   ];
 
   home.pointerCursor.size = lib.mkForce 24;
@@ -60,9 +62,9 @@
   # failure base.nix's comment warns about).
   ########################################
   programs.zsh.shellAliases = {
-    nrs = lib.mkForce "nh os switch -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos && whats-new";
-    nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos";
-    nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos";
+    nrs = lib.mkForce "{ nh os switch -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos && whats-new; } || sfx error";
+    nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos || sfx error";
+    nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos || sfx error";
   };
 
   myConfig.isDesktop = true;
@@ -114,7 +116,7 @@
 
   home.packages = with pkgs; [
     thunderbird
-    orch
+    geforce-now
     wayland-utils
     ydotool
     vulkan-tools

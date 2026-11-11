@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ssh-tunnel — pick a host and port in fuzzel, forward localhost:<port> to it over ssh, open the browser.
+# ssh-tunnel — pick a host and port in the menu, forward localhost:<port> to it over ssh, open the browser.
 # Re-run to close a running tunnel. Tunnels are transient user units named tunnel-<host>-<port>.
 # "Ports" lists listening ports here and checks a typed number against them and the flake.
 set -euo pipefail
@@ -8,7 +8,7 @@ FLEET_JSON=${FLEET_JSON:-/etc/fleet.json}
 # the pi first: its AdGuard UI is the usual target
 mapfile -t HOSTS < <(jq -r 'keys | (map(select(. == "pi")) + map(select(. != "pi")))[]' "$FLEET_JSON")
 DEFAULT_PORT=${TUNNEL_DEFAULT_PORT:?set by home/tunnel.nix from hosts/ports.nix}
-menu=(fuzzel --dmenu --width 420)
+menu=(menu --dmenu --width 42)
 FLAKE=${NH_FLAKE:-$HOME/nixos}
 # polkit gates this on every run (modules/port-viewer.nix); root's ss sees every process name
 PKEXEC=/run/wrappers/bin/pkexec
@@ -77,7 +77,7 @@ ports_menu() {
       if root=$(root_ports); then
         rows=$(format_ports <<<"$root")
       else
-        notify-send "Ports" "Authentication cancelled or denied" -i network-error
+        notify-send -a tunnel "Ports" "Authentication cancelled or denied" -i network-error
       fi
       continue
     fi
@@ -107,7 +107,7 @@ fi
 if [[ "$choice" == *"[on]" ]]; then
   name=$(sed -E 's/^[^A-Za-z]*//; s/  \[on\]$//' <<<"$choice")
   systemctl --user stop "tunnel-$name.service"
-  notify-send "Tunnel" "Closed — $name" -i network-vpn-off
+  notify-send -a tunnel "Tunnel" "Closed — $name" -i network-vpn-off
   exit 0
 fi
 
@@ -118,13 +118,13 @@ host=$(printf '%s\n' "${HOSTS[@]}" | "${menu[@]}" --lines "${#HOSTS[@]}" --promp
 port=$(printf '%s\n' "$DEFAULT_PORT" | "${menu[@]}" --lines 1 --prompt "Port › ") || exit 0
 [ -z "$port" ] && exit 0
 if ! [[ "$port" =~ ^[0-9]+$ ]] || ((port < 1 || port > 65535)); then
-  notify-send "Tunnel" "Bad port: $port" -i network-error
+  notify-send -a tunnel "Tunnel" "Bad port: $port" -i network-error
   exit 1
 fi
 
 unit="tunnel-$host-$port"
 if ss -tln "sport = :$port" | grep -q LISTEN; then
-  notify-send "Tunnel" "localhost:$port is already in use" -i network-error
+  notify-send -a tunnel "Tunnel" "localhost:$port is already in use" -i network-error
   exit 1
 fi
 
@@ -137,9 +137,9 @@ for _ in $(seq 1 20); do
 done
 if ! ss -tln "sport = :$port" | grep -q LISTEN; then
   systemctl --user stop "$unit.service" 2>/dev/null || true
-  notify-send "Tunnel" "Couldn't reach $host" -i network-error
+  notify-send -a tunnel "Tunnel" "Couldn't reach $host" -i network-error
   exit 1
 fi
 
-notify-send "Tunnel" "$host → localhost:$port" -i network-vpn-symbolic
+notify-send -a tunnel "Tunnel" "$host → localhost:$port" -i network-vpn-symbolic
 xdg-open "http://localhost:$port"

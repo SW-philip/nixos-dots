@@ -6,7 +6,7 @@ let
 
   wifimenuScript = pkgs.writeShellScriptBin "quantum-wifimenu" ''
     export PATH=${lib.makeBinPath [
-      pkgs.fuzzel pkgs.networkmanager pkgs.libnotify pkgs.coreutils pkgs.gnused pkgs.gawk pkgs.bash
+      (import ../rofi/menu.nix { inherit pkgs; }) pkgs.networkmanager pkgs.libnotify pkgs.coreutils pkgs.gnused pkgs.gawk pkgs.bash
     ]}:$PATH
 
     export WAYLAND_DISPLAY=''${WAYLAND_DISPLAY:-wayland-0}

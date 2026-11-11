@@ -50,9 +50,13 @@ def split_label(label):
     return label[:1].upper(), label
 
 
-def read_state(grids, runner=probe, prev=None):
+# The tab lists only these grids' toggles (Wi-Fi/Bluetooth live on waybar), so only they are probed.
+TOGGLE_GRIDS = ("system",)
+
+
+def read_state(grids, runner=probe, prev=None, toggle_grids=TOGGLE_GRIDS):
     prev = prev or {}
-    jobs = [(name, i, a) for name, actions in grids.items()
+    jobs = [(name, i, a) for name, actions in grids.items() if name in toggle_grids
             for i, a in enumerate(actions) if a.get("type") == "toggle"]
 
     def check(job):
@@ -66,7 +70,8 @@ def read_state(grids, runner=probe, prev=None):
             on = {(n, i): r for (n, i, _), r in zip(jobs, pool.map(check, jobs))}
     return {"grids": {name: [{"i": i, "label": a.get("label", ""), "toggle": a.get("type") == "toggle",
                               "glyph": split_label(a.get("label", ""))[0], "name": split_label(a.get("label", ""))[1],
-                              "on": on.get((name, i), False)} for i, a in enumerate(actions)]
+                              "on": on.get((name, i), False)} for i, a in enumerate(actions)
+                              if a.get("type") != "toggle" or name in toggle_grids]
                       for name, actions in grids.items()}}
 
 

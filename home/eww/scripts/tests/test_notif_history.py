@@ -89,6 +89,21 @@ def item(id, app="a", urgency="normal", time=100.0):
             "urgency": urgency, "time": time}
 
 
+class OriginTests(unittest.TestCase):
+    def test_bridge_origin_hint_is_kept(self):
+        h = nh.History()
+        notify(h, app="Tether", hints={"x-kde-display-appname": V("Redfin")}); h.on_return(":1.9", 1, [1])
+        notify(h, app="niri", serial=2); h.on_return(":1.9", 2, [2])
+        by_app = {i["app"]: i["origin"] for i in h.snapshot()["items"]}
+        self.assertEqual(by_app, {"Tether": "Redfin", "niri": ""})
+
+    def test_origin_is_searchable(self):
+        h = nh.History()
+        notify(h, app="Tether", hints={"x-kde-display-appname": V("Instagram")}); h.on_return(":1.9", 1, [1])
+        h.set_query("instagram")
+        self.assertEqual(h.snapshot()["matches"], 1)
+
+
 class GroupTests(unittest.TestCase):
     def test_same_app_within_window_groups(self):
         groups = nh.group_items([item(2, time=100.0), item(1, time=90.0)])
@@ -100,6 +115,13 @@ class GroupTests(unittest.TestCase):
     def test_outside_window_splits(self):
         groups = nh.group_items([item(2, time=1000.0), item(1, time=100.0)])
         self.assertEqual([g["count"] for g in groups], [1, 1])
+
+    def test_bridge_origins_stack_separately(self):
+        def relayed(id, origin):
+            return dict(item(id, app="Tether"), origin=origin)
+        groups = nh.group_items([relayed(3, "Redfin"), relayed(2, "Messages"), relayed(1, "Redfin")])
+        self.assertEqual(sorted((g["label"], g["count"]) for g in groups),
+                         [("Tether/Messages", 1), ("Tether/Redfin", 2)])
 
     def test_different_apps_separate(self):
         groups = nh.group_items([item(2, app="x"), item(1, app="y")])

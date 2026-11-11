@@ -97,7 +97,7 @@ reaper_strikes() {
   local host=$1 stuck ts prev_ts prev_n n
   [[ -r $reaper_json ]] || { echo 0; return; }
   ts=$(jq -r '.checked // 0' "$reaper_json")
-  stuck=$(jq -r --arg h "$host" '.hosts[$h] | if (.reachable // false) then ([.zombies[]? | select(.persists)] | length) + (.dstate | length) else "unreachable" end' "$reaper_json")
+  stuck=$(jq -r --arg h "$host" '.hosts[$h] | if (.reachable // false) then ([.zombies[]? | select(.persists and (.known | not))] | length) + (.dstate | length) else "unreachable" end' "$reaper_json")
   mkdir -p "$state"
   [[ -r $strikes_file ]] || echo '{}' > "$strikes_file"
   prev_ts=$(jq -r --arg h "$host" '.[$h].ts // 0' "$strikes_file")

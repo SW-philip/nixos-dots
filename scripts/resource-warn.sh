@@ -10,6 +10,7 @@ set -euo pipefail
 TEMP_C=${TEMP_C:-90}
 MEM_PCT=${MEM_PCT:-40}
 IO_PCT=${IO_PCT:-95}
+IO_WINDOWS=${IO_WINDOWS:-2}
 COOLDOWN=${COOLDOWN:-300}
 INTERVAL=${INTERVAL:-15}
 WARN_WAV=${WARN_WAV:?WARN_WAV must point at the warning sound}
@@ -36,18 +37,16 @@ psi() {
   echo "${v:-0}"
 }
 
-# disk_busy_ms: highest io_ticks (ms spent with I/O in flight) across physical disks.
-disk_busy_ms() {
-  local d m=0 t
+# Per-disk io_ticks (ms with I/O in flight). Tracked per device: a max over cumulative counters only
+# ever follows the disk with the largest lifetime total, hiding every other disk.
+declare -A prev_busy=() streak=()
+read_busy() { # -> "name ticks" per physical disk
+  local d
   for d in /sys/block/nvme*n* /sys/block/sd* /sys/block/mmcblk*; do
-    [ -r "$d/stat" ] || continue
-    t=$(awk '{print $10}' "$d/stat")
-    if (( t > m )); then m=$t; fi
+    if [ -r "$d/stat" ]; then echo "${d##*/} $(awk '{print $10}' "$d/stat")"; fi
   done
-  echo "$m"
 }
-
-prev_busy=$(disk_busy_ms)
+while read -r dev ticks; do prev_busy[$dev]=$ticks; done < <(read_busy)
 prev_t=$(date +%s%3N)
 
 while :; do
@@ -62,12 +61,17 @@ while :; do
   mem=$(psi memory some)
   if (( mem >= MEM_PCT )); then warn mem "Memory pressure" "tasks stalled ${mem}% of the last 10s"; fi
 
-  cur_busy=$(disk_busy_ms)
+  # one saturated window is a burst (a few streams opening on the HDD); warn only once it holds
   cur_t=$(date +%s%3N)
-  io=$(( (cur_busy - prev_busy) * 100 / (cur_t - prev_t) ))
-  prev_busy=$cur_busy
+  while read -r dev ticks; do
+    io=$(( (ticks - ${prev_busy[$dev]:-$ticks}) * 100 / (cur_t - prev_t) ))
+    prev_busy[$dev]=$ticks
+    if (( io >= IO_PCT )); then streak[$dev]=$(( ${streak[$dev]:-0} + 1 )); else streak[$dev]=0; fi
+    if (( streak[$dev] >= IO_WINDOWS )); then
+      warn "io-$dev" "Disk saturated" "$dev busy ${io}% for $(( streak[$dev] * INTERVAL ))s"
+    fi
+  done < <(read_busy)
   prev_t=$cur_t
-  if (( io >= IO_PCT )); then warn io "Disk saturated" "disk busy ${io}% of the last ${INTERVAL}s"; fi
 
   sleep "$INTERVAL"
 done

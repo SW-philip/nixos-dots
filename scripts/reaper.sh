@@ -8,17 +8,21 @@
 set -euo pipefail
 
 MIN_AGE=${REAPER_MIN_AGE:-600}
+# unit:comm zombies that are known and bounded: kept in the JSON as known, never alerted or counted
+# as a reboot strike. flaresolverr: its startup browser self-test leaves one Xvfb unreaped per start.
+IGNORE=${REAPER_IGNORE:-"flaresolverr.service:Xvfb"}
 
 probe() {
-  local sample1 sample2 pid ppid age comm pcomm nudged still zpids=()
+  local sample1 sample2 pid ppid age comm pcomm punit nudged still zpids=()
   # D-state: first sample now, second after the nudge pause below
   sample1=$(ps -eo pid=,ppid=,stat=,etimes=,comm= | awk -v m="$MIN_AGE" '$3 ~ /^D/ && $2 != 2 && $1 != 2 && $4 >= m {print $1 "\t" $4 "\t" $5}')
   # stat=Z lines: pid ppid age comm
   while read -r pid ppid age comm; do
     (( age >= MIN_AGE )) || continue
     pcomm=$(ps -o comm= -p "$ppid" 2>/dev/null || echo '?')
+    punit=$(awk -F/ '{print $NF}' "/proc/$ppid/cgroup" 2>/dev/null || true)
     nudged=0; kill -CHLD "$ppid" 2>/dev/null && nudged=1
-    printf 'Z\t%s\t%s\t%s\t%s\t%s\t%s\n' "$pid" "$ppid" "$age" "${comm%% *}" "$pcomm" "$nudged"
+    printf 'Z\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$pid" "$ppid" "$age" "${comm%% *}" "$pcomm" "$nudged" "${punit:--}"
     zpids+=("$pid")
   done < <(ps -eo pid=,ppid=,stat=,etimes=,comm= | awk '$3 ~ /^Z/ {print $1, $2, $4, $5}')
   sleep 3
@@ -62,11 +66,13 @@ fleet_field() { jq -r --arg h "$1" --arg f "$2" '.[$h][$f] // $h' "$FLEET_JSON";
 nix_name() { fleet_field "$1" ts; }
 
 findings_json() { # TSV on stdin -> {zombies,stuck,dstate,failed}
-  jq -Rn '
+  jq -Rn --arg ignore "$IGNORE" '
     [inputs | split("\t")] as $r
     | ($r | map(select(.[0] == "S") | {(.[1]): (.[2] == "1")}) | add // {}) as $still
+    | ($ignore | split(" ") | map(select(. != ""))) as $ign
     | {
-        zombies: [$r[] | select(.[0] == "Z") | {pid: .[1], ppid: .[2], age: (.[3] | tonumber), comm: .[4], parent: .[5], nudged: (.[6] == "1"), persists: ($still[.[1]] // true)}],
+        zombies: [$r[] | select(.[0] == "Z") | {pid: .[1], ppid: .[2], age: (.[3] | tonumber), comm: .[4], parent: .[5], nudged: (.[6] == "1"), unit: (.[7] // "-"), persists: ($still[.[1]] // true)}
+                 | .known = ((.unit + ":" + .comm) as $k | $ign | index($k) != null)],
         dstate:  [$r[] | select(.[0] == "D") | {pid: .[1], age: (.[2] | tonumber), comm: .[3]}],
         failed:  [$r[] | select(.[0] == "F") | {scope: .[1], unit: .[2]}]
       }'
@@ -95,8 +101,8 @@ printf '%s\n' "$merged" >"$OUT.tmp" && mv "$OUT.tmp" "$OUT"
 problems=$(jq -r '.hosts | to_entries[]
   | .key as $h | .value
   | select(.reachable)
-  | ((.zombies | map(select(.persists)) | group_by(.parent)[]
-      | "\($h): \(length) zombie(s) under \(.[0].parent), oldest \(map(.age) | max / 60 | floor) min"),
+  | ((.zombies | map(select(.persists and (.known | not))) | group_by(.unit)[]
+      | "\($h): \(length) zombie(s) under \(.[0].parent) (\(.[0].unit)), oldest \(map(.age) | max / 60 | floor) min"),
      (.dstate[] | "\($h): \(.comm) (\(.pid)) stuck in D state \(.age / 60 | floor) min"))' <<<"$merged")
 
 if [[ -n "$problems" ]]; then

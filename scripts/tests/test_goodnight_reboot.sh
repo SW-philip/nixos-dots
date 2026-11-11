@@ -48,7 +48,7 @@ assert_eq "an unreachable host is skipped" skip "$(field nope .action)"
 facts surface 3 1 60 0 29 ""
 PLAN=$(plan surface)
 assert_eq "low battery blocks even a needed reboot" wait "$(field surface .action)"
-assert_eq "the block says why" "battery 29% < 50%" "$(field surface '.blocks[0]')"
+assert_eq "the block says why" "battery 29% < 30%" "$(field surface '.blocks[0]')"
 
 facts surface 3 0 5 0 80 ""
 PLAN=$(plan surface)
@@ -69,6 +69,12 @@ clean='{"zombies":[],"dstate":[],"failed":[{"scope":"user","unit":"x"}],"reachab
 echo "{\"checked\":300,\"hosts\":{\"pi\":$clean}}" > "$T/reaper.json"
 PLAN=$(plan pi)
 assert_eq "a clean sweep resets the count (failed units don't count)" fine "$(field pi .action)"
+known='{"zombies":[{"persists":true,"known":true}],"dstate":[],"failed":[],"reachable":true}'
+for t in 400 500; do
+  echo "{\"checked\":$t,\"hosts\":{\"pi\":$known}}" > "$T/reaper.json"
+  PLAN=$(plan pi)
+done
+assert_eq "a known zombie never strikes" fine "$(field pi .action)"
 
 # default order: surface, retro, pi, then the driving host (desktop here) last
 for h in surface retro pi desktop; do facts $h 3 0 60 0 none ""; done

@@ -429,7 +429,9 @@ in
       LockPersonality = true;
       SystemCallArchitectures = "native";
       SystemCallFilter = [ "@system-service" "~@privileged @resources" ];
-      IPAddressAllow = "localhost";
+      # podman DNATs 127.0.0.1:<port> to the container before the cgroup egress
+      # filter sees it, so localhost alone drops every SYN (connect timeout)
+      IPAddressAllow = [ "localhost" "10.88.0.0/16" ];
       IPAddressDeny = "any";
     };
   };

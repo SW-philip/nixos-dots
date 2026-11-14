@@ -1,11 +1,16 @@
 # The floor every host imports: the user option, locale, and the ssh and
 # kernel hardening baseline. Workstation-only config stays in roles/base.nix,
 # the headless pair's in roles/headless.nix.
-{ lib, ... }:
-let
-  ports = import ../hosts/ports.nix;
-in
+{ inputs, lib, ports, ... }:
 {
+  imports = [
+    inputs.sops-nix.nixosModules.sops
+    ../identities/prepko.nix
+    ./ssh-known-hosts.nix
+    ./goodnight-activate.nix
+    ../modules/nixfetch.nix
+  ];
+
   options.myConfig.user = lib.mkOption {
     type        = lib.types.str;
     default     = "prepko";

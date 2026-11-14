@@ -2,14 +2,14 @@
 # (home/niri/default.nix). Extracted from the former home/waybar/{wayvnc,
 # moonlight}.nix waybar modules — only the toggle action survives; the
 # JSON status path was for the waybar module and has no consumer now.
-{ pkgs, lib, config }:
+{ pkgs, lib, config, inventory }:
 
 let
 
   # Desktop's Tailscale IPv4. Not the `desktop`
   # MagicDNS name: that also resolves to a Tailscale IPv6 which wlvncc may
   # try first, but wayvnc listens v4-only and the cert's IP SAN is v4-only.
-  desktopHost = (import ../../hosts/inventory.nix).desktop.ip;
+  desktopHost = inventory.desktop.ip;
 in
 {
   # uniremote is a windowed GUI, not a daemon — a bare relaunch just stacks

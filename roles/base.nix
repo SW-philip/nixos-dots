@@ -1,9 +1,21 @@
-{ config, pkgs, lib, ... }:
-let
-  ports = import ../hosts/ports.nix;
-in
+{ config, pkgs, lib, ports, ... }:
 {
-  imports = [ ./common.nix ../cachix.nix ../modules/host-options.nix ];
+  imports = [
+    ./common.nix
+    ./cachix.nix
+    ../modules/host-options.nix
+    ./secure-boot.nix
+    ./niri.nix
+    ./sops-shared.nix
+    ../modules/greetd.nix
+    ../modules/health-root.nix
+    ../modules/niri-bridge.nix
+    ../modules/port-viewer.nix
+    ../modules/protonvpn.nix
+    ../modules/qbittorrent.nix
+    ../modules/syncthing.nix
+    ../modules/tailscale.nix
+  ];
 
   ############################################################
   # Secrets (SOPS) + login password

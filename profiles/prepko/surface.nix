@@ -1,6 +1,6 @@
-{ inputs, pkgs, lib, config, ... }:
+{ inputs, pkgs, lib, config, inventory, ... }:
 let
-  buildHost = "prepko@${(import ../../hosts/inventory.nix).desktop.ip}";
+  buildHost = "prepko@${inventory.desktop.ip}";
   mugConsumer = import ../../home/niri/theme-consumer.nix { inherit lib; } {
     name = "ember-mug";
     description = "Sync the Ember mug LED to the drmis theme ROOT color";
@@ -11,6 +11,7 @@ in
 {
   imports = [
     ../base.nix
+    ./common.nix
     ../surface-tablet.nix
     ../../home/pegasus-surface
     ../../home/moonlight

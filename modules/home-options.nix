@@ -1,7 +1,4 @@
-{ config, osConfig ? null, lib, ... }:
-let
-  inventory = import ../hosts/inventory.nix;
-in
+{ config, osConfig ? null, lib, inventory, ... }:
 {
   options.myConfig.isDesktop = lib.mkOption {
     type = lib.types.bool;
@@ -76,6 +73,18 @@ in
     description = "Script that toggles the swaync control center (defined in home/niri/default.nix as `sidebarToggleBin`); shared so other modules (e.g. the TV-bar hamburger) invoke the same toggle as the Mod+B keybind.";
   };
 
+  options.myConfig.idleLock = lib.mkOption {
+    type = lib.types.bool;
+    default = true;
+    description = "Lock on idle and before sleep (profiles/base.nix's hypridle). Off for the passwordless guest.";
+  };
+
+  options.myConfig.themes = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ ];
+    description = "Restrict drmis to these theme slugs (the first is the starting theme) and to `drmis set`/`drmis let`. Each needs its main wallpaper-<slug>.png force-tracked in git, since nothing reads ~/nixos at runtime. Empty: every theme, wallpapers from ~/nixos.";
+  };
+
   options.myConfig.drmisBin = lib.mkOption {
     type = lib.types.str;
     description = "Path to the drmis binary, for units that run drmis subcommands.";
@@ -83,6 +92,6 @@ in
 
   options.myConfig.lockScreenScript = lib.mkOption {
     type = lib.types.package;
-    description = "Script that locks the screen (defined in home/niri/default.nix as `lockScreenBin`): picks a random snark line into a throwaway copy of the deployed hyprlock.conf and execs hyprlock against it, falling back to plain hyprlock on any failure. Shared so profiles/base.nix's hypridle lock_cmd/listener use the same launcher as the Mod+Escape keybind.";
+    description = "Script that locks the screen (home/hyprlock/default.nix): picks a random snark line into a throwaway copy of the deployed hyprlock.conf and execs hyprlock against it, falling back to plain hyprlock on any failure. Shared so profiles/base.nix's hypridle lock_cmd/listener use the same launcher as the Mod+Escape keybind.";
   };
 }

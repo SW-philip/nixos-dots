@@ -1,9 +1,9 @@
-{ pkgs, config, ... }:
+{ pkgs, config, ports, allThemes, ... }:
 let
-  moon = import ../../themes/Dark/indigo-rose/palette-indigo-rose.nix;
+  moon = allThemes.indigo-rose.palette;
 
   # Loopback-only — nothing outside this account needs to reach it.
-  port = (import ../../hosts/ports.nix).kid-dashboard;
+  port = ports.kid-dashboard;
 
   # Reuse the eggclock waybar module's script unchanged — same hatch,
   # rarity, and lore logic, same ~/.cache/eggclock state files. Only the

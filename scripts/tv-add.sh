@@ -15,6 +15,7 @@
 # ErsatzTV tags a video with every folder in its path; the folder only airs
 # once a channel or bumper pool in modules/ersatztv.nix queries one of them
 # ($NOTE_TAG, default the folder's name; empty skips the check).
+# Whole shows meant to air as a channel's main show go through tv-show instead.
 set -euo pipefail
 
 LIST_DIR="${LIST_DIR:-$HOME/nixos/assets/yt-curate}"

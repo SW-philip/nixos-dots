@@ -20,9 +20,11 @@ let
       # own profile: keeps the GFN login and its flags out of any other Chromium
       profile="''${XDG_DATA_HOME:-$HOME/.local/share}/geforce-now"
       mkdir -p "$profile"
+      # GFN_URL: a game's deep link (Pegasus Cloud entries); the path stays /mall/
+      # so the app-id and its niri rule don't change
       exec chromium \
         --user-data-dir="$profile" \
-        --app=https://play.geforcenow.com/mall/ \
+        --app="''${GFN_URL:-https://play.geforcenow.com/mall/}" \
         --user-agent=${lib.escapeShellArg userAgent} \
         --ozone-platform-hint=auto \
         --enable-features=${features} \

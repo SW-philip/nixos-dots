@@ -1,18 +1,13 @@
 { inputs, pkgs, lib, ... }:
 {
   imports = [
-    ../../modules/nixfetch.nix
     ./hardware.nix
     ./kiosk.nix
     ./idle-blank.nix
     ./dns-querylog.nix
-    ../../identities/prepko.nix
     ../../roles/secure-boot.nix
     ../../roles/wifi-home.nix
-    inputs.sops-nix.nixosModules.sops
     ../../roles/headless.nix
-    ../../roles/goodnight-activate.nix
-    ../../roles/ssh-known-hosts.nix
   ];
 
   networking.hostName = "SWretro";

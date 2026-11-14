@@ -1,6 +1,6 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, allThemes, ... }:
 let
-  p = import ../themes/Dark/slate-lavender/palette-slate-lavender.nix;
+  p = allThemes.slate-lavender.palette;
   tileSystems = builtins.filter (s: s.tile or false)
     (import ../hosts/retro-systems.nix { inherit pkgs; });
   # gameOS ships no combined GameCube/Wii logo, so that tile shows both.

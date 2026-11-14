@@ -1,6 +1,5 @@
-{ config, lib, ... }:
+{ config, lib, inventory, ... }:
 let
-  inventory = import ../hosts/inventory.nix;
   self = lib.findFirst (n: inventory.${n}.nick == config.networking.hostName) null (lib.attrNames inventory);
   # Secrets added with `secrets add` (scripts/secrets.py): names and hosts only, values stay in sops.
   file = ../secrets/registry.json;

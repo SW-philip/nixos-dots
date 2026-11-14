@@ -18,6 +18,14 @@ themes/**/wallpaper-pit.json
 # ...except Kid's: home/kid/niri.nix imports it as a Nix path
 # literal (they has no ~/nixos for a runtime lookup like the theme rotation uses).
 !themes/Light/kid/wallpaper-kid.png
+# ...and the guest account's six (profiles/guest/desktop.nix myConfig.themes): its
+# wallpapers come from the store, never ~/nixos.
+!themes/Dark/wfp/wallpaper-wfp.png
+!themes/Dark/the-work/wallpaper-the-work.png
+!themes/Dark/navy-teal/wallpaper-navy-teal.png
+!themes/Dark/indigo-rose/wallpaper-indigo-rose.png
+!themes/Dark/midnight-rose/wallpaper-midnight-rose.png
+!themes/Dark/olive-plum/wallpaper-olive-plum.png
 
 # Generated / profiling outputs (no reason to track these)
 boot_profile*

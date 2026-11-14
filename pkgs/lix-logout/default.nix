@@ -9,7 +9,10 @@
 }:
 
 let
-  pythonEnv = python3.withPackages (ps: with ps; [ pygobject3 pycairo pytest ]);
+  pythonPkgs = ps: with ps; [ pygobject3 pycairo ];
+  pythonEnv = python3.withPackages pythonPkgs;
+  # pytest only for checkPhase, so it stays out of the runtime closure.
+  checkEnv = python3.withPackages (ps: pythonPkgs ps ++ [ ps.pytest ]);
 in
 stdenvNoCC.mkDerivation {
   pname = "lix-logout";
@@ -24,7 +27,7 @@ stdenvNoCC.mkDerivation {
   doCheck = true;
   checkPhase = ''
     runHook preCheck
-    python -m pytest tests -q
+    ${checkEnv}/bin/python -m pytest tests -q
     runHook postCheck
   '';
 

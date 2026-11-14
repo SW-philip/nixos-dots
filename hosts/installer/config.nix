@@ -5,10 +5,10 @@ let
   # bin name matches what's documented in CLAUDE.md / git history.
   recoveryScripts = pkgs.runCommand "rescue-scripts" { } ''
     mkdir -p $out/bin
-    install -m755 ${./scripts/desktop-enter.sh}          $out/bin/desktop-enter
-    install -m755 ${./scripts/surface-fix-bootloader.sh} $out/bin/surface-fix-bootloader
-    install -m755 ${./scripts/surface-rebuild-enclosure.sh} $out/bin/surface-rebuild-enclosure
-    install -m755 ${./scripts/enroll-secureboot-tpm2.sh} $out/bin/enroll-secureboot-tpm2
+    install -m755 ${../../scripts/desktop-enter.sh}          $out/bin/desktop-enter
+    install -m755 ${../../scripts/surface-fix-bootloader.sh} $out/bin/surface-fix-bootloader
+    install -m755 ${../../scripts/surface-rebuild-enclosure.sh} $out/bin/surface-rebuild-enclosure
+    install -m755 ${../../scripts/enroll-secureboot-tpm2.sh} $out/bin/enroll-secureboot-tpm2
   '';
 in
 {

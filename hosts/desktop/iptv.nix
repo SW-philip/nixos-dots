@@ -1,10 +1,9 @@
 # IPTV stack (m3u file server + EPG/playlist updaters). Off while the sources
 # are unstable — set `iptv.enable = true` to bring it back. The iptv-serve port (hosts/ports.nix) is opened
 # by hosts/desktop/services.nix when this is on.
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, ports, ... }:
 let
   sandbox = import ../../lib/sandbox.nix;
-  ports = import ../ports.nix;
   netOnly = [ "AF_INET" "AF_INET6" ];
 in
 {

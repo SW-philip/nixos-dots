@@ -1,9 +1,7 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inventory, ports, ... }:
 let
   user = config.myConfig.user;
   home = "/home/${user}";
-  inventory = import ../hosts/inventory.nix;
-  ports = import ../hosts/ports.nix;
   self = if config.networking.hostName == inventory.desktop.nick then "desktop" else "surface";
 
   ids = {

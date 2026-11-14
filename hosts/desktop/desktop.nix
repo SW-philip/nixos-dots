@@ -10,7 +10,6 @@
   security.rtkit.enable = true;
 
   services.pipewire = { # grade:host-specific
-    jack.enable = true;
     wireplumber = {
       extraConfig = {
 

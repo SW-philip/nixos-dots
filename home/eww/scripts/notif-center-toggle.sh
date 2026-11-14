@@ -2,6 +2,12 @@
 # Toggle the eww notif-center on the focused output; the flag file gates notif-controls feed. EWW, NIRI, JQ, NOTIF_HISTORY_BIN come from the Nix wrapper.
 : "${EWW:?}"
 flag="${XDG_RUNTIME_DIR:-/tmp}/notif-center-open"
+# `eww open` with no daemon becomes an unmanaged daemon itself, and eww.service then dies on "already running".
+# Wait for the unit to be *active*, not just for ping: ping answers once the socket binds, while ExecStartPost is still opening windows, and an `eww open` racing it makes eww spawn a second daemon that takes the socket and orphans the first one's windows.
+if [ "$("${SYSTEMCTL:-systemctl}" --user is-active eww.service)" != active ] || ! "$EWW" ping >/dev/null 2>&1; then
+  timeout 90 "${SYSTEMCTL:-systemctl}" --user start eww.service || exit 1
+  "$EWW" ping >/dev/null 2>&1 || exit 1
+fi
 if "$EWW" active-windows 2>/dev/null | grep -q '^notif-center'; then
   rm -f "$flag"
   "$EWW" close notif-center

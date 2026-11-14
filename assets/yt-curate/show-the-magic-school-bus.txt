@@ -1,0 +1,6 @@
+# show: The Magic School Bus (1994)
+# fetched by scripts/tv-show.py; an optional season follows a URL
+# titles carry only "Ep. N", so each playlist needs its season after the URL
+https://youtube.com/playlist?list=PLgBHIYV2JeVZaUlh8Ka3UZ7d9TtIo1aH1 1
+https://www.youtube.com/watch?v=upjT_FLXGsA&list=PLgBHIYV2JeVZF9JjwP2FRqFDN0KySmS_- 2
+https://youtu.be/coJ0bXPKebE 1

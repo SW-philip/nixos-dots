@@ -18,6 +18,7 @@ python3Packages.buildPythonApplication {
   propagatedBuildInputs = with python3Packages; [
     pygobject3
     requests
+    pillow  # Roku icons arrive as WebP; re-encoded to PNG for GTK
     samsungtvws
     yarl  # samsungtvws 3.x imports it but nixpkgs does not propagate it
   ];

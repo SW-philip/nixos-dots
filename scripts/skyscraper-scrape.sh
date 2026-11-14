@@ -162,6 +162,7 @@ JOBS=(
   "switch|switch"
   "dreamcast|dreamcast"
   "pc|pc"
+  "pc|cloud"
 )
 
 # /srv/roms/pc holds whole Windows install trees, so a folder scan would
@@ -175,6 +176,14 @@ pc_files() {
     return 1
   fi
   sed -n 's#^    #/srv/roms/pc/#p' "$meta"
+}
+
+# The Cloud collection (hosts/desktop/pegasus-cloud.nix) is streamed PC games:
+# scraped as platform pc, but -i/-g/-o point the pass at its own folders since
+# config.ini's [pc] section is /srv/roms/pc. The bare GeForce NOW tile isn't a
+# game, so it's left out.
+cloud_files() {
+  find /srv/roms/cloud -maxdepth 1 -name '*.gfn' ! -name 'GeForce NOW.gfn' | sort
 }
 
 # Every pass lands in Skyscraper's resource cache and the `-f pegasus` pass
@@ -253,7 +262,8 @@ else
   for job in "${JOBS[@]}"; do
     token="${job%%|*}"
     folder="${job#*|}"
-    if [[ "$token" == "$console" || "$folder" == "$console" ]]; then
+    # `-r pc` means the pc folder; cloud only by its own name
+    if [[ "$folder" == "$console" || ( "$token" == "$console" && "$folder" != cloud ) ]]; then
       matched+=("$job")
     fi
   done
@@ -309,18 +319,22 @@ for job in "${matched[@]}"; do
   fi
 
   romfiles=()
-  if [[ "$token" == "pc" ]]; then
+  path_args=()
+  if [[ "$folder" == pc ]]; then
     mapfile -t romfiles < <(pc_files)
-    if [[ ${#romfiles[@]} -eq 0 ]]; then
-      failed+=("$token")
-      continue
-    fi
+  elif [[ "$folder" == cloud ]]; then
+    mapfile -t romfiles < <(cloud_files)
+    path_args=(-i /srv/roms/cloud -g "$HOME/skyscraper-staging/cloud" -o "$HOME/skyscraper-staging/cloud/media")
+  fi
+  if [[ "$token" == pc && ${#romfiles[@]} -eq 0 ]]; then
+    failed+=("$folder")
+    continue
   fi
 
   scraped=0
   for module in $(scrape_modules "$token"); do
     echo "==> [$token] scraping art+metadata from $module..."
-    if skyscraper_module "$token" "$module" "${romfiles[@]}"; then
+    if skyscraper_module "$token" "$module" "${path_args[@]}" "${romfiles[@]}"; then
       scraped=$((scraped + 1))
     else
       echo "==> [$token] $module pass failed, continuing with the rest" >&2
@@ -332,7 +346,7 @@ for job in "${matched[@]}"; do
     continue
   fi
   echo "==> [$token] writing Pegasus gamelist..."
-  if ! Skyscraper -p "$token" -f pegasus "${romfiles[@]}"; then
+  if ! Skyscraper -p "$token" -f pegasus "${path_args[@]}" "${romfiles[@]}"; then
     echo "==> [$token] gamelist generation failed" >&2
     failed+=("$token")
     continue

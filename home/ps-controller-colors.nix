@@ -33,28 +33,53 @@ let
       mkdir -p "$STATE_DIR"
       touch "$ORDER_FILE"
 
-      # Player 1..4 accent order — same accent set rgb-moon's "aurora" mode
-      # draws from, just reordered so the primary accent (ROOT) is Player 1.
-      COLORS=("$ROOT" "$FORTE" "$FIFTH" "$SEVENTH")
+      # Player 1..4: primary accent, then the secondary accents. Not FORTE
+      # (it's ROOT in most themes) and no surface colors (STAGE/WING are
+      # backgrounds and read as "off" on a lightbar).
+      COLORS=("$ROOT" "$FIFTH" "$SEVENTH" "$SOTTO")
 
       hex_channel() { # $1=#rrggbb  $2=0|1|2 (r/g/b)
         local h="''${1:1}" off=$(( $2 * 2 ))
         printf '%d' "0x''${h:off:2}"
       }
 
+      # Locally-administered MAC (bit 1 of the first octet): a Sunshine
+      # virtual pad, which gets a fresh random MAC every stream. Persisting
+      # those grew the order file each session and pushed a second real
+      # controller past them, so they never enter it.
+      is_virtual() { (( 0x''${1:0:2} & 2 )); }
+
+      # Prune virtual entries written before they were excluded.
+      kept=""
+      while IFS= read -r m; do
+        [[ -n "$m" ]] && ! is_virtual "$m" && kept+="$m"$'\n'
+      done < "$ORDER_FILE"
+      printf '%s' "$kept" > "$ORDER_FILE"
+
+      # The same physical controller reports the same MAC over USB
+      # (hid-playstation reads it via feature report) and Bluetooth, so one
+      # entry covers both connections.
+      virtual_seen=0
       shopt -s nullglob
       for supply in /sys/class/power_supply/ps-controller-battery-*; do
         mac=$(basename "$supply")
         mac=$(tr '[:upper:]' '[:lower:]' <<<"''${mac#ps-controller-battery-}")
 
-        if ! grep -qxF "$mac" "$ORDER_FILE"; then
-          echo "$mac" >> "$ORDER_FILE"
+        if is_virtual "$mac"; then
+          virtual_seen=$(( virtual_seen + 1 ))
+          real_count=$(grep -c . "$ORDER_FILE" || true)
+          index=$(( real_count + virtual_seen ))
+        else
+          if ! grep -qxF "$mac" "$ORDER_FILE"; then
+            echo "$mac" >> "$ORDER_FILE"
+          fi
+          index=$(grep -m1 -nxF "$mac" "$ORDER_FILE" | cut -d: -f1)
         fi
-        index=$(grep -m1 -nxF "$mac" "$ORDER_FILE" | cut -d: -f1)
         color="''${COLORS[$(( (index - 1) % ''${#COLORS[@]} ))]}"
 
-        # supply -> …/uhid/<id>/power_supply/ps-controller-battery-<mac>;
-        # two dirnames up is the uhid device dir the leds/ siblings live in.
+        # supply -> …/<hid-id>/power_supply/ps-controller-battery-<mac>
+        # (under uhid/ for Bluetooth, under usb*/ for a cable); two dirnames
+        # up is the HID device dir the leds/ siblings live in.
         uhid_dir=$(dirname "$(dirname "$(readlink -f "$supply")")")
         leds_dir="$uhid_dir/leds"
         [[ -d "$leds_dir" ]] || continue
@@ -128,6 +153,9 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
+  # Also started by udev (SYSTEMD_USER_WANTS in hosts/desktop/services.nix)
+  # when a controller's LEDs appear: a USB plug-in never fires the bluez
+  # Connected signal the watcher listens for.
   systemd.user.services.drmis-ps-controller-colors = consumer.service;
   systemd.user.paths.drmis-ps-controller-colors = consumer.path;
 }

@@ -1,6 +1,6 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, allThemes, ... }:
 let
-  p = import ../../themes/Dark/slate-lavender/palette-slate-lavender.nix;
+  p = allThemes.slate-lavender.palette;
   # Moonlight hard-codes the page background and only centres a grid that
   # overflows one row; --replace-fail makes a version bump that moves these
   # strings break the build.

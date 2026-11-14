@@ -21,3 +21,12 @@ def test_non_digit_ids_are_refused(tmp_path):
 def test_store_creates_the_cache_directory(tmp_path):
     cache = IconCache(tmp_path / "nested" / "icons")
     assert cache.store("5", b"x") == tmp_path / "nested" / "icons" / "5.png"
+
+
+def test_webp_is_reencoded_as_png(tmp_path):
+    import io
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new("RGBA", (4, 4), (255, 0, 0, 255)).save(buf, "WEBP")
+    path = IconCache(tmp_path).store("7", buf.getvalue())
+    assert path.read_bytes().startswith(b"\x89PNG")

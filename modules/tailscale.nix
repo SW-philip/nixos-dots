@@ -1,5 +1,4 @@
-{ config, lib, ... }:
-let ports = import ../hosts/ports.nix; in
+{ config, lib, ports, ... }:
 {
   services.tailscale.enable = true;
   # tailscale0 is not a trusted interface: each service opens its own port on it

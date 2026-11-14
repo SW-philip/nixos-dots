@@ -1,6 +1,5 @@
-{ config, pkgs, ... }:
+{ config, pkgs, ports, ... }:
 let
-  ports = import ../hosts/ports.nix;
   querylogDir = "/run/AdGuardHome";
   # AdGuard writes the log 0600 as its DynamicUser, so the reader needs root.
   querylogRead = pkgs.writeShellScript "querylog-read" ''

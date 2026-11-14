@@ -1,4 +1,4 @@
-{ config, osConfig, pkgs, lib, ... }:
+{ config, osConfig, pkgs, lib, inventory, ... }:
 
 let
   isDesktop = config.myConfig.isDesktop;
@@ -103,6 +103,7 @@ let
   notifCenterToggleBin = pkgs.writeShellScriptBin "notif-center-toggle" ''
     export PATH="${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep ]}:$PATH"
     export EWW=${pkgs.eww}/bin/eww
+    export SYSTEMCTL=${pkgs.systemd}/bin/systemctl
     export NIRI=${pkgs.niri}/bin/niri
     export JQ=${pkgs.jq}/bin/jq
     export NOTIF_HISTORY_BIN=${notifHistoryBin}/bin/notif-history
@@ -110,7 +111,7 @@ let
   '';
 
   nirScripts = import ../niri/scripts.nix { inherit pkgs lib; };
-  sessionActionsForEww = import ../niri/session-actions.nix { inherit pkgs lib config; };
+  sessionActionsForEww = import ../niri/session-actions.nix { inherit pkgs lib config inventory; };
 
   # The yuck ships several literal placeholder tokens (SCRIPTS, :monitor N,
   # EWW, plus a handful of eww-daemon-specific command tokens below) —
@@ -296,7 +297,8 @@ in
       '';
       ExecReload = "${pkgs.eww}/bin/eww reload";
       ExecStopPost = "${config.lib.niri.crashToast "eww"}";
-      Restart = "on-failure";
+      # "Eww server already running" exits 0, which on-failure never retries.
+      Restart = "always";
       RestartSec = "2s";
     };
     Install.WantedBy = [ "graphical-session.target" ];

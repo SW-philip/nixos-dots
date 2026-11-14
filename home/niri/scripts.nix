@@ -221,25 +221,10 @@ rec {
       exec "''${LAUNCHER_EWW:-${pkgs.eww}/bin/eww}" open --toggle launcher-tablet
     fi
     pkill -x rofi && exit 0
-    ph="$(shuf -n1 ${../../assets/launcher-lines.txt})"
-    # Same curated list as the tablet grid, shown as a menu list. Missing/empty file =>
-    # full drun, so the launcher never comes up dead.
-    favs="''${LAUNCHER_FAVS:-$HOME/.local/share/eww/launcher-favs.json}"
-    list=$(${pkgs.jq}/bin/jq -c '.' "$favs" 2>/dev/null)
-    [ -n "$list" ] && [ "$list" != "[]" ] || exec menu --placeholder "$ph"
-    idx=$(echo "$list" | ${pkgs.jq}/bin/jq -r '.[] | "\(.icon)  \(.label)"' \
-      | menu --placeholder "$ph" --dmenu --index) || exit 0
-    [ -n "$idx" ] || exit 0
-    cmd=$(echo "$list" | ${pkgs.jq}/bin/jq -r ".[$idx].cmd")
-    # the "All apps" row: the first menu has exited by now, so this is the plain drun list
-    [ "$cmd" = menu ] && exec menu --placeholder "$ph"
-    # a bare command that is a registry app's binary goes through app-launch (host picker);
-    # anything with arguments is left exactly as written
-    reg="''${APP_LAUNCH_REGISTRY:-$HOME/.config/app-launch/registry.json}"
-    id=$(${pkgs.jq}/bin/jq -r --arg b "$cmd" \
-      '[.apps | to_entries[] | select(.value.exec[0] == $b) | .key][0] // empty' "$reg" 2>/dev/null)
-    [ -z "$id" ] || cmd="app-launch $id"
-    exec "''${LAUNCHER_NIRI:-/run/current-system/sw/bin/niri}" msg action spawn -- sh -c "$cmd"
+    # Full drun list: rofi floats recently used apps to the top, and every
+    # .desktop entry (and its Keywords) is searchable. The curated favs list
+    # is the tablet grid's alone.
+    exec menu --placeholder "$(shuf -n1 ${../../assets/launcher-lines.txt})"
   '';
 
   shootAnnotate = pkgs.writeShellScriptBin "shoot-annotate" ''

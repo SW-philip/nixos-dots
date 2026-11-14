@@ -1,135 +1,6 @@
 { inputs, pkgs, lib, config, ... }:
 let
-  pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-    pygobject3 textual rich pystray pillow pydbus cairosvg
-    requests watchdog python-dateutil
-    loguru platformdirs attrs typing-extensions
-    build setuptools wheel pyyaml
-  ]);
-
-  ports = import ../hosts/ports.nix;
-
-  sqlchYtdlp = pkgs.writeShellScript "yt-dlp-wait" ''
-    YT_DLP=${pkgs.yt-dlp}/bin/yt-dlp POPUP_MPV=${pkgs.mpv}/bin/mpv exec ${pkgs.python3}/bin/python3 ${../scripts/yt-dlp-wait.py} "$@"
-  '';
-
-  sqlchHttpBridge = pkgs.writeScript "sqlch-http-bridge" ''
-    #!${pkgs.python3}/bin/python3
-    import json, os, socket
-    from http.server import BaseHTTPRequestHandler, HTTPServer
-
-    PORT = ${toString ports.sqlch-http-bridge}
-    SOCK = os.path.join(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"), "sqlch", "control.sock")
-
-    def sqlch(msg):
-        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-            s.settimeout(2.0)
-            s.connect(SOCK)
-            s.sendall((json.dumps(msg) + "\n").encode())
-            buf = b""
-            while not buf.endswith(b"\n"):
-                chunk = s.recv(4096)
-                if not chunk:
-                    break
-                buf += chunk
-        return json.loads(buf.decode("utf-8", errors="replace"))
-
-    class H(BaseHTTPRequestHandler):
-        def _send(self, code, body):
-            b = json.dumps(body).encode()
-            self.send_response(code)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", len(b))
-            self.end_headers()
-            self.wfile.write(b)
-
-        def do_OPTIONS(self):
-            self.send_response(204)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type")
-            self.end_headers()
-
-        def do_GET(self):
-            if self.path != "/status":
-                self._send(404, {"error": "not found"}); return
-            try:
-                self._send(200, sqlch({"cmd": "status"}))
-            except Exception as e:
-                self._send(503, {"ok": False, "error": str(e)})
-
-        def do_POST(self):
-            if self.path != "/command":
-                self._send(404, {"error": "not found"}); return
-            try:
-                n = int(self.headers.get("Content-Length", 0))
-                msg = json.loads(self.rfile.read(n))
-                self._send(200, sqlch(msg))
-            except Exception as e:
-                self._send(503, {"ok": False, "error": str(e)})
-
-        def log_message(self, *_): pass
-
-    HTTPServer(("127.0.0.1", PORT), H).serve_forever()
-  '';
-
-  # Guards the 18-min idle session-quit: media playback (or any other
-  # process on the blacklist below) alone doesn't reset hypridle's idle
-  # timer (only input activity does), so without this the quit would fire
-  # once and kill music/video/a claude session/a rebuild along with the
-  # session. Polls while still locked + busy; bails without quitting if the
-  # user unlocks first, and quits once nothing on the list is still running.
-  # Blacklist patterns are `pgrep -f` regexes, checked across all users'
-  # processes (a `nrs`/nixos-rebuild runs as root under sudo) — add a
-  # pattern here for anything else that shouldn't be interrupted by a
-  # logout while the screen happens to be locked.
-  hypridleQuitBlacklist = [
-    "nixos-rebuild"    # nrs / nh os switch / manual nixos-rebuild
-    "/bin/nh os"        # nh itself, before it shells out to nixos-rebuild
-    "claude"           # claude code CLI session (also matches its own child shells)
-  ];
-  hypridleQuitGuard = pkgs.writeShellScript "hypridle-quit-guard" ''
-    export PATH="${lib.makeBinPath [ pkgs.playerctl pkgs.procps ]}:$PATH"
-
-    is_busy() {
-      playerctl -a status 2>/dev/null | grep -q Playing && return 0
-      ${lib.concatMapStringsSep "\n      " (pat: ''pgrep -f ${lib.escapeShellArg pat} >/dev/null 2>&1 && return 0'') hypridleQuitBlacklist}
-      return 1
-    }
-
-    while pidof hyprlock >/dev/null 2>&1 && is_busy; do
-      sleep 60
-    done
-    pidof hyprlock >/dev/null 2>&1 && niri msg action quit -s
-  '';
-
-  # nix-your-shell's zsh hook is static; generate it at build time instead of
-  # forking the binary on every shell start.
-  nixYourShellInit = pkgs.runCommand "nix-your-shell-zsh" { } ''
-    ${pkgs.nix-your-shell}/bin/nix-your-shell zsh > $out
-  '';
-  # Desktop's DP monitors have no /sys/class/backlight node, so brightnessctl
-  # can't dim them; DDC/CI (VCP 0x10) can. Bus numbers shift between boots,
-  # and NVIDIA exposes no sysfs ddc node, so resolve them via ddcutil detect.
-  ddcDim = pkgs.writeShellScript "ddc-dim" ''
-    state="''${XDG_RUNTIME_DIR:-/run/user/$UID}/ddc-brightness"
-    mkdir -p "$state"
-    for bus in $(${pkgs.ddcutil}/bin/ddcutil detect --brief 2>/dev/null \
-        | awk '/I2C bus:/{b=$3; sub(".*i2c-","",b)} /DRM connector:.*-DP-[12]$/{print b}'); do
-      case "$1" in
-        dim)
-          ${pkgs.ddcutil}/bin/ddcutil --bus "$bus" getvcp 10 --brief 2>/dev/null \
-            | awk '{print $4}' > "$state/$bus"
-          ${pkgs.ddcutil}/bin/ddcutil --bus "$bus" setvcp 10 10 ;;
-        restore)
-          [ -s "$state/$bus" ] && ${pkgs.ddcutil}/bin/ddcutil --bus "$bus" setvcp 10 "$(cat "$state/$bus")" ;;
-      esac
-    done
-    true
-  '';
+  pythonEnv = import ./python-env.nix pkgs;
 in
 {
   imports = [
@@ -138,6 +9,9 @@ in
     ../home/downloaders.nix
     ../home/waybar
     ../home/niri/swaync
+    ../home/hyprlock
+    ../home/hypridle.nix
+    ../home/zsh
     ../home/eww
     ../home/niri
     ../home/niri/xwayland-satellite.nix
@@ -149,31 +23,13 @@ in
     ../home/bluetooth-device-probe.nix
     ../home/screenshot-sound.nix
     ../home/resource-warn.nix
-    ../home/sqlch-sync.nix
-    ../home/niri-bridge
-    ../home/claude-tidy.nix
     ../home/goodnight-jobs.nix
-    ../home/tree-sync.nix
-    ../home/theme-sync.nix
-    ../home/fleet-status.nix
-    ../home/whats-new.nix
-    ../home/nixfetch.nix
-    ../home/sync-status.nix
-    ../home/pass-through.nix
-    ../home/quivr.nix
-    ../home/go-librespot.nix
-    ../home/on.nix
     ../home/settings.nix
     ../home/commands.nix
     ../home/snark.nix
-    ../home/tunnel.nix
-    ../home/dnslog.nix
     ../home/polkit-agent.nix
     ../home/shared-apps
-    inputs.sqlch.homeManagerModules.default
   ];
-
-  sqlch.gui.enable = true;
 
   ########################################
   # Session / GTK
@@ -279,7 +135,6 @@ in
 
   home.stateVersion = "25.11";
   home.sessionPath = [ "$HOME/.local/bin" ];
-  home.sessionVariables.CLAUDE_ENV_FILE = "$HOME/.claude/.env";
   home.file.".local/bin/zed".source = config.lib.file.mkOutOfStoreSymlink "${config.home.profileDirectory}/bin/zeditor";
 
   ########################################
@@ -288,39 +143,6 @@ in
   systemd.user.startServices = "sd-switch";
 
   systemd.user.services = {
-    sqlch-daemon = {
-      Unit = {
-        Description = "sqlch mpris daemon";
-        After = [ "graphical-session.target" ];
-        PartOf = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${pkgs.bash}/bin/bash -c 'set -a; . /run/secrets/spotify_env; set +a; exec ${pkgs.sqlch}/bin/sqlch daemon'";
-        Restart = "on-failure";
-        # mpv children (video + ytdl cache) live in this cgroup; 300M OOM-killed
-        # the whole unit, window and all, as soon as a video source started.
-        MemoryMax = "2G";
-        MemorySwapMax = "0";
-        Environment = [ "MALLOC_ARENA_MAX=2" "SQLCH_YTDLP=${sqlchYtdlp}" ];
-      };
-      Install.WantedBy = [ "graphical-session.target" ];
-    };
-
-    sqlch-http-bridge = {
-      Unit = {
-        Description = "sqlch HTTP bridge for Firefox startpage";
-        After = [ "sqlch-daemon.service" "graphical-session.target" ];
-        BindsTo = [ "sqlch-daemon.service" ];
-        PartOf = [ "graphical-session.target" ];
-      };
-      Service = {
-        ExecStart = "${sqlchHttpBridge}";
-        Restart = "on-failure";
-        RestartSec = "3s";
-      };
-      Install.WantedBy = [ "graphical-session.target" ];
-    };
-
     cliphist-text = {
       Unit = {
         Description = "cliphist text clipboard watcher";
@@ -348,211 +170,6 @@ in
     };
   };
 
-  ########################################
-  # Shell
-  ########################################
-  programs.zsh = {
-    enable = true;
-    enableCompletion = true;
-    autosuggestion.enable = true;
-    syntaxHighlighting.enable = true;
-
-    history = {
-      size = 10000;
-      save = 10000;
-      extended = true;
-      ignoreDups = true;
-      ignoreAllDups = true;
-      expireDuplicatesFirst = true;
-      share = true;
-    };
-
-    shellAliases = {
-      ls = "eza --icons=auto --group-directories-first";
-      ll = "eza -lh --icons=auto --group-directories-first --git";
-      la = "eza -lah --icons=auto --group-directories-first --git";
-      lt = "eza --tree --icons=auto --level=2";
-      ltt = "eza --tree --icons=auto";
-      cat = "bat --style=plain --paging=never";
-      lg = "lazygit";
-      gds = "git diff --staged";
-      lb = "sudo rm -f /boot/EFI/systemd/systemd-bootx64.efi /boot/EFI/BOOT/BOOTX64.EFI && sudo rm -f /boot/EFI/Linux/nixos-*.efi";
-      # -e pins nh's elevation strategy to the real setuid sudo wrapper —
-      # nh's "auto" detection can otherwise resolve the non-setuid
-      # /run/current-system/sw/bin/sudo and fail activation.
-      nrs = "{ nh os switch -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos && whats-new; } || sfx error";
-      nrb = "nh os boot -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos";
-      nrt = "nh os test -e /run/wrappers/bin/sudo ${config.home.homeDirectory}/nixos";
-      nfu = "nix flake update";
-      ".." = "cd ..";
-      "..." = "cd ../..";
-      "...." = "cd ../../..";
-      g = "git";
-      gst = "git status";
-      ga = "git add";
-      gaa = "git add --all";
-      gc = "git commit";
-      gcmsg = "git commit -m";
-      gco = "git checkout";
-      gb = "git branch";
-      gf = "git fetch";
-      gp = "git push";
-      ship = "~/nixos/scripts/ship.sh";
-      secrets = "~/nixos/scripts/secrets.py";
-      gl = "git pull";
-      gd = "git diff";
-      gfa = "git fetch --all --prune";
-      gm = "git merge";
-      gr = "git remote";
-      grm = "git rm";
-      grb = "git rebase";
-      grba = "git rebase --abort";
-      grbc = "git rebase --continue";
-      grbi = "git rebase -i";
-      gsw = "git switch";
-      gss = "git status -s";
-      gsta = "git stash push";
-      gstp = "git stash pop";
-      gcm = "git checkout main";
-      gpf = "git push --force-with-lease";
-      x = "ouch decompress";
-      extract = "ouch decompress";
-      grep = "grep --color=auto";
-      ip = "ip --color=auto";
-      diff = "delta";
-    };
-
-    # compaudit stats every dir in $fpath on every startup (Nix profiles inflate
-    # $fpath heavily); that alone was ~40% of shell startup time (measured via
-    # zprof). Skip it, and the dump rebuild, unless the dump is over a day old.
-    # The touch matters: a full compinit finding a valid dump leaves its mtime
-    # alone, so without it every shell after day one takes the slow path again.
-    completionInit = ''
-      autoload -Uz compinit
-      _zcd=(''${HOME}/.zcompdump(N.mh-24))
-      if (( ''${#_zcd} )); then compinit -C; else compinit; touch ''${HOME}/.zcompdump; fi
-      unset _zcd
-    '';
-
-    plugins = [
-      {
-        name = "powerlevel10k";
-        src = pkgs.zsh-powerlevel10k;
-        file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme";
-      }
-    ];
-
-    # p10k instant prompt only works if this is the first thing .zshrc does —
-    # sourced after the plugins it just writes a cache file nothing reads.
-    initContent = lib.mkMerge [
-      # Plain `sops` uses the passphrase-encrypted editor key (scripts/sops-editor-key.sh), so no
-      # host key sits in ~. Not SOPS_AGE_KEY_CMD: sops reruns that once per recipient it tries,
-      # i.e. a passphrase prompt per recipient. The key reaches only this one sops process.
-      (lib.mkAfter ''
-        sops() {
-          local key
-          key=$(${pkgs.age}/bin/age -d "$HOME/.config/sops/age/editor.age") || return
-          SOPS_AGE_KEY=$key command sops "$@"
-        }
-      '')
-      (lib.mkOrder 0 ''
-        if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
-          source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
-        fi
-      '')
-      (lib.mkAfter ''
-      # 1. Color Refresh Function
-      _refresh_colors() {
-        # Path where toggle-theme copies the palette
-        PALETTE_FILE="$HOME/.config/waybar/palette.sh"
-
-        if [ -f "$PALETTE_FILE" ]; then
-          source "$PALETTE_FILE"
-
-          export BASE SURFACE OVERLAY MUTED SUBTLE TEXT LOVE GOLD ROSE PINE FOAM IRIS \
-                 HIGHLIGHT_LOW HIGHLIGHT_MED HIGHLIGHT_HIGH
-
-          export FZF_DEFAULT_OPTS="
-            --height=50% --layout=reverse --border=rounded
-            --info=inline --cycle
-            --bind=ctrl-u:preview-page-up,ctrl-d:preview-page-down
-            --bind=ctrl-/:toggle-preview
-            --color=bg:''${BASE},bg+:''${HIGHLIGHT_LOW},fg:''${TEXT},fg+:''${TEXT}
-            --color=hl:''${LOVE},hl+:''${LOVE},info:''${FOAM},prompt:''${IRIS}
-            --color=pointer:''${LOVE},marker:''${GOLD},spinner:''${FOAM},header:''${MUTED}
-            --color=border:''${HIGHLIGHT_MED},gutter:''${BASE}
-          "
-
-          if [[ -v ZSH_HIGHLIGHT_STYLES ]]; then
-            ZSH_HIGHLIGHT_STYLES[comment]="fg=''${MUTED:-#6e6a86}"
-          fi
-        fi
-      }
-
-      _refresh_colors
-
-      TRAPUSR1() {
-        _refresh_colors
-        # Force prompt redraw so colors update without pressing Enter
-        zle && zle reset-prompt
-      }
-
-      [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
-      [ -f "$HOME/.config/sqlch/env" ] && source "$HOME/.config/sqlch/env"
-
-      source ${nixYourShellInit}
-
-      zstyle ':completion:*' menu select
-      zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
-      zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
-      zstyle ':completion:*:warnings' format '%F{red}no matches%f'
-      zstyle ':completion:*' group-name ""
-      zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
-
-      bindkey "^[[1;5C" forward-word
-      bindkey "^[[1;5D" backward-word
-      bindkey "^[[H"    beginning-of-line
-      bindkey "^[[F"    end-of-line
-      bindkey "^[[3~"   delete-char
-      bindkey "^H"      backward-kill-word
-      bindkey "^[[3;5~" kill-word
-
-      # esc-esc: prepend sudo to the line (or the previous command if empty)
-      _sudo_prepend() {
-        [[ -z $BUFFER ]] && zle up-history
-        [[ $BUFFER == sudo\ * ]] || BUFFER="sudo $BUFFER"
-        zle end-of-line
-      }
-      zle -N _sudo_prepend
-      bindkey "^[^[" _sudo_prepend
-
-      copypath() { print -n -- "''${1:A}" | wl-copy }
-      copyfile() { wl-copy < "$1" }
-      mkcd() { mkdir -p "$1" && cd "$1" }
-      nsh() { nix shell ''${@/#/nixpkgs#} }
-      '')
-    ];
-  };
-
-  programs.atuin = {
-    enable = true;
-    enableZshIntegration = true;
-    settings = {
-      style                            = "compact";
-      search_mode                       = "fuzzy";
-      filter_mode_shell_up_key_binding = "session";
-      show_preview                     = true;
-      inline_height                    = 20;
-    };
-  };
-
-  programs.direnv = {
-    enable = true;
-    enableZshIntegration = true;
-    nix-direnv.enable = true;
-  };
-
-  programs.hyprlock.enable = true;
 
   # Language servers on zeditor's PATH: Zed's own ruff download is a generic
   # dynamically linked binary that can't run here (no nix-ld). The settings
@@ -593,59 +210,6 @@ in
   # SSH keys live in gcr-ssh-agent (gnome-keyring, roles/niri.nix), not a second agent.
   systemd.user.sessionVariables.SSH_AUTH_SOCK = "\${XDG_RUNTIME_DIR}/gcr/ssh";
 
-  programs.ssh = {
-    enable = true;
-    # enableDefaultConfig is deprecated upstream; the block it injected just
-    # restates OpenSSH's own compiled-in defaults (ForwardAgent no,
-    # ServerAliveInterval 0, HashKnownHosts no, ControlMaster/Persist no,
-    # etc.) so disabling it changes nothing behaviorally.
-    enableDefaultConfig = false;
-    settings."*".AddKeysToAgent = "yes";
-  };
-
-  ########################################
-  # Services
-  ########################################
-  services.hypridle = {
-    enable = true;
-    settings = {
-      general = {
-        lock_cmd = "pidof hyprlock || ${config.myConfig.lockScreenScript}";
-        unlock_cmd = "niri msg action do-screen-transition";
-        before_sleep_cmd = "loginctl lock-session";
-        after_sleep_cmd = "";
-        ignore_dbus_inhibit = false;
-      };
-      listener = [
-        {
-          timeout = 240;
-          on-timeout = if config.myConfig.hasBacklight then "${pkgs.brightnessctl}/bin/brightnessctl -s s 10%" else "${ddcDim} dim";
-          on-resume = if config.myConfig.hasBacklight then "${pkgs.brightnessctl}/bin/brightnessctl -r" else "${ddcDim} restore";
-        }
-        {
-          timeout = if config.myConfig.isDesktop then 600 else 480;
-          on-timeout = "pidof hyprlock || ${config.myConfig.lockScreenScript}";
-        }
-      ] ++ lib.optionals (!config.myConfig.isDesktop) [
-        {
-          timeout = 600;
-          on-timeout = "niri msg action power-off-monitors 2>/dev/null; true";
-          on-resume = "niri msg action power-on-monitors 2>/dev/null; true";
-        }
-      ] ++ lib.optional (!config.myConfig.isDesktop) {
-        # 10 min after the 8-min lock: end the niri session, dropping back to
-        # the greeter. No on-resume — there's nothing to come back to.
-        # Guarded so it won't kill a playing music/video session (see
-        # hypridleQuitGuard above). Desktop is excluded: greetd auto-logs
-        # prepko straight back into niri (initial_session in
-        # hosts/desktop/config.nix), so dropping to the greeter there just
-        # forces a re-login (and a keyring re-unlock) for no security
-        # benefit — desktop locks on idle (10 min) but never logs out.
-        timeout = 1080;
-        on-timeout = "${hypridleQuitGuard}";
-      };
-    };
-  };
 
   ########################################
   # yt-dlp
@@ -664,8 +228,7 @@ in
     jq ripgrep fd bat
     gitleaks unzip resvg
     ouch
-    mame-tools pythonEnv claude-code
-    sqlch            # prepko only: it has a YouTube source, so never system-wide
+    mame-tools pythonEnv
     grim slurp wl-clipboard
     cliphist
     ffmpeg mediainfo vlc playerctl libnotify
@@ -707,22 +270,6 @@ in
     (writeShellScriptBin "synth" ''
       exec ${fluidsynth}/bin/fluidsynth -a pipewire -m alsa_seq \
         ${soundfont-generaluser-gs}/share/soundfonts/GeneralUser-GS.sf2 "$@"
-    '')
-
-    (writeShellScriptBin "get-theme" ''
-      exec ${pythonEnv}/bin/python3 ~/nixos/scripts/auto-theme.py "$@"
-    '')
-
-    (writeShellScriptBin "scrape" ''
-      exec ~/nixos/scripts/skyscraper-scrape.sh "$@"
-    '')
-
-    (writeShellScriptBin "openb64" ''
-      exec ~/nixos/scripts/openb64.sh "$@"
-    '')
-
-    (writeShellScriptBin "extract-to-backup" ''
-      exec ~/nixos/scripts/extract-to-backup.sh "$@"
     '')
   ];
 

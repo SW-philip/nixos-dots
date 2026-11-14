@@ -1,6 +1,5 @@
-{ pkgs, ... }:
+{ pkgs, ports, ... }:
 let
-  ports = import ../hosts/ports.nix;
   webui = "http://127.0.0.1:${toString ports.qbittorrent-webui}";
 
   # `torrent <magnet|file>` adds it; bare `torrent` opens the web UI. Either

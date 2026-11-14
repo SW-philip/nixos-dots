@@ -1,7 +1,6 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, ports, ... }:
 
 let
-  ports = import ../ports.nix;
   # by-id: sda/sdb swap between boots, and hdparm on the wrong one hits the SSD.
   hdd = "/dev/disk/by-id/ata-ST3000DM008-2DM166_Z505GAGT";
   ssd = "/dev/disk/by-id/ata-ADATA_SU630_2J1320139530";
@@ -128,10 +127,15 @@ in
   # brightnessctl rules — actually works. "input" because prepko is
   # already in that group for /dev/input access; scoped to Sony's vendor
   # ID (054C) so it never touches unrelated LEDs (kbd backlight, etc).
-  # Consumed by home/ps-controller-colors.nix.
+  # The path match covers both Bluetooth (…/uhid/0005:054C:…) and USB
+  # (…/usb1/…/0003:054C:…); the old */uhid/* match left a wired
+  # controller's LEDs root-only.
+  # Consumed by home/ps-controller-colors.nix. The :red LED also pulls in
+  # its recolor oneshot, since a USB plug-in has no bluez signal to watch.
   ############################################################
   services.udev.extraRules = ''
-    SUBSYSTEM=="leds", DEVPATH=="*/uhid/*054C*/leds/*", RUN+="${pkgs.coreutils}/bin/chgrp input /sys%p/brightness", RUN+="${pkgs.coreutils}/bin/chmod g+w /sys%p/brightness"
+    SUBSYSTEM=="leds", DEVPATH=="*:054C:*/leds/*", RUN+="${pkgs.coreutils}/bin/chgrp input /sys%p/brightness", RUN+="${pkgs.coreutils}/bin/chmod g+w /sys%p/brightness"
+    SUBSYSTEM=="leds", DEVPATH=="*:054C:*/leds/*:red", ACTION=="add", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="drmis-ps-controller-colors.service"
   '';
 
 }

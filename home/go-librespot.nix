@@ -7,9 +7,8 @@
 # ~/.config/go-librespot/state.json.
 #
 # The package pin (nixpkgs-unstable, v0.10.5) is overlays/go-librespot.nix.
-{ pkgs, lib, config, ... }:
+{ pkgs, lib, config, ports, ...}:
 let
-  ports = import ../hosts/ports.nix;
   configFile = (pkgs.formats.yaml { }).generate "go-librespot-config.yml" {
     device_name = "sqlch";
     device_type = "computer";

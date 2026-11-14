@@ -278,13 +278,42 @@ def fade(direction):
     except FileNotFoundError:
         pass
 
+def bar_surfaces():
+    """Count waybar's layer surfaces (namespace gtk-layer-shell, Top layer) across outputs."""
+    try:
+        out = subprocess.run(["niri", "msg", "layers"], capture_output=True, text=True, timeout=2).stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    n, in_top = 0, False
+    for line in out.splitlines():
+        if line.startswith("Output "):
+            in_top = False
+        elif line.strip().endswith(" layer:") or line.strip().endswith("(empty)"):
+            in_top = line.strip().startswith("Top layer")
+        elif in_top and 'Namespace: "gtk-layer-shell"' in line:
+            n += 1
+    return n
+
+def wait_for_bar(want, timeout=8.0):
+    """`systemctl restart waybar` returns at exec; hold the dip until its surfaces are back."""
+    if not want:
+        return
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if (bar_surfaces() or 0) >= want:
+            time.sleep(0.2)
+            return
+        time.sleep(0.1)
+
 def do_set(slug, theme_map):
     slug = resolve_theme_alias(slug)
     if slug not in theme_map.get("themes", {}):
         print(f"drmis: unknown theme '{slug}'", file=sys.stderr); sys.exit(1)
+    want = bar_surfaces()
     fade("out")
     try:
         apply_set(slug, theme_map)
+        wait_for_bar(want)
     finally:
         fade("in")
 

@@ -1,6 +1,6 @@
-{ pkgs, ... }:
+{ pkgs, allThemes, ... }:
 let
-  moon = import ../../themes/Dark/indigo-rose/palette-indigo-rose.nix;
+  moon = allThemes.indigo-rose.palette;
 
   # Their wallpaper: the orange soft-serve from the Lix "ice cream" theme named
   # after the account. Static — this account has no theme switcher, so swaybg just paints this.

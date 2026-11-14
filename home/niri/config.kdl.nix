@@ -310,6 +310,25 @@ window-rule {
     open-focused true
 }
 
+// Proton games come through xwayland-satellite as WM_CLASS steam_app_<appid>
+// and hit the same column default: Incredibox (1545450) opened as a small tile
+// that was unreadable on the TV over Moonlight. Fullscreen lets it scale to
+// the whole output.
+window-rule {
+    match app-id="^steam_app_[0-9]+$"
+    open-fullscreen true
+    open-focused true
+}
+
+// GeForce NOW launched from Pegasus's Cloud collection: without this it opens
+// as a column beside Pegasus, off-screen. App-id comes from the --app URL
+// (pkgs/geforce-now), not confirmed live yet.
+window-rule {
+    match app-id="^chrome-play\\.geforcenow\\.com__mall_"
+    open-fullscreen true
+    open-focused true
+}
+
 // Pegasus launched from Sunshine (retro-pegasus) has no rule of its own, so
 // niri used the 0.5-proportion default column and it showed up as a half-width
 // tile on the desktop instead of filling the screen. Substring match because

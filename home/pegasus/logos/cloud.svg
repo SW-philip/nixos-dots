@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="320" viewBox="0 0 1500 320">
+  <!-- cloud with a play button punched through -->
+  <g transform="translate(20,40)">
+    <path fill="#fff" fill-rule="evenodd" d="
+      M70 240 A70 70 0 0 1 60 101 A85 85 0 0 1 200 52 A105 105 0 0 1 380 120 A60 60 0 0 1 370 240 Z
+      M190 110 L190 210 L275 160 Z"/>
+  </g>
+  <text x="470" y="215" font-family="Josefin Sans" font-weight="700" font-size="170" letter-spacing="14" fill="#fff">CLOUD</text>
+</svg>

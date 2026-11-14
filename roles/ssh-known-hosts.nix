@@ -1,7 +1,6 @@
-{ lib, ... }:
+{ lib, inventory, ... }:
 let
   tailnet = "example.ts.net";
-  inventory = import ../hosts/inventory.nix;
   keys = {
     desktop = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";
     surface = "ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY";

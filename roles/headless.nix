@@ -20,7 +20,7 @@ in
   security.sudo.wheelNeedsPassword = false;
 
   # No home-manager here, so no themed ff: stock fastfetch under the usual name.
-  environment.systemPackages = [ pkgs.fastfetch pkgs.ghostty.terminfo ];
+  environment.systemPackages = [ pkgs.fastfetch pkgs.ghostty.terminfo pkgs.lm_sensors ];  # lm_sensors: health-check CPU & Thermals
   environment.shellAliases.ff = "fastfetch";
 
   networking.networkmanager.enable = true;

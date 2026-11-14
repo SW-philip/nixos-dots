@@ -1,6 +1,6 @@
-{ inputs, pkgs, lib, config, ... }:
+{ inputs, pkgs, lib, config, allThemes, ... }:
 let
-  moon = import ../../themes/Dark/indigo-rose/palette-indigo-rose.nix;
+  moon = allThemes.indigo-rose.palette;
 
   # Firefox's homepage: same tile look as the kid's dashboard, one tile per
   # WebsiteFilter exception. Plain https:// links, so no launcher/GIO
@@ -61,7 +61,7 @@ in
 
   # This account has no drmis, so its keyboard sheet is rendered from its fixed palette.
   xdg.configFile."squeekboard-gtk/gtk-3.0/gtk.css".text =
-    import ../niri/squeekboard.nix { p = import ../../themes/Light/kid/palette-kid.nix; };
+    import ../niri/squeekboard.nix { p = allThemes.kid.palette; };
 
   home.stateVersion  = "25.11";
   home.username      = "kid";

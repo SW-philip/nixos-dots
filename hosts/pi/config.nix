@@ -7,15 +7,10 @@ in
   boot.zfs.forceImportRoot = false;
 
   imports = [
-    ../../modules/nixfetch.nix
     ../../modules/adguardhome.nix
     "${modulesPath}/installer/sd-card/sd-image-aarch64.nix"
-    ../../identities/prepko.nix
     ../../roles/headless.nix
-    ../../roles/goodnight-activate.nix
-    ../../roles/ssh-known-hosts.nix
     ../../roles/wifi-home.nix
-    inputs.sops-nix.nixosModules.sops
   ];
 
   networking.hostName = "SWpi";

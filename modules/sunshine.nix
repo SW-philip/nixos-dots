@@ -1,7 +1,5 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inventory, ports, ... }:
 let
-  inventory = import ../hosts/inventory.nix;
-  ports = import ../hosts/ports.nix;
   artDir = "${config.users.users.${config.myConfig.user}.home}/.local/share/retro-tiles/art";
   tileSystems = builtins.filter (s: s.tile or false)
     (import ../hosts/retro-systems.nix { inherit pkgs; });

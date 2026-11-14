@@ -1,0 +1,4 @@
+# show: Finding Stuff Out (2014)
+# fetched by scripts/tv-show.py; an optional season follows a URL
+https://youtube.com/playlist?list=PLwXfifOlVIXviAJHY0xc-_05_PAiXbmLj  # Season 1 Full Episodes (HD), TVOKids
+https://youtube.com/playlist?list=PLwXfifOlVIXu8uwXi3nrXmDbgSzjni8Av 2

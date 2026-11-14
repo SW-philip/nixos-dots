@@ -1,8 +1,11 @@
 """On-disk cache for Roku channel icons."""
 from __future__ import annotations
+import io
 from pathlib import Path
 
-CACHE_DIR = Path.home() / ".cache" / "uniremote" / "icons"
+from PIL import Image, UnidentifiedImageError
+
+CACHE_DIR = Path.home() / ".cache" / "uniremote" / "icons-png"
 
 
 class IconCache:
@@ -22,5 +25,16 @@ class IconCache:
         if path is None:
             return None
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        path.write_bytes(_as_png(data))
         return path
+
+
+def _as_png(data: bytes) -> bytes:
+    """Roku serves WebP, which gdk-pixbuf here can't decode; re-encode as PNG."""
+    try:
+        with Image.open(io.BytesIO(data)) as img:
+            out = io.BytesIO()
+            img.convert("RGBA").save(out, "PNG")
+            return out.getvalue()
+    except (UnidentifiedImageError, OSError):
+        return data

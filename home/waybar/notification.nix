@@ -33,7 +33,9 @@ let
     escape = true;
     tooltip = true;
     on-click = "${config.myConfig.sidebarToggleScript}";
-    on-click-right = "${swaync} -d -sw";
+    # Silent mode: notifications still arrive, only the arrival sound is
+    # skipped (flag read by notifySoundOnce in home/niri/swaync/default.nix).
+    on-click-right = "f=$HOME/.local/state/notify-quiet; mkdir -p $HOME/.local/state; if [ -e $f ]; then rm -f $f; ${pkgs.libnotify}/bin/notify-send -a notify-quiet -u low 'Notification sound on'; else touch $f; ${pkgs.libnotify}/bin/notify-send -a notify-quiet -u low 'Notifications silenced'; fi";
   };
 in
 {

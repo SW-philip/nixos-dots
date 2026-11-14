@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="320" viewBox="0 0 1800 320">
+  <!-- isometric cube: three faces with a notch cut from the front-right face -->
+  <g fill="#fff" transform="translate(30,20)">
+    <path d="M140 0 L280 70 L140 140 L0 70 Z"/>
+    <path d="M0 90 L130 155 L130 280 L0 215 Z"/>
+    <path d="M150 155 L280 90 L280 215 L150 280 Z M190 175 L190 225 L240 200 L240 150 Z" fill-rule="evenodd"/>
+  </g>
+  <text x="350" y="205" font-family="Josefin Sans" font-weight="700" font-size="150" letter-spacing="6" fill="#fff">GAMECUBE</text>
+  <rect x="1320" y="60" width="14" height="200" fill="#fff" transform="rotate(18 1327 160)"/>
+  <text x="1390" y="205" font-family="Josefin Sans" font-weight="700" font-size="150" fill="#fff">Wii</text>
+</svg>

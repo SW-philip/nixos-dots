@@ -420,12 +420,12 @@
 
 (defwidget nc-card [n ?fan]
   (box :orientation "vertical" :space-evenly false :spacing 3
-    (label :class "nc-origin" :halign "start" :visible {fan && (n.origin ?: "") != ""} :text {n.origin ?: ""})
+    (label :class "nc-origin" :halign "start" :visible {fan == "true" && (n.origin ?: "") != ""} :text {n.origin ?: ""})
     (eventbox :class "card-hit"
       (box :class "nc-card ${n.urgency}${n.match ? '' : ' dim'}" :orientation "horizontal" :space-evenly false :spacing 10
         (box :orientation "vertical" :space-evenly false :spacing 2 :hexpand true
           (box :orientation "horizontal" :space-evenly false
-            (label :class "nc-app" :halign "start" :visible {!(fan && (n.origin ?: "") != "")} :text {(n.origin ?: "") != "" ? n.origin : n.app})
+            (label :class "nc-app" :halign "start" :visible {!(fan == "true" && (n.origin ?: "") != "")} :text {(n.origin ?: "") != "" ? n.origin : n.app})
             (box :hexpand true)
             (button :class "nc-x" :timeout "2s" :onclick "NOTIF_HISTORY dismiss ${n.id}" "󰅖"))
           (label :class "nc-sum" :halign "start" :xalign 0 :wrap true :text {n.summary})

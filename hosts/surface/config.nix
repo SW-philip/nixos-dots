@@ -1,6 +1,6 @@
-{ inputs, config, options, pkgs, lib, ... }:
+{ inputs, config, options, pkgs, lib, inventory, ... }:
 let
-  desktopIp = (import ../inventory.nix).desktop.ip;
+  desktopIp = inventory.desktop.ip;
   # The subset of hosts/retro-systems.nix this Surface's Intel iGPU can run —
   # ppsspp + libretro cores only, no heavy standalone emulators. The list
   # stays a local value (not the NFS mount) because NFS serves symlinks
@@ -18,30 +18,14 @@ in
   # Imports
   ############################################################
   imports = [
-    ../../modules/nixfetch.nix
-    ../../modules/port-viewer.nix
-    ../../modules/health-root.nix
-    ../../roles/goodnight-activate.nix
     ../../roles/base.nix
-    ../../roles/secure-boot.nix
-    ../../roles/niri.nix
-    ../../identities/prepko.nix
     ../../identities/kid.nix
     ./surface.nix
     inputs.nixos-hardware.nixosModules.microsoft-surface-pro-intel
-    inputs.sops-nix.nixosModules.sops
-    ../../roles/sops-shared.nix
     ../../roles/wifi-home.nix
-    ../../roles/ssh-known-hosts.nix
-    ../../modules/greetd.nix
     ../../modules/retro-session.nix
-    ../../modules/tailscale.nix
-    ../../modules/syncthing.nix
-    ../../modules/niri-bridge.nix
-    ../../modules/protonvpn.nix
     ../../modules/bluetooth-idle-off.nix
     ../../modules/tether.nix
-    ../../modules/qbittorrent.nix
     ./hardware.nix
     ./boot.nix
     ./features.nix
@@ -75,17 +59,19 @@ in
   #
   # `soft` + a short mount-timeout means Pegasus just sees an empty
   # collection instead of hanging login when surface is away from home or
-  # desktop's off. `x-systemd.automount` defers the actual NFS connection
-  # until something first touches /srv/roms-nfs (e.g. Pegasus scanning at
-  # session launch), so this never blocks boot either. `timeo` is in
-  # deciseconds — timeo=30 is a 3s per-retry timeout, not 30s.
+  # desktop's off. All three NFS mounts here are `noauto`; desktop-mounts
+  # (below) mounts them while desktop answers on 2049 and lazily unmounts them
+  # when it doesn't. Not x-systemd.automount: stat-ing an automount path with
+  # desktop away blocks ~10 s per touch and made eww.service's InaccessiblePaths
+  # mask fail with 226/NAMESPACE. `timeo` is in deciseconds — timeo=30 is a
+  # 3s per-retry timeout, not 30s.
   ############################################################
   fileSystems."/srv/roms-nfs" = {
     device  = "${desktopIp}:/srv/roms";
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "ro" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
-      "x-systemd.automount" "x-systemd.mount-timeout=10s" "x-systemd.idle-timeout=300"
+      "noauto" "x-systemd.mount-timeout=10s"
     ];
   };
 
@@ -99,7 +85,7 @@ in
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
-      "x-systemd.automount" "x-systemd.mount-timeout=10s" "x-systemd.idle-timeout=300"
+      "noauto" "x-systemd.mount-timeout=10s"
     ];
   };
 
@@ -110,8 +96,38 @@ in
     fsType  = "nfs";
     options = [
       "nfsvers=4.2" "rw" "soft" "timeo=30" "retrans=2" "_netdev" "nofail"
-      "x-systemd.automount" "x-systemd.mount-timeout=10s" "x-systemd.idle-timeout=300"
+      "noauto" "x-systemd.mount-timeout=10s"
     ];
+  };
+
+  # findmnt reads mountinfo, so checking a stale mount never touches the server.
+  systemd.services.desktop-mounts = {
+    description = "Mount desktop's NFS exports while it is reachable";
+    after = [ "tailscaled.service" "network-online.target" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = lib.getExe (pkgs.writeShellApplication {
+        name = "desktop-mounts";
+        runtimeInputs = [ pkgs.coreutils pkgs.util-linux pkgs.systemd ];
+        text = ''
+          paths=(/srv/roms-nfs /srv/game-saves /home/${config.myConfig.user}/.desktop)
+          up=false
+          if timeout 2 bash -c ': </dev/tcp/${desktopIp}/2049' 2>/dev/null; then up=true; fi
+          for p in "''${paths[@]}"; do
+            if findmnt -rn -M "$p" >/dev/null; then
+              if [ "$up" = false ]; then umount -l "$p" || true; fi
+            elif [ "$up" = true ]; then
+              systemctl start "$(systemd-escape -p --suffix=mount "$p")" || true
+            fi
+          done
+        '';
+      });
+    };
+  };
+  systemd.timers.desktop-mounts = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnBootSec = "10s"; OnUnitInactiveSec = "30s"; AccuracySec = "5s"; };
   };
 
   # NFSv4 only: no rpcbind/statd needed (NixOS enables rpcbind for any NFS use).

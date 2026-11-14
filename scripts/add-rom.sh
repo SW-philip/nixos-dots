@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 # Move a game file into /srv/roms/<system> and register it with Pegasus via
-# a manual.metadata.pegasus.txt sidecar block.
+# a overrides.metadata.pegasus.txt sidecar block.
 #
 # Never touches skyscraper.metadata.pegasus.txt — that file is owned by
 # scripts/skyscraper-deploy.sh, which `install`s (overwrites) it wholesale on
 # every scrape deploy. A hand-written entry living there would get silently
 # wiped the next time more games get scraped for the same system. Pegasus
 # merges any number of `<name>.metadata.pegasus.txt` sidecar files in a
-# collection dir, so a separate manual.metadata.pegasus.txt is immune to
+# collection dir, so a separate overrides.metadata.pegasus.txt is immune to
 # that and needs no nix rebuild — this only writes runtime data outside the
 # repo, same as the Skyscraper flow.
+# The name must sort after "metadata": Pegasus reads a dir's metafiles in
+# order, and an entry read before the collection header gets no metadata
+# (a manual.* sidecar showed the bare name only).
 #
 # file:/assets.* paths are written relative to the collection directory
 # (just the filename), not absolute. desktop's metadata.pegasus.txt sets
@@ -119,9 +122,9 @@ if [[ -z "$title" ]]; then
   title="${base%.*}"
 fi
 
-sidecar="$dest_dir/manual.metadata.pegasus.txt"
+sidecar="$dest_dir/overrides.metadata.pegasus.txt"
 if sudo test -f "$sidecar" && sudo grep -qF "game: $title" "$sidecar"; then
-  echo "manual.metadata.pegasus.txt already has an entry for '$title' — leaving it alone."
+  echo "overrides.metadata.pegasus.txt already has an entry for '$title' — leaving it alone."
   exit 0
 fi
 

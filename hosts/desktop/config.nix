@@ -1,25 +1,20 @@
-{ inputs, config, pkgs, lib, ... }:
+{ inputs, config, pkgs, lib, inventory, ports, ... }:
 let
   # Full emulated-system list (surface filters this to its iGPU subset).
   retroSystems = import ../retro-systems.nix { inherit pkgs; };
   mkPegasusMetadata = import ../pegasus-metadata.nix { inherit pkgs; };
   pegasusPc = import ./pegasus-pc.nix { inherit pkgs; };
-  surfaceIp = (import ../inventory.nix).surface.ip;
+  pegasusCloud = import ./pegasus-cloud.nix { inherit pkgs; };
+  surfaceIp = inventory.surface.ip;
 in
 {
   ############################################################
   # Imports
   ############################################################
   imports = [
-    ../../modules/nixfetch.nix
-    ../../modules/port-viewer.nix
-    ../../modules/health-root.nix
-    ../../roles/goodnight-activate.nix
     ../../roles/base.nix
-    ../../roles/secure-boot.nix
-    ../../roles/niri.nix
-    ../../identities/prepko.nix
     ./desktop.nix
+    ../../modules/virt.nix
 
     ./hardware.nix
     ./boot.nix
@@ -27,22 +22,14 @@ in
 
     ./services.nix
     ./iptv.nix
-    inputs.sops-nix.nixosModules.sops
-    ../../roles/sops-shared.nix
-    ../../roles/ssh-known-hosts.nix
-    ../../modules/protonvpn.nix
     ../../modules/jellyfin.nix
     ../../modules/jellyfin-whisper.nix
     ../../modules/ersatztv.nix
-    ../../modules/greetd.nix
-    ../../modules/tailscale.nix
-    ../../modules/syncthing.nix
     ../../modules/sunshine.nix
     ../../modules/retro-tiles.nix
-    ../../modules/niri-bridge.nix
     ../../modules/btrbk.nix
+    ../../modules/guest.nix
     ../../modules/overnight-notify.nix
-    ../../modules/qbittorrent.nix
     ./myln.nix
     ./impermanence.nix
   ];
@@ -163,7 +150,7 @@ in
   systemd.services.qbittorrent.unitConfig.RequiresMountsFor = [ "/srv/torrents" ];
   # Headless Chromium that gets Jackett past Cloudflare checks (1337x and
   # friends). Desktop only: too heavy for surface. Runs only alongside Jackett.
-  services.flaresolverr = { enable = true; port = (import ../ports.nix).flaresolverr; };
+  services.flaresolverr = { enable = true; port = ports.flaresolverr; };
   systemd.services.flaresolverr.wantedBy = lib.mkForce [ ];
   systemd.services.jackett.wants = [ "flaresolverr.service" ];
   systemd.services.flaresolverr.partOf = [ "jackett.service" ];
@@ -182,20 +169,21 @@ in
   #
   # /srv/game-saves — shared RetroArch save store for every emulation
   # account on both hosts (desktop prepko, surface prepko/kid
-  # NFS-mount it, see the export below). 0777, NOT sticky: accounts
-  # must be able to create, overwrite AND rename-replace each other's
-  # saves, and the sticky bit blocks cross-owner rename/unlink.
+  # NFS-mount it, see the export below). Group `gamesaves`, not world:
+  # the guest account must not touch these. 2770 + setgid, NOT sticky:
+  # accounts must be able to create, overwrite AND rename-replace each
+  # other's saves, and the sticky bit blocks cross-owner rename/unlink.
   # The A+ default ACL forces every file created underneath — local or via
-  # the all_squash NFS client — group/other-writable regardless of the
-  # writer's umask (RetroArch writes .srm 0644), so any account can
-  # overwrite any save. Per-account ~/.config/retroarch/saves/ trees stay
+  # the all_squash NFS client (which writes as gid 984 = gamesaves) —
+  # group-writable regardless of the writer's umask (RetroArch writes .srm
+  # 0644), so any member can overwrite any save. Per-account ~/.config/retroarch/saves/ trees stay
   # in place as backups after the one-time game-save-merge.sh (archived).
   # See docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md.
   ############################################################
   systemd.tmpfiles.rules =
     [ "d /srv/roms 0755 prepko users -"
-      "d /srv/game-saves 0777 root root -"
-      "A+ /srv/game-saves - - - - d:group::rwx,d:other::rwx,d:mask::rwx,group::rwx,other::rwx,mask::rwx"
+      "d /srv/game-saves 2770 root gamesaves -"
+      "A+ /srv/game-saves - - - - d:group::rwx,d:other::---,d:mask::rwx,group::rwx,other::---,mask::rwx"
     ]
     ++ (map (s: "d /srv/roms/${s.dir} 0755 prepko users -") retroSystems)
     ++ (map (s: "L+ /srv/roms/${s.dir}/metadata.pegasus.txt - - - - ${mkPegasusMetadata { inherit s; }}") retroSystems)
@@ -203,7 +191,9 @@ in
     # /srv/roms/pc (left by a sudo copy) makes tmpfiles refuse the L+ below
     # as an unsafe path transition, and the PC collection silently vanishes.
     ++ [ "d /srv/roms/pc 0755 prepko users -"
-         "L+ /srv/roms/pc/metadata.pegasus.txt - - - - ${pegasusPc}" ];
+         "L+ /srv/roms/pc/metadata.pegasus.txt - - - - ${pegasusPc}"
+         "d /srv/roms/cloud 0755 prepko users -" ]
+    ++ pegasusCloud;
 
   # Nothing was monitored here, so a runaway under user.slice thrashed 25 GB of
   # swap for 13 minutes until a hard reset. Kills at 80% pressure held 30 s.
@@ -219,19 +209,36 @@ in
   ];
 
   ############################################################
+  # The old `retro` group's gid, which surface's all_squash NFS writes already carry.
+  users.groups.gamesaves.gid = 984;
+  users.users.prepko.extraGroups = [ "gamesaves" ];
+  # tmpfiles' A+ fixes ACLs recursively but not ownership or setgid on the
+  # subdirs (without it a new save takes its writer's primary group, e.g. users).
+  systemd.services.game-saves-perms = {
+    description = "Keep /srv/game-saves group gamesaves with setgid dirs";
+    after = [ "srv.mount" "systemd-tmpfiles-setup.service" ];
+    wantedBy = [ "multi-user.target" ];
+    unitConfig.RequiresMountsFor = "/srv/game-saves";
+    serviceConfig.Type = "oneshot";
+    script = ''
+      ${pkgs.coreutils}/bin/chgrp -R gamesaves /srv/game-saves
+      ${pkgs.findutils}/bin/find /srv/game-saves -type d -exec ${pkgs.coreutils}/bin/chmod 2770 {} +
+      ${pkgs.findutils}/bin/find /srv/game-saves -type f -exec ${pkgs.coreutils}/bin/chmod o-rwx {} +
+    '';
+  };
+
   # NFS export of /srv/roms for surface, which no longer stores its own
   # copy of the ROMs (docs/superpowers/specs/2026-08-05-surface-roms-nfs-migration-design.md).
   # Restricted to surface's Tailscale IP; all_squash + a fixed anonuid/anongid
-  # (1002:984, arbitrary now that the `retro` account is gone — /srv/roms and
-  # /srv/game-saves are both world-readable/writable so the exact numbers
-  # don't matter) gives every NFS client a consistent identity regardless of
+  # (1002:984; 984 is the gamesaves group, which owns /srv/game-saves, and
+  # /srv/roms is world-readable) gives every NFS client a consistent identity regardless of
   # its own local uid/gid mapping. No firewall rule needed — tailscale0 is
   # opened on tailscale0 below.
   #
   # /srv/game-saves is exported read-WRITE (unlike roms) so surface's two
   # accounts write shared saves back to the single copy here. Same
-  # all_squash identity — every NFS-written save lands 1002:984, and the
-  # dir's default ACL keeps it overwritable by everyone.
+  # all_squash identity — every NFS-written save lands 1002:984 (gamesaves),
+  # and the dir's default ACL keeps it overwritable by the group.
   # See docs/superpowers/specs/2026-08-29-shared-retroarch-saves-design.md.
   ############################################################
   # v4 only: single TCP port 2049, no rpcbind/statd (NixOS turns rpcbind on for
@@ -242,7 +249,14 @@ in
   systemd.services.rpc-statd.enable = false;
   # /srv is nofail so local-fs.target doesn't wait for it, and its spinning-disk
   # mount takes ~3s: without this nfs-server came up ~1.4s before /srv existed.
-  systemd.services.nfs-server.after = [ "srv.mount" ];
+  systemd.services.nfs-server.after = [ "srv.mount" "tailscaled.service" ];
+  # Shutdown with surface's NFSv4 client attached hung 90s in nfs-server and
+  # another 90s in nfs-mountd (tailscaled is already gone, so the client never
+  # detaches); nvidia-persistenced stalled the same window. Cap them, and stop
+  # nfs-server before tailscaled.
+  systemd.services.nfs-server.serviceConfig.TimeoutStopSec = 10;
+  systemd.services.nfs-mountd.serviceConfig.TimeoutStopSec = 10;
+  systemd.services.nvidia-persistenced.serviceConfig.TimeoutStopSec = 10;
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 2049 ];
   services.nfs.server = {
     enable = true;

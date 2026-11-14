@@ -1,6 +1,5 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, ports, ... }:
 let
-  ports = import ../hosts/ports.nix;
   https = toString ports.tailscale-serve-https;
   ts = "${config.services.tailscale.package}/bin/tailscale";
 in

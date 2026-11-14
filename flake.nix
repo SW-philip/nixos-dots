@@ -5,16 +5,17 @@
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     nixos-hardware.inputs.nixpkgs.follows = "nixpkgs";
-    home-manager.url = "github:nix-community/home-manager/release-26.05";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs";
     home-manager-unstable.url = "github:nix-community/home-manager/master";
     home-manager-unstable.inputs.nixpkgs.follows = "nixpkgs-unstable";
     sops-nix.url = "github:Mic92/sops-nix";
     sops-nix.inputs.nixpkgs.follows = "nixpkgs";
     lanzaboote.url = "github:nix-community/lanzaboote";
     lanzaboote.inputs.nixpkgs.follows = "nixpkgs";
+    # Only lanzaboote's own dev checks use it.
+    lanzaboote.inputs.pre-commit.follows = "";
     impermanence.url = "github:nix-community/impermanence";
     impermanence.inputs.nixpkgs.follows = "nixpkgs";
+    impermanence.inputs.home-manager.follows = "home-manager-unstable";
     claude-code.url = "github:sadjow/claude-code-nix";
     claude-code.inputs.nixpkgs.follows = "nixpkgs";
     posys-cursor = {
@@ -36,8 +37,6 @@
     self,
     nixpkgs,
     nixpkgs-unstable,
-    nixos-hardware,
-    home-manager,
     home-manager-unstable,
     lanzaboote,
     claude-code,
@@ -45,6 +44,14 @@
   }:
   let
     system = "x86_64-linux";
+    # Module args for every NixOS and home-manager module: the port registry,
+    # fleet inventory and themes, so no module imports them by relative path.
+    fleetArgs = {
+      inherit inputs;
+      ports     = import ./hosts/ports.nix;
+      inventory = import ./hosts/inventory.nix;
+      allThemes = import ./lib/themes.nix { inherit (nixpkgs) lib; };
+    };
     pkgsFor = system:
       import nixpkgs {
         inherit system;
@@ -68,7 +75,7 @@
     hmBase = {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
-      home-manager.extraSpecialArgs = { inherit inputs; };
+      home-manager.extraSpecialArgs = fleetArgs;
       # Activate each user's HM environment on-demand at their own login instead
       # of gating all logins on every configured user's activation at boot.
       home-manager.startAsUserService = true;
@@ -87,15 +94,25 @@
         nixpkgs.overlays = [ (_final: _prev: { inherit lix; nix = lix; }) ];
       };
 
-    hmPrepkoDesktop = {
-      home-manager.users.prepko = ./profiles/prepko/desktop.nix;
-    };
-    hmPrepkoSurface = {
-      home-manager.users.prepko = ./profiles/prepko/surface.nix;
-    };
-
-    hmKid = {
-      home-manager.users.kid = ./profiles/kid/surface.nix;
+    # desktop + surface: unstable, lix, impermanence, home-manager. users maps
+    # each account to its home-manager entrypoint.
+    mkWorkstation = host: users: nixpkgs-unstable.lib.nixosSystem {
+      inherit system;
+      specialArgs = fleetArgs;
+      modules = [
+        overlayModule
+        allowUnfreeModule
+        lanzaboote.nixosModules.lanzaboote
+        lixModule
+        inputs.impermanence.nixosModules.impermanence
+        inputs.nirinit.nixosModules.nirinit
+        ./hosts/${host}/config.nix
+        home-manager-unstable.nixosModules.home-manager
+        hmBase
+        { home-manager.users = users; }
+        revModule
+        { system.stateVersion = "25.11"; }
+      ];
     };
   in
   {
@@ -113,49 +130,17 @@
     };
     checks.aarch64-linux.pi = self.nixosConfigurations.pi.config.system.build.toplevel;
     nixosConfigurations = {
-      surface = nixpkgs-unstable.lib.nixosSystem {
-        inherit system;
-        specialArgs = {
-          inherit inputs;
-        };
-        modules = [
-          overlayModule
-          allowUnfreeModule
-          lanzaboote.nixosModules.lanzaboote
-          lixModule
-          inputs.impermanence.nixosModules.impermanence
-          inputs.nirinit.nixosModules.nirinit
-          ./hosts/surface/config.nix
-          home-manager-unstable.nixosModules.home-manager
-          hmBase
-          hmPrepkoSurface
-          hmKid
-          revModule
-          { system.stateVersion = "25.11"; }
-        ];
+      surface = mkWorkstation "surface" {
+        prepko     = ./profiles/prepko/surface.nix;
+        kid = ./profiles/kid/surface.nix;
       };
-      desktop = nixpkgs-unstable.lib.nixosSystem {
-        inherit system;
-        specialArgs = { inherit inputs; };
-        modules = [
-          overlayModule
-          allowUnfreeModule
-          lixModule
-          inputs.impermanence.nixosModules.impermanence
-          inputs.nirinit.nixosModules.nirinit
-          ./hosts/desktop/config.nix
-          ./modules/virt.nix
-          lanzaboote.nixosModules.lanzaboote
-          home-manager-unstable.nixosModules.home-manager
-          hmBase
-          hmPrepkoDesktop
-          revModule
-          { system.stateVersion = "25.11"; }
-        ];
+      desktop = mkWorkstation "desktop" {
+        prepko = ./profiles/prepko/desktop.nix;
+        guest  = ./profiles/guest/desktop.nix;
       };
       retro = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit inputs; };
+        specialArgs = fleetArgs;
         modules = [
           lanzaboote.nixosModules.lanzaboote
           ./hosts/retro/config.nix
@@ -166,7 +151,7 @@
 
       pi = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
-        specialArgs = { inherit inputs; };
+        specialArgs = fleetArgs;
         modules = [
           ./hosts/pi/config.nix
           revModule
@@ -176,11 +161,11 @@
 
       installer = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit inputs self; };
+        specialArgs = fleetArgs // { inherit self; };
         modules = [
           overlayModule
           allowUnfreeModule
-          ./installer.nix
+          ./hosts/installer/config.nix
         ];
       };
 

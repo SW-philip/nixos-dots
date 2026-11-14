@@ -1,8 +1,5 @@
-{ config, lib, ... }:
+{ config, lib, ports, ... }:
 
-let
-  ports = import ../../hosts/ports.nix;
-in
 {
   options.myln = {
     enable = lib.mkEnableOption "myln — NixOS-native RAG assistant";

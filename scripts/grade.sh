@@ -156,7 +156,7 @@ check_opt "networking.firewall.allowedTCPPorts" "$FIREWALL_OK"
 check_opt "networking.firewall.allowedUDPPorts" "$FIREWALL_OK"
 check_opt "networking.firewall.checkReversePath"
 
-# Nix — check specific sub-keys so cachix.nix and surface/config.nix don't false-positive
+# Nix — check specific sub-keys so roles/cachix.nix and surface/config.nix don't false-positive
 check_opt "nix.settings.substituters"
 check_opt "nix.settings.trusted-public-keys"
 check_opt "nix.settings.experimental-features"
@@ -282,7 +282,7 @@ while IFS= read -r nixfile; do
     | wc -l || true)
 
   # Also skip files whose parent directory is dynamically imported via builtins.readDir
-  # (e.g. cachix/ loaded by cachix.nix using `folder = ./cachix; builtins.readDir folder`)
+  # (any folder a module loads with `builtins.readDir`)
   parent_dir=$(dirname "$relpath")
   dir_refs=$(grep -rl "\./\b${parent_dir}\b" --include="*.nix" --exclude-dir=.claude . 2>/dev/null \
     | grep -v "flake\.lock" \

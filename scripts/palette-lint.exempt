@@ -8,7 +8,7 @@ home/waybar/scripts/waybar-sqlch  # fallbacks for a missing palette
 home/waybar/scripts/battery.sh  # fallbacks for a missing palette
 home/waybar/scripts/kdeconnect-status.sh  # fallbacks for a missing palette
 home/waybar/scripts/protonvpn-status.sh  # fallbacks for a missing palette
-profiles/base.nix  # zsh-highlight fallback when no palette var is exported
+home/zsh/default.nix  # zsh-highlight fallback when no palette var is exported
 home/zed/theme.nix  # fully transparent #00000000 is "no color", not a palette entry
 home/openrgb/rgb-reactive.nix  # black = LED off, hardware meaning
 home/nix-mark/mark.nix  # sed targets: the upstream Nix logo's own fill values

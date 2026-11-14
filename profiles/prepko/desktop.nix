@@ -3,6 +3,7 @@
 {
   imports = [
     ../base.nix
+    ./common.nix
     ../../home/openrgb/rgb-moon.nix
     ../../home/openrgb/rgb-reactive.nix
     ../../home/ps-controller-colors.nix
@@ -57,9 +58,9 @@
 
   ########################################
   # Fix nrs alias — hostname SWphil != flake attr desktop.
-  # Keeps base.nix's -e /run/wrappers/bin/sudo elevation pin (dropping it
+  # Keeps common.nix's -e /run/wrappers/bin/sudo elevation pin (dropping it
   # reintroduces the non-setuid /run/current-system/sw/bin/sudo activation
-  # failure base.nix's comment warns about).
+  # failure common.nix's comment warns about).
   ########################################
   programs.zsh.shellAliases = {
     nrs = lib.mkForce "{ nh os switch -e /run/wrappers/bin/sudo --hostname desktop ${config.home.homeDirectory}/nixos && whats-new; } || sfx error";
@@ -113,6 +114,7 @@
   # pasted YouTube URLs carry ? and &, which zsh would glob
   programs.zsh.shellAliases.tv-add = "noglob tv-add";
   programs.zsh.shellAliases.tv-ads = "noglob tv-ads";
+  programs.zsh.shellAliases.tv-show = "noglob tv-show";
 
   home.packages = with pkgs; [
     thunderbird
@@ -134,6 +136,9 @@
     '')
     (writeShellScriptBin "tv-ads" ''
       exec ~/nixos/scripts/tv-ads.sh "$@"
+    '')
+    (writeShellScriptBin "tv-show" ''
+      exec python3 -I ~/nixos/scripts/tv-show.py "$@"
     '')
   ];
 }

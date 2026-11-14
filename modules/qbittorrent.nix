@@ -1,6 +1,5 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, ports, ... }:
 let
-  ports = import ../hosts/ports.nix;
   cfg = config.services.qbittorrent;
   tunnels = map (r: "protonvpn-${r}") config.protonvpn.regions;
   api = "http://127.0.0.1:${toString ports.qbittorrent-webui}/api/v2";

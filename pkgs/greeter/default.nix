@@ -1,9 +1,11 @@
 { lib, stdenvNoCC, python3, gtk4, gtk4-layer-shell, gobject-introspection
-, librsvg, wrapGAppsHook4, makeWrapper, writeText
+, librsvg, wrapGAppsHook4, makeWrapper
 , nixFlakeSvg ? ../../assets/nix/nix-flake.svg }:
 let
-  pythonEnv = python3.withPackages (ps: with ps; [ pygobject3 pycairo pytest ]);
-  snarkLinesFile = writeText "greeter-snark-lines.txt" (builtins.readFile ../../assets/snark-lines.txt);
+  pythonPkgs = ps: with ps; [ pygobject3 pycairo ];
+  pythonEnv = python3.withPackages pythonPkgs;
+  # pytest only for checkPhase, so it stays out of the runtime closure.
+  checkEnv = python3.withPackages (ps: pythonPkgs ps ++ [ ps.pytest ]);
 in
 stdenvNoCC.mkDerivation {
   pname = "greeter";
@@ -18,7 +20,7 @@ stdenvNoCC.mkDerivation {
   doCheck = true;
   checkPhase = ''
     runHook preCheck
-    python -m pytest tests -q -k "not app"
+    ${checkEnv}/bin/python -m pytest tests -q -k "not app"
     runHook postCheck
   '';
 
@@ -37,7 +39,7 @@ stdenvNoCC.mkDerivation {
   # greetd's session inherits a restricted PATH; ensure cage/systemctl resolve.
   preFixup = ''
     gappsWrapperArgs+=( --prefix PATH : "/run/current-system/sw/bin" )
-    gappsWrapperArgs+=( --set GREETER_SNARK_FILE "${snarkLinesFile}" )
+    gappsWrapperArgs+=( --set GREETER_SNARK_FILE "${../../assets/snark-lines.txt}" )
   '';
 
   meta = with lib; {

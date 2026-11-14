@@ -1,12 +1,12 @@
 # Fonts (Google Fonts, OFL/Apache): Bungee, Fredoka (wght 700), Bangers, Luckiest Guy,
-# Audiowide, Monoton, Limelight, in <fontdir> as their upstream .ttf names.
-# Run: nix-shell -p "python3.withPackages (ps: [ ps.fonttools ])" librsvg --run "python3 gen.py <fontdir> <outdir>",
+# Righteous, Audiowide, Monoton, Limelight, in <fontdir> as their upstream .ttf names.
+# Run: nix-shell -p "python3.withPackages (ps: [ ps.fonttools ])" librsvg --run "python3 gen.py <fontdir> <outdir> [n...]",
 # then rsvg-convert -w 800 each SVG and trim (magick -trim) into ../<n>.png.
 #!/usr/bin/env python3
-"""ErsatzTV channel logos 1-4, 8, 9, 21: one distinct typeface, palette and
+"""ErsatzTV channel logos 1-5, 8, 9, 21: one distinct typeface, palette and
 icon each. Text is converted to outlines so the SVGs need no fonts.
 
-    logos.py <fontdir> <outdir>
+    gen.py <fontdir> <outdir> [n...]     # only those channels, else all
 """
 import math
 import random
@@ -200,6 +200,35 @@ def retro_toons():
     return svg(W, H + 40, "".join(body))
 
 
+# 5 Music Videos: neon equalizer on a dark screen, Righteous
+def music_videos():
+    F = "Righteous-Regular.ttf"
+    ink, pink, violet, cyan, sun = "#160b2e", "#ff2e88", "#8b3dff", "#22d3ff", "#ffe14d"
+    rng = random.Random(5)
+    d1, _, a1, *_ = text(F, "MUSIC", 150, 300, 160, 6)
+    d2, _, a2, *_ = text(F, "VIDEOS", 92, 304, 262, 10)
+    W, H = max(a1, a2) + 40, 300
+    defs = ('<linearGradient id="eq" x1="0" y1="1" x2="0" y2="0">'
+            f'<stop offset="0" stop-color="{violet}"/><stop offset="0.55" stop-color="{pink}"/>'
+            f'<stop offset="1" stop-color="{sun}"/></linearGradient>'
+            '<linearGradient id="word" x1="0" y1="0" x2="1" y2="0">'
+            f'<stop offset="0" stop-color="{cyan}"/><stop offset="1" stop-color="{pink}"/></linearGradient>')
+    # TV screen with an equalizer and two notes
+    body = [f'<rect x="12" y="22" width="262" height="256" rx="40" fill="{ink}" stroke="{cyan}" stroke-width="10"/>']
+    for i in range(7):
+        h = 40 + rng.random() * 130 if i not in (2, 4) else 170 - i * 8
+        x = 40 + i * 31
+        body.append(f'<rect x="{x}" y="{250 - h:.0f}" width="22" height="{h:.0f}" rx="6" fill="url(#eq)"/>')
+    for nx, ny, sc in ((198, 92, 1.0), (88, 74, 0.8)):
+        body.append(f'<g transform="translate({nx} {ny}) scale({sc})" fill="{sun}" stroke="{ink}" stroke-width="5">'
+                    '<ellipse cx="0" cy="44" rx="20" ry="15" transform="rotate(-20 0 44)"/>'
+                    '<rect x="13" y="-26" width="9" height="70" rx="3"/>'
+                    '<path d="M18 -26 Q50 -14 40 22 Q36 2 18 -6 Z"/></g>')
+    body.append(layered(d1, "url(#word)", outline=ink, ow=16, shadow=violet, dx=7, dy=7))
+    body.append(layered(d2, "#ffffff", outline=ink, ow=12, shadow=pink, dx=5, dy=5))
+    return svg(W, H, "".join(body), defs)
+
+
 # 8 Science!: flask + Audiowide
 def science():
     F = "Audiowide-Regular.ttf"
@@ -264,7 +293,10 @@ def movie_night():
 
 
 OUT.mkdir(parents=True, exist_ok=True)
-for n, fn in {"1": kids_movies, "2": little_kids, "3": big_kids, "4": retro_toons,
-              "8": science, "9": retro, "21": movie_night}.items():
+LOGOS = {"1": kids_movies, "2": little_kids, "3": big_kids, "4": retro_toons,
+         "5": music_videos, "8": science, "9": retro, "21": movie_night}
+for n, fn in LOGOS.items():
+    if sys.argv[3:] and n not in sys.argv[3:]:
+        continue
     (OUT / f"{n}.svg").write_text(fn())
     print("wrote", n)

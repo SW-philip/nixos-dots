@@ -260,6 +260,12 @@ in
     assert lib.hasInfix on def;
     builtins.replaceStrings [ on ] [ off ] def;
   networking.nftables.enable = true;
+  # uniremote finds the TV/Roku by SSDP: multicast M-SEARCH out, unicast replies
+  # from udp/1900 back to a random port. conntrack never matches those to the
+  # multicast request, so the default input chain drops them.
+  networking.firewall.extraInputRules = ''
+    iifname "wlp0s20f3" udp sport 1900 accept
+  '';
   networking.nftables.tables.clem-safedns = {
     family = "inet";
     content = ''

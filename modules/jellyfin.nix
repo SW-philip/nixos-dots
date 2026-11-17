@@ -2,6 +2,7 @@
 let
   https = toString ports.tailscale-serve-https;
   ts = "${config.services.tailscale.package}/bin/tailscale";
+  transcodes = "${config.services.jellyfin.cacheDir}/transcodes";
 in
 {
   services.jellyfin = {
@@ -21,11 +22,25 @@ in
     # The default ACL covers folders added later. The masks are explicit:
     # tmpfiles keeps an existing mask, and the hand-set r-x ones clamp the grant.
     "A+ /srv/Videos - - - - group:jellyfin:rwX,mask::rwX,default:group:jellyfin:rwX,default:mask::rwX"
+    # tmpfs uid= needs a number and jellyfin's is dynamic, so own it here.
+    "d ${transcodes} 0750 jellyfin jellyfin -"
   ];
+
+  # Transcode segments are ~100G/day of write-once churn; on disk they wore the
+  # QLC root SSD and Live TV's shared-stream buffers (8 Mbps, unbounded while a
+  # stream stays open) filled it. In RAM a runaway hits the cap and dies alone.
+  # Needs "Allow stream sharing" off on the M3U tuner, or every Live TV session
+  # buffers here and gets cut off around 2h.
+  fileSystems.${transcodes} = {
+    device  = "tmpfs";
+    fsType  = "tmpfs";
+    options = [ "size=8G" "mode=0750" "nosuid" "nodev" "noexec" ];
+  };
 
   systemd.services.jellyfin = {
     after = lib.mkForce [ "network.target" "srv.mount" ];
     wants = lib.mkForce [ "network.target" ];
+    unitConfig.RequiresMountsFor = [ transcodes ];
     # keep retrying indefinitely — /srv may be slow on cold boot (TPM2 unlock)
     startLimitIntervalSec = 0;
 

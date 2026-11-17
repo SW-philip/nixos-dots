@@ -42,4 +42,8 @@
   split-divider-color = ${p.WING}
 
   gtk-custom-css = ?ghostty.css
+
+  # io_uring's idle waits count as iowait, so every open window showed up as
+  # phantom disk pressure in vmstat/PSI. Benchmarks show no difference.
+  async-backend = epoll
 ''

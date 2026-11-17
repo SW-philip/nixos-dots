@@ -45,23 +45,36 @@ check_port() {
 }
 
 # A restarted polkitd (every nrs activation, plus its own idle exits) forgets the agent, and
-# pkexec then exits 127 with no dialog. Re-register the agent when polkitd is newer than it,
-# and once more on a 127.
+# pkexec then fails instantly with no dialog. Re-register the agent when polkitd is newer than
+# it, and retry once only on an instant failure: a failure after a dialog (wrong password,
+# cancel) is the user's answer, not a missing agent. The failure reason goes to ROOT_ERR_FILE
+# (root_ports runs in a $(...) subshell).
+ROOT_ERR_FILE=$(mktemp)
+trap 'rm -f "$ROOT_ERR_FILE"' EXIT
 root_ports() {
-  local out rc=0 pk ag
+  local out rc t0 errf pk ag attempt
+  errf=$(mktemp)
   pk=$(systemctl show -p ActiveEnterTimestampMonotonic --value polkit.service)
   ag=$(systemctl --user show -p ActiveEnterTimestampMonotonic --value polkit-agent.service)
   if [ "${pk:-0}" -gt "${ag:-0}" ]; then
     systemctl --user restart polkit-agent.service
     sleep 1
   fi
-  out=$("$PKEXEC" "$(readlink -f "$HELPER")" 2>/dev/null) || rc=$?
-  if [ "$rc" = 127 ]; then
-    systemctl --user restart polkit-agent.service
-    sleep 1
+  for attempt in 1 2; do
     rc=0
-    out=$("$PKEXEC" "$(readlink -f "$HELPER")" 2>/dev/null) || rc=$?
-  fi
+    t0=$EPOCHREALTIME
+    out=$("$PKEXEC" "$(readlink -f "$HELPER")" 2>"$errf") || rc=$?
+    [ "$rc" = 0 ] && break
+    # under 1.5s = no dialog was ever shown
+    if [ "$attempt" = 1 ] && (( ${EPOCHREALTIME/./} - ${t0/./} < 1500000 )); then
+      systemctl --user restart polkit-agent.service
+      sleep 1
+    else
+      break
+    fi
+  done
+  echo "exit $rc: $(tr '\n' ' ' <"$errf" | cut -c1-120)" >"$ROOT_ERR_FILE"
+  rm -f "$errf"
   [ "$rc" = 0 ] || return "$rc"
   printf '%s\n' "$out"
 }
@@ -77,7 +90,7 @@ ports_menu() {
       if root=$(root_ports); then
         rows=$(format_ports <<<"$root")
       else
-        notify-send -a tunnel "Ports" "Authentication cancelled or denied" -i network-error
+        notify-send -a tunnel "Ports" "Authentication failed ($(cat "$ROOT_ERR_FILE"))" -i network-error
       fi
       continue
     fi

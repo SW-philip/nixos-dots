@@ -18,14 +18,6 @@
     { directory = "/root/.ssh"; mode = "0700"; }
   ];
 
-  # Jellyfin writes ~100G of transcode segments a day and deletes them; as plain
-  # /persist content the hourly btrbk snapshots pinned every one for days. A
-  # nested subvolume is left out of snapshots. `v` only creates it when the path
-  # is missing, so an existing plain directory must be removed by hand first.
-  systemd.tmpfiles.rules = [
-    "v /persist/var/cache/jellyfin/transcodes 0750 jellyfin jellyfin -"
-  ];
-
   environment.etc."machine-id" = {
     text = "35872b60dbfe485ca1505bc546c91848\n";
     mode = "0444";

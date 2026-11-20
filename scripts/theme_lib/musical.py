@@ -34,9 +34,9 @@ def to_musical(p: dict) -> dict:
         "MUTE": p["MUTE"], "DIM": p["GRAD_STAGE_LO"],
         # Ink
         "SCORE": p["SCORE"], "LYRIC": p["LYRIC"], "REST": p["REST"],
-        # Accent (ranked)
+        # Accent, ranked
         "ROOT": r[0], "FIFTH": r[1], "SEVENTH": r[2], "SOTTO": r[3],
-        # Signal (theme-tinted; TACET reuses SEVENTH)
+        # Signal, theme-tinted: TACET reuses SEVENTH
         "FORTE": p["FORTE"], "FERMATA": p["FERMATA"], "PIANO": p["PIANO"], "TACET": r[2],
         # Edge
         "BAR": p["BAR"], "LEDGER": p["LEDGER"], "SHADOW": p["SHADOW"],

@@ -191,7 +191,7 @@ def enter_screen(fd):
 def run_top(host, fd, old):
     leave_screen(fd, old)
     try:
-        subprocess.run(top_command(host))
+        subprocess.run(top_command(host), check=False)
     except OSError as e:
         print(f"quivr: cannot run top on {host}: {e}")
         time.sleep(2)
@@ -217,7 +217,7 @@ def run_action(name, fd, old):
         tty.setcbreak(fd)
         if sys.stdin.read(1).lower() == "y":
             print()
-            rc = subprocess.run(["bash", "-c", ACTION_SCRIPTS[name]], cwd=REPO).returncode
+            rc = subprocess.run(["bash", "-c", ACTION_SCRIPTS[name]], cwd=REPO, check=False).returncode
             print(f"\nquivr: {name} exited {rc}  (any key to return)")
         else:
             print("\nskipped  (any key to return)")

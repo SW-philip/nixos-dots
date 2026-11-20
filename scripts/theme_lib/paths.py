@@ -3,7 +3,6 @@ from pathlib import Path
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 NIXOS_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT_DIR = NIXOS_ROOT / "scripts"
 THEMES_ROOT = NIXOS_ROOT / "themes"
 DARK_DIR  = THEMES_ROOT / "Dark"
 # Themes derived from the official Rose Pine palette: derive_full_palette must

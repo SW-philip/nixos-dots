@@ -19,7 +19,9 @@ in
       polkit.addRule(function(action, subject) {
         if (action.id === "org.freedesktop.systemd1.manage-units" &&
             subject.user === "${config.myConfig.user}" &&
-            action.lookup("verb") === "start" &&
+            // systemctl start --wait also calls Unit.Ref (verb "ref") to pin the unit; without it
+            // that call pops a polkit dialog nobody answers, cancelled when the job ends.
+            ["start", "ref"].indexOf(action.lookup("verb")) >= 0 &&
             ${builtins.toJSON units}.indexOf(action.lookup("unit")) >= 0) {
           return polkit.Result.YES;
         }

@@ -1,5 +1,6 @@
 """quivr pure view code: sample parsing, formatting, heat colours."""
 import re
+from itertools import pairwise
 
 PALETTE_TOKENS = {"dim": "REST", "accent": "ROOT", "warm": "FERMATA", "loud": "FORTE"}
 HEAT_STOPS = (("dim", 0.0), ("accent", 0.35), ("warm", 0.70), ("loud", 1.0))
@@ -64,7 +65,7 @@ class Colours:
         if not self.rgb:
             return ""
         pos = max(0.0, min(1.0, pos))
-        for lo, hi in zip(HEAT_STOPS, HEAT_STOPS[1:]):
+        for lo, hi in pairwise(HEAT_STOPS):
             if pos <= hi[1]:
                 break
         t = (pos - lo[1]) / (hi[1] - lo[1])
@@ -86,7 +87,7 @@ def make_colours(path):
             text = f.read()
     except OSError:
         return Colours()
-    hexes = dict(re.findall(r'^export (\w+)="(#[0-9a-fA-F]{6})"', text, re.M))
+    hexes = dict(re.findall(r'^export (\w+)="(#[0-9a-fA-F]{6})"', text, re.MULTILINE))
     rgb = {}
     for name, token in PALETTE_TOKENS.items():
         h = hexes.get(token)

@@ -26,6 +26,10 @@ in
   services.logind.settings.Login = {
     KillUserProcesses = true;
     KillOnlyUsers     = [ "guest" ];
+    # The tmpfs lives as long as user@.service, which logind keeps for 10s
+    # after the last logout by default: a guest back within that window got
+    # the previous session's home. Global (logind has no per-user setting).
+    UserStopDelaySec  = 0;
   };
 
   # greetd substacks `login`, which NixOS already gives nullok, so the empty

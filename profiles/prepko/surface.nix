@@ -1,6 +1,11 @@
 { inputs, pkgs, lib, config, inventory, ... }:
 let
   buildHost = "prepko@${inventory.desktop.ip}";
+  prebuild = pkgs.writeShellApplication {
+    name = "surface-prebuild";
+    runtimeInputs = [ pkgs.nix pkgs.nix-output-monitor ];
+    text = builtins.readFile ../../scripts/surface-prebuild.sh;
+  };
   mugConsumer = import ../../home/niri/theme-consumer.nix { inherit lib; } {
     name = "ember-mug";
     description = "Sync the Ember mug LED to the drmis theme ROOT color";
@@ -98,9 +103,9 @@ in
   systemd.user.paths.drmis-mug = mugConsumer.path;
 
   programs.zsh.shellAliases = {
-    nrs = lib.mkForce "{ nh os switch -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost} && whats-new; } || sfx error";
-    nrb = lib.mkForce "nh os boot -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost} || sfx error";
-    nrt = lib.mkForce "nh os test -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost} || sfx error";
+    nrs = lib.mkForce "surface-prebuild ${buildHost} && { nh os switch -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost} && whats-new; } || sfx error";
+    nrb = lib.mkForce "surface-prebuild ${buildHost} && nh os boot -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost} || sfx error";
+    nrt = lib.mkForce "surface-prebuild ${buildHost} && nh os test -e /run/wrappers/bin/sudo -H surface --build-host ${buildHost} || sfx error";
 
     # `ember-mug set/get` without -m scans and can grab a stale, unpaired
     # BlueZ device object (from a prior BLE address rotation) instead of the
@@ -122,6 +127,7 @@ in
   # Surface-only packages
   ########################################
   home.packages = with pkgs; [
+    prebuild
     pandora
     geforce-now
     xournalpp       # stylus note-taking

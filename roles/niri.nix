@@ -47,7 +47,8 @@
     enable = true;
     settings = {
       # Apps that restore their own windows/tabs on relaunch.
-      skip.apps = [ "firefox" "thunderbird" "spotify" ];
+      # ghostty: its windows all attach to the tmux "main" session (continuum restores it).
+      skip.apps = [ "firefox" "thunderbird" "spotify" "com.mitchellh.ghostty" ];
       # app-id -> launch command, for apps whose app-id isn't their binary.
       launch = {
         "com.mitchellh.ghostty"          = "ghostty";

@@ -4,11 +4,12 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from theme_lib.colormath import _hex_to_hsl
 from theme_lib import variant
+from theme_lib.colormath import _hex_to_hsl
 
 
 def _hue_close(a, b, tol=0.012):
@@ -57,8 +58,8 @@ class PaletteSeeds(unittest.TestCase):
 
 
 class DarkSeeds(unittest.TestCase):
-    SEEDS = {"HALL": "#ff6d1f", "TONIC": "#6f42ff", "MEDIANT": "#ff0586",
-             "DOMINANT": "#24ff8c", "SUBDOMINANT": "#ffb219"}
+    SEEDS: ClassVar[dict] = {"HALL": "#ff6d1f", "TONIC": "#6f42ff", "MEDIANT": "#ff0586",
+                             "DOMINANT": "#24ff8c", "SUBDOMINANT": "#ffb219"}
 
     def test_ground_goes_dark_and_keeps_its_hue(self):
         out = variant.dark_seeds(self.SEEDS)
@@ -89,8 +90,8 @@ class DarkSeeds(unittest.TestCase):
 
 
 class LightSeeds(unittest.TestCase):
-    DARK = {"HALL": "#1d1415", "TONIC": "#d8451e", "MEDIANT": "#8c8c3a",
-            "DOMINANT": "#d9a23c", "SUBDOMINANT": "#9a6b86"}
+    DARK: ClassVar[dict] = {"HALL": "#1d1415", "TONIC": "#d8451e", "MEDIANT": "#8c8c3a",
+                            "DOMINANT": "#d9a23c", "SUBDOMINANT": "#9a6b86"}
 
     def test_ground_goes_light_and_keeps_its_hue(self):
         out = variant.light_seeds(self.DARK)
@@ -117,8 +118,8 @@ class LightSeeds(unittest.TestCase):
 
 class WriteNixIsLight(unittest.TestCase):
     def _palette(self, hall):
-        from theme_lib.palette import derive_full_palette
         from theme_lib.musical import to_musical
+        from theme_lib.palette import derive_full_palette
         seeds = {"HALL": hall, "TONIC": "#d8451e", "MEDIANT": "#6a7a2a",
                  "DOMINANT": "#c28a1c", "SUBDOMINANT": "#8a5a78"}
         return to_musical(derive_full_palette(seeds, harmonize=False))
@@ -195,8 +196,8 @@ class ApplyOverrides(unittest.TestCase):
 
 
 class Harmonize(unittest.TestCase):
-    SEEDS = {"HALL": "#1d1415", "TONIC": "#d8451e", "MEDIANT": "#8c8c3a",
-             "DOMINANT": "#d9a23c", "SUBDOMINANT": "#9a6b86"}
+    SEEDS: ClassVar[dict] = {"HALL": "#1d1415", "TONIC": "#d8451e", "MEDIANT": "#8c8c3a",
+                             "DOMINANT": "#d9a23c", "SUBDOMINANT": "#9a6b86"}
 
     def test_off_keeps_seed_hues(self):
         from theme_lib.palette import derive_full_palette
@@ -211,9 +212,9 @@ class Harmonize(unittest.TestCase):
 
 
 class CheckPalette(unittest.TestCase):
-    CLEAN = {"HALL": "#14100c", "SCORE": "#f2e8dc", "TONIC": "#e08a3c",
-             "MEDIANT": "#7ab6e0", "DOMINANT": "#8fd48f", "SUBDOMINANT": "#d46a9a",
-             "SUPERTONIC": "#b79be0", "SUBMEDIANT": "#e0c24a"}
+    CLEAN: ClassVar[dict] = {"HALL": "#14100c", "SCORE": "#f2e8dc", "TONIC": "#e08a3c",
+                             "MEDIANT": "#7ab6e0", "DOMINANT": "#8fd48f", "SUBDOMINANT": "#d46a9a",
+                             "SUPERTONIC": "#b79be0", "SUBMEDIANT": "#e0c24a"}
 
     def test_clean_palette_reports_nothing(self):
         self.assertEqual(variant.check_palette(self.CLEAN), [])

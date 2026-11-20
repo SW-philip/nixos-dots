@@ -4,10 +4,14 @@ from datetime import datetime
 
 import requests
 
-from theme_lib.paths import COLOR_MAGIC_API, ROSE_PINE_PALETTE_URL, RP_COLOR_MAP, RP_FALLBACK
-from theme_lib.palette import derive_full_palette
 from theme_lib.cache import save_cache
-
+from theme_lib.palette import derive_full_palette
+from theme_lib.paths import (
+    COLOR_MAGIC_API,
+    ROSE_PINE_PALETTE_URL,
+    RP_COLOR_MAP,
+    RP_FALLBACK,
+)
 
 SEED_KEYS = ("HALL", "TONIC", "MEDIANT", "DOMINANT", "SUBDOMINANT")
 

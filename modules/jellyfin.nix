@@ -22,8 +22,6 @@ in
     # The default ACL covers folders added later. The masks are explicit:
     # tmpfiles keeps an existing mask, and the hand-set r-x ones clamp the grant.
     "A+ /srv/Videos - - - - group:jellyfin:rwX,mask::rwX,default:group:jellyfin:rwX,default:mask::rwX"
-    # tmpfs uid= needs a number and jellyfin's is dynamic, so own it here.
-    "d ${transcodes} 0750 jellyfin jellyfin -"
   ];
 
   # Transcode segments are ~100G/day of write-once churn; on disk they wore the
@@ -34,7 +32,11 @@ in
   fileSystems.${transcodes} = {
     device  = "tmpfs";
     fsType  = "tmpfs";
-    options = [ "size=8G" "mode=0750" "nosuid" "nodev" "noexec" ];
+    # tmpfs uid= needs a number and jellyfin's is dynamic. A tmpfiles rule
+    # can't own it either: the mount can land after tmpfiles-setup and comes
+    # up root:root. mount(8) resolves X-mount.owner names after mounting.
+    options = [ "size=8G" "mode=0750" "X-mount.owner=jellyfin" "X-mount.group=jellyfin"
+                "nosuid" "nodev" "noexec" ];
   };
 
   systemd.services.jellyfin = {

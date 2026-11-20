@@ -20,3 +20,5 @@ pkgs/greeter/greeter/mark.py  # Nix logo fills the recolor step matches against
 assets/notify-send.svg  # brand art: swaync fallback icon for notify-send
 modules/ersatztv-logos/src/gen.py  # brand art: fixed TV channel logo colours, not UI
 modules/ersatztv-logos/src/gen-concerts.py  # brand art: fixed TV channel logo colours, not UI
+home/startpage/index.html  # fallbacks for a missing palette.css
+home/pegasus/colorful-metadata.js  # COLORFUL per-platform brand colours, matching upstream's own table

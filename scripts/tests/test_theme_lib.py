@@ -1,17 +1,18 @@
 import importlib.util
 import json
+import sys
 import unittest
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import MagicMock
-import sys
 
 # auto-theme.py imports `theme_lib`; when loaded outside `uv run scripts/auto-theme.py`
 # (which puts scripts/ on sys.path[0]), the test must add scripts/ itself.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 sys.modules.setdefault("requests", MagicMock())
 
-from theme_lib.palette import derive_full_palette
 from theme_lib.musical import to_musical
+from theme_lib.palette import derive_full_palette
 
 _spec = importlib.util.spec_from_file_location(
     "auto_theme", str(Path(__file__).resolve().parents[1] / "auto-theme.py"))
@@ -59,8 +60,8 @@ class TestThemeExists(unittest.TestCase):
 
 
 class TestAccentRanking(unittest.TestCase):
-    DUNES = dict(TONIC="#f6b83c", MEDIANT="#d5a66d", DOMINANT="#ffeddb",
-                 SUBDOMINANT="#c8723c", SUPERTONIC="#cea736", SUBMEDIANT="#ffffff")
+    DUNES: ClassVar[dict] = {"TONIC": "#f6b83c", "MEDIANT": "#d5a66d", "DOMINANT": "#ffeddb",
+                             "SUBDOMINANT": "#c8723c", "SUPERTONIC": "#cea736", "SUBMEDIANT": "#ffffff"}
 
     def test_vividness_orders_vivid_above_grey(self):
         from theme_lib.musical import vividness
@@ -77,7 +78,7 @@ class TestAccentRanking(unittest.TestCase):
 
 class TestColorMath(unittest.TestCase):
     def test_lab_landmarks(self):
-        from theme_lib.colormath import srgb_to_lab, delta_e_cie76
+        from theme_lib.colormath import srgb_to_lab
         L, a, b = srgb_to_lab("#000000")
         self.assertAlmostEqual(L, 0.0, places=1)
         L, a, b = srgb_to_lab("#ffffff")
@@ -124,7 +125,7 @@ class TestToMusical(unittest.TestCase):
         self.assertEqual(m["TACET"], m["SEVENTH"])
 
     def test_root_is_most_vivid_accent(self):
-        from theme_lib.musical import to_musical, rank_accents
+        from theme_lib.musical import rank_accents, to_musical
         p = self._derived(); m = to_musical(p)
         self.assertEqual(m["ROOT"], rank_accents(p)[0])
 
@@ -146,8 +147,9 @@ class TestCategories(unittest.TestCase):
         self.assertIn("fox", kws)
 
     def test_run_category_skips_existing_generates_missing(self):
-        from theme_lib import categories
         from unittest.mock import patch
+
+        from theme_lib import categories
         existing = {"octopus", "squid"}
         with patch.object(categories, "theme_exists", lambda s: s in existing), \
              patch.object(categories, "register_theme") as reg:
@@ -159,36 +161,39 @@ class TestCategories(unittest.TestCase):
         self.assertEqual(reg.call_count, 10)
 
     def test_run_category_force_regenerates_existing(self):
-        from theme_lib import categories
         from unittest.mock import patch
+
+        from theme_lib import categories
         with patch.object(categories, "theme_exists", lambda s: True), \
              patch.object(categories, "register_theme") as reg:
-            gen, skip, fail = categories.run_category(
+            gen, skip, _ = categories.run_category(
                 "animals", force=True, fetch=lambda kw: {"query": kw, "palette": {"x": 1}})
         self.assertEqual(skip, [])
         self.assertEqual(len(gen), 12)
         self.assertEqual(reg.call_count, 12)
 
     def test_run_category_records_fetch_failures(self):
-        from theme_lib import categories
         from unittest.mock import patch
+
+        from theme_lib import categories
         with patch.object(categories, "theme_exists", lambda s: False), \
              patch.object(categories, "register_theme") as reg:
-            gen, skip, fail = categories.run_category("animals", fetch=lambda kw: None)
+            gen, _, fail = categories.run_category("animals", fetch=lambda kw: None)
         self.assertEqual(len(fail), 12)
         self.assertEqual(gen, [])
         reg.assert_not_called()
 
 
 class TestSeedRoundTrip(unittest.TestCase):
-    SEEDS = {"HALL": "#1a1a1a", "TONIC": "#f6b83c", "MEDIANT": "#d5a66d",
-             "DOMINANT": "#ffeddb", "SUBDOMINANT": "#c8723c"}
+    SEEDS: ClassVar[dict] = {"HALL": "#1a1a1a", "TONIC": "#f6b83c", "MEDIANT": "#d5a66d",
+                             "DOMINANT": "#ffeddb", "SUBDOMINANT": "#c8723c"}
 
     def test_write_sh_emits_seed_block(self):
         import tempfile
         from pathlib import Path
-        from theme_lib.palette import derive_full_palette
+
         from theme_lib.musical import to_musical
+        from theme_lib.palette import derive_full_palette
         from theme_lib.palette_files import write_sh
         from theme_lib.registry import _read_sh_palette
         p = derive_full_palette(dict(self.SEEDS))  # derive_full_palette mutates its arg
@@ -200,8 +205,8 @@ class TestSeedRoundTrip(unittest.TestCase):
                 self.assertEqual(raw[f"SEED_{k}"], self.SEEDS[k])
 
     def test_seeds_reproduce_palette(self):
-        from theme_lib.palette import derive_full_palette
         from theme_lib.musical import to_musical
+        from theme_lib.palette import derive_full_palette
         a = to_musical(derive_full_palette(dict(self.SEEDS)))
         b = to_musical(derive_full_palette(dict(self.SEEDS)))
         self.assertEqual(a, b)  # deterministic — re-derive is idempotent
@@ -209,8 +214,9 @@ class TestSeedRoundTrip(unittest.TestCase):
     def test_write_sh_without_seeds_has_no_block(self):
         import tempfile
         from pathlib import Path
-        from theme_lib.palette import derive_full_palette
+
         from theme_lib.musical import to_musical
+        from theme_lib.palette import derive_full_palette
         from theme_lib.palette_files import write_sh
         p = derive_full_palette(dict(self.SEEDS))
         with tempfile.TemporaryDirectory() as d:
@@ -225,7 +231,7 @@ class TestGoldenInvariant(unittest.TestCase):
     in the same commit as a deliberate change to derivation output."""
 
     # Keyed by the seed names CURRENTLY in force. Hexes are frozen.
-    SEED_INPUTS = {
+    SEED_INPUTS: ClassVar[dict] = {
         "rose_pine_main": {"HALL": "#191724", "TONIC": "#eb6f92", "MEDIANT": "#ebbcba", "DOMINANT": "#31748f", "SUBDOMINANT": "#9ccfd8"},
         "light_set":      {"HALL": "#faf4ed", "TONIC": "#b4637a", "MEDIANT": "#d7827e", "DOMINANT": "#286983", "SUBDOMINANT": "#56949f"},
         "vivid_set":      {"HALL": "#1a1b26", "TONIC": "#f7768e", "MEDIANT": "#ff9e64", "DOMINANT": "#9ece6a", "SUBDOMINANT": "#7dcfff"},
@@ -254,8 +260,9 @@ class TestApiCacheResilience(unittest.TestCase):
         self.assertEqual(len(to_musical(res["palette"])), 44)  # the regression: no KeyError
 
     def test_old_schema_entry_without_colors_is_refetched(self):
+        from unittest.mock import MagicMock, patch
+
         from theme_lib import sources
-        from unittest.mock import patch, MagicMock
         # Stale pre-rename entry: a derived palette keyed by old RP names, no raw colors.
         cache = {"y": {"palette_name": "Y", "tags": [],
                        "palette": {"BASE": "#1a1a1a", "LOVE": "#f6b83c", "ROSE": "#d5a66d",
@@ -273,12 +280,12 @@ class TestApiCacheResilience(unittest.TestCase):
 class TestHarmonizeAccentsByRank(unittest.TestCase):
     # scarab's real derived accents (pre-harmonization) — all six clustered
     # in a ~30deg warm/green band. This is the actual muddy case from the design doc.
-    CLUSTERED = {
+    CLUSTERED: ClassVar[dict] = {
         "TONIC": "#7e9e6b", "MEDIANT": "#c2d6c2", "DOMINANT": "#d4b6a1",
         "SUBDOMINANT": "#b4574b", "SUPERTONIC": "#ba7c45", "SUBMEDIANT": "#decdbf",
     }
     KEYS = ("TONIC", "MEDIANT", "DOMINANT", "SUBDOMINANT", "SUPERTONIC", "SUBMEDIANT")
-    ANCHORS = [0/360, 40/360, 130/360, 185/360, 230/360, 300/360]
+    ANCHORS: ClassVar[list] = [0/360, 40/360, 130/360, 185/360, 230/360, 300/360]
 
     @staticmethod
     def _min_gap(colors, keys):
@@ -313,35 +320,38 @@ class TestHarmonizeAccentsByRank(unittest.TestCase):
 
 
 class TestDeriveFullPaletteFamilyGate(unittest.TestCase):
-    SEEDS = {"HALL": "#4c7b5e", "TONIC": "#7e9e6b", "MEDIANT": "#c2d6c2",
-             "DOMINANT": "#d4b6a1", "SUBDOMINANT": "#b4574b"}
+    SEEDS: ClassVar[dict] = {"HALL": "#4c7b5e", "TONIC": "#7e9e6b", "MEDIANT": "#c2d6c2",
+                             "DOMINANT": "#d4b6a1", "SUBDOMINANT": "#b4574b"}
 
     def test_default_family_none_calls_universal_harmonize(self):
-        from theme_lib import palette
         from unittest.mock import patch
+
+        from theme_lib import palette
         with patch.object(palette, "harmonize_accents_by_rank",
                           wraps=palette.harmonize_accents_by_rank) as spy:
             palette.derive_full_palette(dict(self.SEEDS))
         spy.assert_called_once()
 
     def test_non_rose_pine_family_calls_universal_harmonize(self):
-        from theme_lib import palette
         from unittest.mock import patch
+
+        from theme_lib import palette
         with patch.object(palette, "harmonize_accents_by_rank",
                           wraps=palette.harmonize_accents_by_rank) as spy:
             palette.derive_full_palette(dict(self.SEEDS), family="Lix")
         spy.assert_called_once()
 
     def test_rose_pine_family_skips_universal_harmonize(self):
-        from theme_lib import palette
         from unittest.mock import patch
+
+        from theme_lib import palette
         with patch.object(palette, "harmonize_accents_by_rank") as spy:
             palette.derive_full_palette(dict(self.SEEDS), family="Rose-Pine")
         spy.assert_not_called()
 
     def test_universal_harmonize_actually_separates_scarab_seeds(self):
-        from theme_lib.palette import derive_full_palette
         from theme_lib.colormath import _hex_to_hsl
+        from theme_lib.palette import derive_full_palette
         keys = ("TONIC", "MEDIANT", "DOMINANT", "SUBDOMINANT", "SUPERTONIC", "SUBMEDIANT")
         out = derive_full_palette(dict(self.SEEDS))
         hues = sorted(_hex_to_hsl(out[k])[0] for k in keys)
@@ -356,6 +366,7 @@ class TestThemeLocking(unittest.TestCase):
     def test_unlocked_dir_is_not_locked(self):
         import tempfile
         from pathlib import Path
+
         from theme_lib.locking import is_locked
         with tempfile.TemporaryDirectory() as d:
             self.assertFalse(is_locked(Path(d)))
@@ -363,6 +374,7 @@ class TestThemeLocking(unittest.TestCase):
     def test_dir_with_locked_marker_is_locked(self):
         import tempfile
         from pathlib import Path
+
         from theme_lib.locking import is_locked
         with tempfile.TemporaryDirectory() as d:
             (Path(d) / "LOCKED").touch()

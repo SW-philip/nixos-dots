@@ -10,10 +10,12 @@ import html
 import json
 import os
 import socket
+import subprocess
 import sys
 
 SOCK = os.path.join(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"), "tether", "tetherd.sock")
 GLYPH = '<span font_family="Hack Nerd Font Mono"></span>'
+PARSLY = os.environ.get("PARSLY_BIN", "parsly")
 
 
 def ask(sock, command, replies):
@@ -47,6 +49,16 @@ def fetch():
         return None
 
 
+def parsly_unread():
+    """(unread, filtered) from `parsly unread --json`, or None when parsly can't answer."""
+    try:
+        done = subprocess.run([PARSLY, "unread", "--json"], capture_output=True, text=True, timeout=8, check=True)
+        data = json.loads(done.stdout)
+        return int(data["unread"]), int(data["filtered"])
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
+        return None
+
+
 def out(text, tooltip, cls):
     print(json.dumps({"text": text, "tooltip": tooltip, "class": cls}), flush=True)
 
@@ -60,13 +72,14 @@ def status():
     got = fetch()
     if got is None:
         return out(GLYPH, "tether: daemon not running", "offline")
-    conn, threads = got
+    conn, _threads = got
     if not conn.get("device_present") or not conn.get("device_paired"):
         reason = conn.get("link_reason") or "no iPhone paired over Bluetooth"
         return out(GLYPH, "tether: " + html.escape(reason), "disconnected")
 
     calls = conn.get("calls") or {}
-    unread = sum(t.get("unread", 0) for t in threads)
+    counted = parsly_unread()
+    unread, filtered = counted or (0, 0)
     on_call = calls.get("calls", 0) > 0
     links = [
         (conn.get("map_open"), conn.get("map_held"), "Messages"),
@@ -78,8 +91,10 @@ def status():
     if conn.get("battery") is not None:
         lines.append(f"battery {conn['battery']}%")
     lines += [link(*entry) for entry in links]
-    if unread:
-        lines.append(f"{unread} unread")
+    if counted is None:
+        lines.append("unread count unavailable")
+    elif unread or filtered:
+        lines.append(f"{unread} unread" + (f" ({filtered} filtered)" if filtered else ""))
     for reason in (conn.get("profile_reason"), conn.get("ancs_reason")):
         if reason and reason not in lines:
             lines.append(reason)

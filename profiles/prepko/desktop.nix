@@ -15,7 +15,6 @@
     ../../home/pegasus
     ../../home/bluetooth-idle-notify.nix
     ../../home/archive.nix
-    ../../home/overnight-notify.nix
     ../../home/torrent.nix
   ];
 
@@ -47,13 +46,6 @@
     drive-pull = { every = "day"; stage = "data"; };
     pi-git-mirror = { every = "day"; stage = "data"; };
     flake-check.every = "week";
-  };
-
-  # archive.nix wires icloud-pull and drive-pull itself (they carry a failure hint)
-  overnight.notify = {
-    enable = true;
-    popups = false;
-    units = [ "goodnight" "claude-tidy" "flake-check" "pi-git-mirror" ];
   };
 
   ########################################

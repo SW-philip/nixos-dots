@@ -25,8 +25,8 @@ Usage:
 import colorsys
 import math
 import os
-import re
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -111,7 +111,7 @@ def _hls(hexcolor):
 def _from_hls(h, l, s):
     h = h % 1.0
     r, g, b = colorsys.hls_to_rgb(h, l, s)
-    return "#{:02x}{:02x}{:02x}".format(round(r * 255), round(g * 255), round(b * 255))
+    return f"#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}"
 
 
 def _srgb_to_linear(v):
@@ -279,9 +279,9 @@ def make_wobbles(rng, r):
 def field_for(theme_dir):
     """Light themes (palette says isLight = true) get FLAT_BG_LIGHT."""
     for f in sorted(os.listdir(theme_dir)):
-        if f.startswith("palette-") and f.endswith(".nix"):
-            if re.search(r"^\s*isLight\s*=\s*true;", (Path(theme_dir) / f).read_text(), re.M):
-                return FLAT_BG_LIGHT
+        if (f.startswith("palette-") and f.endswith(".nix")
+                and re.search(r"^\s*isLight\s*=\s*true;", (Path(theme_dir) / f).read_text(), re.MULTILINE)):
+            return FLAT_BG_LIGHT
     return FLAT_BG
 
 
@@ -310,7 +310,7 @@ def plan_blobs(theme_dir, variant=0):
 
 
 def build(theme_dir, variant=0):
-    colors, blobs = plan_blobs(theme_dir, variant)
+    _, blobs = plan_blobs(theme_dir, variant)
     body = "".join(
         f'<path d="{blob_path(cx, cy, r, wobbles)}" fill="{color}" filter="url(#sp-diffuse)"/>'
         for color, cx, cy, r, wobbles in blobs

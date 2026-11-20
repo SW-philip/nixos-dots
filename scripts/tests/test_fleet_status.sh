@@ -53,7 +53,7 @@ JSON
 run() {   # run the script with fakes; extra env via the caller
   rm -f "$OUT" "$T/ssh.log"
   FAKE="$T" PATH="$T/shim:$PATH" FLEET_ROOT="$R" FLEET_OUT="$OUT" FLEET_NOW=$NOW \
-    FLEET_SELF=SWphil FLEET_PROBE_CMD="cat $T/probe/desktop" "$SCRIPT" "$@"
+    FLEET_SELF=SWphil FLEET_PROBE_CMD="cat $T/probe/desktop" "$SCRIPT"
 }
 field() { jq -r --arg h "$1" ".hosts[] | select(.host==\$h) | .$2" "$OUT"; }
 

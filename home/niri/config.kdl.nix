@@ -276,11 +276,14 @@ window-rule {
     geometry-corner-radius 0
     clip-to-geometry true
 }
-// polkit password prompt: stay opaque (no blur/translucency) so the field is easy to read.
+// polkit and keyring password prompts (pkgs/auth-agent): opaque so the field is easy to read, and never
+// focused on open: it can pop at any moment, and keystrokes meant for another window would
+// land in the password field. Click it to answer.
 window-rule {
-    match app-id="polkit-gnome-authentication-agent-1"
+    match app-id="dev.prepko.auth-agent"
+    match app-id="dev.prepko.keyring-prompter"
     open-floating true
-    open-focused true
+    open-focused false
 }
 window-rule {
     match app-id="dev.prepko.lix-logout"

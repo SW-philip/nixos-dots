@@ -7,6 +7,7 @@ _final: prev: {
   python-ember-mug       = prev.callPackage ../pkgs/python-ember-mug { };
   greeter                = prev.callPackage ../pkgs/greeter { };
   lix-logout             = prev.callPackage ../pkgs/lix-logout { };
+  auth-agent             = prev.callPackage ../pkgs/auth-agent { };
   theme-fade             = prev.callPackage ../pkgs/theme-fade { };
   pit-fall               = prev.callPackage ../pkgs/pit-fall { };
   geforce-now            = prev.callPackage ../pkgs/geforce-now { };

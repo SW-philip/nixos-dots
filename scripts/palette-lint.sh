@@ -18,7 +18,7 @@ PATTERN='#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?\b|rgba?\([0-9]'
 # Tests, fixtures and the theme generator legitimately carry literal colors.
 scan() {
   git ls-files -z -- '*.nix' '*.scss' '*.css' '*.sh' '*.py' '*.kdl' '*.conf' '*.script' 'home/waybar/scripts/*' |
-    grep -zvE '^(themes|docs|claude-archive)/|/tests?/|(^|/)test_|^scripts/(theme_lib/|theme-sheet|regen-tuned|make-splotch|palette-lint)|^CLAUDE.md$' |
+    grep -zvE '^(themes|docs|claude-archive)/|/tests?/|(^|/)test_|^scripts/(theme_lib/|theme-sheet|make-splotch|palette-lint)|^CLAUDE.md$' |
     while IFS= read -r -d '' f; do
       [ -f "$f" ] || continue
       if grep -qE "^$f([[:space:]]|\$)" "$EXEMPT"; then continue; fi

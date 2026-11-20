@@ -21,11 +21,20 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from theme_lib.colormath import _theme_mode
-from theme_lib.paths import ROSE_PINE_SLUGS, THEMES_ROOT
 from theme_lib.palette import derive_full_palette
+from theme_lib.paths import ROSE_PINE_SLUGS, THEMES_ROOT
 from theme_lib.registry import register_theme
-from theme_lib.variant import (DERIVED_ACCENTS, apply_overrides, check_palette, hexline,
-                               palette_seeds, read_seeds, set_pair, swatch, variant_seeds)
+from theme_lib.variant import (
+    DERIVED_ACCENTS,
+    apply_overrides,
+    check_palette,
+    hexline,
+    palette_seeds,
+    read_seeds,
+    set_pair,
+    swatch,
+    variant_seeds,
+)
 
 FAMILY = {"dark": "Dark", "light": "Light"}
 

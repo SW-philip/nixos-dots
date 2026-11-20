@@ -13,9 +13,8 @@ PALETTE = ('export REST="#0a141e"\nexport ROOT="#646e78"\nexport FERMATA="#c8d2d
 
 
 def palette(text=PALETTE):
-    f = tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False)
-    f.write(text)
-    f.close()
+    with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as f:
+        f.write(text)
     c = qv.make_colours(f.name)
     os.unlink(f.name)
     return c

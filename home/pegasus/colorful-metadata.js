@@ -1,0 +1,4 @@
+		'ps3': { color: '#2f3d4c', vendor: 'Sony', year: '2006', summary: 'The PlayStation 3 is a seventh-generation home console from Sony, built around the Cell processor and the first PlayStation to read Blu-ray discs.' },
+		'wiiu': { color: '#009ac7', vendor: 'Nintendo', year: '2012', summary: 'The Wii U is Nintendo\'s successor to the Wii and the first Nintendo console to output HD. Its GamePad controller has a built-in touchscreen that works as a second screen or as the only screen.' },
+		'xbox': { color: '#5dc21e', vendor: 'Microsoft', year: '2001', summary: 'The Xbox was Microsoft\'s first home console. It ran on PC-derived hardware with a built-in hard drive and launched Xbox Live, its online service.' },
+		'cloud': { color: '#7a5af5', vendor: 'Desktop', summary: 'Games streamed from the desktop over Moonlight.' },

@@ -184,7 +184,7 @@ class TestBuild(unittest.TestCase):
     def test_includes_blob_fill_colors(self):
         with tempfile.TemporaryDirectory() as tmp:
             theme_dir = _make_theme_dir(tmp, "fillcheck")
-            colors, blobs = splotch.plan_blobs(theme_dir)
+            _, blobs = splotch.plan_blobs(theme_dir)
             svg = splotch.build(theme_dir)
         for color, *_rest in blobs:
             self.assertIn(f'fill="{color}"', svg)

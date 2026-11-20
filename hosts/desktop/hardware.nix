@@ -1,4 +1,4 @@
-{ config, lib, pkgs, modulesPath, ... }:
+{ config, lib, pkgs, inputs, modulesPath, ... }:
 
 {
   imports = [
@@ -11,7 +11,12 @@
   boot.initrd.availableKernelModules = [ "xhci_pci" "ahci" "usbhid" "sd_mod" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" "tpm_tis" "tpm_crb" ];
-  boot.kernelPackages = pkgs.linuxPackages_zen;
+  # Pinned (see nixpkgs-kernel in flake.nix). nvidia comes from the same set,
+  # since gpu-nvidia.nix builds it from config.boot.kernelPackages.
+  boot.kernelPackages = (import inputs.nixpkgs-kernel {
+    inherit (pkgs.stdenv.hostPlatform) system;
+    config.allowUnfree = true;
+  }).linuxPackages_zen;
   boot.extraModulePackages = [ ];
   # No native USB-C port; this driver probes a non-existent CCG controller and
   # logs i2c_transfer errors on every boot.

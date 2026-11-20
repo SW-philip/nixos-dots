@@ -39,6 +39,11 @@
   window-padding-y = 10
   window-decoration = false
 
+  # Each window is its own session grouped into "main" (shared windows, independent current
+  # window); the group session dies with its terminal, "main" itself survives detached.
+  # A second window opens on a fresh tmux window so it doesn't land on the one already shown.
+  command = shell:tmux new-session -d -s main 2>/dev/null; if [ -n "$(tmux list-clients 2>/dev/null)" ]; then exec tmux new-session -t main \; set destroy-unattached on \; new-window; else exec tmux new-session -t main \; set destroy-unattached on; fi
+
   split-divider-color = ${p.WING}
 
   gtk-custom-css = ?ghostty.css

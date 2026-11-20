@@ -31,7 +31,12 @@ in
     home.packages = [ audit reboot goodnight ];
 
     systemd.user.services.goodnight = {
-      Unit.Description = "Nightly fleet batch: wake, deploy, overnight jobs, reboots, audit, backups";
+      Unit = {
+        Description = "Nightly fleet batch: wake, deploy, overnight jobs, reboots, audit, backups";
+        # a deploy (its own or a manual nrs) must leave a running batch alone: restarting a 10 h
+        # oneshot reruns the whole night and blocks home-manager's activation until it finishes
+        X-SwitchMethod = "keep-old";
+      };
       Service = {
         Type = "oneshot";
         ExecStart = "${goodnight}/bin/goodnight run";

@@ -99,8 +99,8 @@ def swatch(p: dict) -> str:
     return " ".join(block(p[k]) for k in _SWATCH_SLOTS)
 
 
-_PAIR_RE = re.compile(r'^  PAIR\s*=\s*"[^"]*";\n', re.M)
-_TEMPO_RE = re.compile(r'^(  TEMPO\s*=\s*"[^"]*";\n)', re.M)
+_PAIR_RE = re.compile(r'^  PAIR\s*=\s*"[^"]*";\n', re.MULTILINE)
+_TEMPO_RE = re.compile(r'^(  TEMPO\s*=\s*"[^"]*";\n)', re.MULTILINE)
 
 
 def set_pair(theme_dir: Path, other_slug: str) -> bool:

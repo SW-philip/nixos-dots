@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>~</title>
+
+        <style>
+            /* 1. SYSTEM FALLBACKS (Will be overwritten by live palette.css values) */
+            :root {
+                --hall: #000000;
+                --stage: #181616;
+                --wing: #2e292a;
+                --lyric: #bfbfbf;
+                --rest: #4c4c4c;
+                --root: #8a7070;
+                --bar: #262626;
+            }
+
+            body {
+                background-color: var(--hall);
+                color: var(--lyric);
+                font-family:
+                    "JetBrainsMono Nerd Font", "JetBrains Mono", system-ui,
+                    sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                padding: 2rem;
+                box-sizing: border-box;
+            }
+
+            .dashboard {
+                display: grid;
+                grid-template-columns: 1fr 350px;
+                gap: 4rem;
+                width: 100%;
+                max-width: 1000px;
+            }
+
+            /* LEFT COLUMN: NAVIGATION & CORE IDENTITY */
+            .nav-section {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            #clock {
+                font-size: 4.5rem;
+                font-weight: 700;
+                font-family:
+                    "JetBrainsMono Nerd Font", "JetBrains Mono", monospace;
+                color: var(--root);
+                margin-bottom: 0.25rem;
+                letter-spacing: -0.02em;
+                /* Bold text shadow from image_fe60b4.png clock module */
+                text-shadow: 3px 3px 0 #000000;
+            }
+
+            #greeting {
+                font-size: 1.35rem;
+                font-weight: 600;
+                color: var(--lyric);
+                margin-bottom: 0.25rem;
+                text-shadow: 2px 2px 0 #000000;
+            }
+
+            #date {
+                font-size: 0.95rem;
+                color: var(--rest);
+                margin-bottom: 3.5rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                font-weight: 600;
+            }
+
+            .category-block {
+                margin-bottom: 2.2rem;
+            }
+
+            .category-title {
+                font-size: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--rest);
+                margin-left: 4px;
+                margin-bottom: 0.85rem;
+                font-weight: 700;
+            }
+
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            /* CHUNKY PAPERCRAFT ELEMENTS (Inspired by image_fe60b4.png) */
+            .card,
+            .paper-sheet {
+                background: var(--stage);
+                /* Thick ink outlines */
+                border: 3px solid #000000;
+                border-radius: 12px;
+                /* Hard flat offset shadows */
+                box-shadow: 4px 5px 0 0 #000000;
+                text-shadow: 1px 2px 0 #000000;
+                transition:
+                    background 0.1s ease,
+                    border-color 0.1s ease,
+                    box-shadow 0.1s ease,
+                    transform 0.1s ease;
+            }
+
+            .card {
+                padding: 1rem 1.4rem;
+                text-decoration: none;
+                color: #ffffff;
+                font-weight: 600;
+            }
+
+            /* Mechanical Paper Press Down Effect (From waybar-style.css) */
+            .card:hover {
+                background: var(--wing);
+                border-color: #000000;
+                box-shadow: 2px 2px 0 0 #000000;
+                transform: translate(2px, 3px);
+                color: var(--root);
+            }
+
+            /* RIGHT COLUMN: SIDEBAR SHEETS */
+            .widget-panel {
+                display: flex;
+                flex-direction: column;
+                gap: 1.75rem;
+                justify-content: center;
+            }
+
+            .paper-sheet {
+                padding: 1.5rem;
+                position: relative;
+            }
+
+            /* Stationery Decorative Inner Dashing */
+            .paper-sheet::after {
+                content: "";
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                right: 6px;
+                bottom: 6px;
+                border: 1px dashed var(--bar);
+                pointer-events: none;
+                border-radius: 8px;
+            }
+
+            .widget-title {
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--rest);
+                margin-bottom: 1.25rem;
+                font-weight: 700;
+                position: relative;
+                z-index: 2;
+            }
+
+            .widget-content {
+                position: relative;
+                z-index: 2;
+            }
+
+            /* INTERNET RADIO INTEGRATION (sqlch-http-bridge) */
+            .sqlch-now-playing {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            #stream-title {
+                font-weight: 700;
+                color: #ffffff;
+                font-size: 1.05rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            #stream-meta {
+                font-size: 0.85rem;
+                color: var(--lyric);
+                line-height: 1.4;
+            }
+
+            .status-tag {
+                display: inline-block;
+                font-size: 0.7rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                padding: 0.2rem 0.5rem;
+                background: var(--wing);
+                color: var(--root);
+                border-radius: 6px;
+                width: fit-content;
+                border: 2px solid #000000;
+            }
+
+            .audio-controls {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 0.5rem;
+                margin-top: 1.25rem;
+            }
+
+            /* Tactile Switch Buttons */
+            .ctrl-btn {
+                background: var(--wing);
+                border: 2px solid #000000;
+                color: #ffffff;
+                padding: 0.5rem;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 0.95rem;
+                box-shadow: 2px 3px 0 0 #000000;
+                text-shadow: 1px 1px 0 #000000;
+                transition: all 0.1s ease;
+            }
+
+            .ctrl-btn:hover {
+                border-color: #000000;
+                color: var(--root);
+                box-shadow: 1px 1px 0 0 #000000;
+                transform: translate(1px, 2px);
+            }
+
+            /* MANUSCRIPT POETRY / STOIC LAYOUT */
+            .quote-text {
+                font-family: Georgia, serif;
+                font-size: 1.1rem;
+                font-style: italic;
+                line-height: 1.5;
+                color: #ffffff;
+                margin-bottom: 0.85rem;
+                text-shadow: none; /* Keep text clean on serif elements */
+            }
+
+            .quote-author {
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--rest);
+                text-align: right;
+                font-weight: 700;
+            }
+        </style>
+
+        <!-- 2. LIVE PALETTE LOADED LAST (Overrides fallbacks, defeats specificity) -->
+        <link rel="stylesheet" href="palette.css" id="theme-stylesheet" />
+    </head>
+    <body>
+        <div class="dashboard">
+            <!-- LEFT COLUMN -->
+            <div class="nav-section">
+                <div id="clock">00:00</div>
+                <div id="greeting">good morning, phil</div>
+                <div id="date">loading date...</div>
+
+                <div class="category-block">
+                    <div class="category-title">development</div>
+                    <div class="grid">
+                        <a href="https://github.com" class="card">GitHub</a>
+                        <a href="http://localhost:3000" class="card"
+                            >Localhost</a
+                        >
+                    </div>
+                </div>
+
+                <div class="category-block">
+                    <div class="category-title">dashboards · this machine (desktop)</div>
+                    <div class="grid">
+                        <a href="http://localhost:8096" class="card">Jellyfin</a>
+                        <a href="http://localhost:8409" class="card">ErsatzTV</a>
+                        <a href="http://localhost:8080" class="card">qBittorrent</a>
+                        <a href="http://localhost:9117" class="card">Jackett</a>
+                        <a href="https://localhost:47990" class="card">Sunshine</a>
+                    </div>
+                </div>
+
+                <div class="category-block">
+                    <div class="category-title">dashboards · needs ssh-tunnel</div>
+                    <div class="grid">
+                        <a href="http://localhost:3080" class="card">AdGuard (pi)</a>
+                    </div>
+                </div>
+
+                <div class="category-block">
+                    <div class="category-title">dashboards · web</div>
+                    <div class="grid">
+                        <a href="https://dash.cloudflare.com" class="card">Cloudflare</a>
+                        <a href="https://login.tailscale.com/admin/machines" class="card">Tailscale</a>
+                        <a href="https://github.com/SW-philip/nixos" class="card">Flake repo</a>
+                    </div>
+                </div>
+
+                <div class="category-block">
+                    <div class="category-title">system</div>
+                    <div class="grid">
+                        <a href="https://nixos.org" class="card">NixOS Wiki</a>
+                        <a href="#" class="card">Configuration</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN -->
+            <div class="widget-panel">
+                <!-- Radio Module -->
+                <div class="paper-sheet">
+                    <div class="widget-title">Internet Radio</div>
+                    <div class="widget-content">
+                        <div class="sqlch-now-playing">
+                            <span class="status-tag" id="radio-status"
+                                >offline</span
+                            >
+                            <div id="stream-title">Not Playing</div>
+                            <div id="stream-meta">Waiting for bridge...</div>
+                        </div>
+                        <div class="audio-controls">
+                            <button class="ctrl-btn" onclick="sendCmd('prev')">
+                                ⏮
+                            </button>
+                            <button class="ctrl-btn" onclick="sendCmd('stop')">
+                                ⏹
+                            </button>
+                            <button class="ctrl-btn" onclick="sendCmd('play')">
+                                ⏵
+                            </button>
+                            <button class="ctrl-btn" onclick="sendCmd('next')">
+                                ⏭
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Poetry / Stoic Meditations Module -->
+                <div class="paper-sheet">
+                    <div class="widget-title">Manuscript</div>
+                    <div class="widget-content">
+                        <div id="quote-display" class="quote-text">...</div>
+                        <div id="quote-author" class="quote-author">...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // CACHE-BUSTER: Aggressively breaks Firefox file:// stylesheet locking
+            (function () {
+                const themeLink = document.getElementById("theme-stylesheet");
+                if (themeLink) {
+                    themeLink.href = `palette.css?v=${Date.now()}`;
+                }
+            })();
+
+            // CLOCK ENGINE
+            function updateClock() {
+                const now = new Date();
+                const hour = now.getHours();
+
+                let greeting = "good evening, phil";
+                if (hour < 12) greeting = "good morning, phil";
+                else if (hour < 18) greeting = "good afternoon, phil";
+
+                const timeOptions = {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                };
+                const dateOptions = {
+                    weekday: "long",
+                    month: "short",
+                    day: "numeric",
+                };
+
+                document.getElementById("clock").textContent =
+                    now.toLocaleTimeString([], timeOptions);
+                document.getElementById("greeting").textContent = greeting;
+                document.getElementById("date").textContent =
+                    now.toLocaleDateString([], dateOptions);
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // STOIC QUOTE FEED (stoic-quotes.com API — real, attributed quotes)
+            const QUOTE_API = "https://www.stoic-quotes.com/api/quote";
+            const QUOTE_CACHE_KEY = "stoic-quote-cache";
+            const QUOTE_REFRESH_MS = 5 * 60 * 1000;
+
+            // Last-resort offline fallback: real quotes only, correctly attributed.
+            const QUOTE_FALLBACK = [
+                {
+                    text: "You have power over your mind - not outside events. Realize this, and you will find strength.",
+                    author: "Marcus Aurelius",
+                },
+                {
+                    text: "The universe is change; our life is what our thoughts make it.",
+                    author: "Marcus Aurelius",
+                },
+                {
+                    text: "We suffer more often in imagination than in reality.",
+                    author: "Seneca",
+                },
+                {
+                    text: "No man is free who is not master of himself.",
+                    author: "Epictetus",
+                },
+            ];
+
+            function renderQuote(quote) {
+                const displayEl = document.getElementById("quote-display");
+                const authorEl = document.getElementById("quote-author");
+                if (!displayEl || !authorEl) return;
+                displayEl.textContent = `"${quote.text}"`;
+                authorEl.textContent = `— ${quote.author}`;
+            }
+
+            async function loadQuote() {
+                try {
+                    const response = await fetch(QUOTE_API);
+                    if (!response.ok) throw new Error();
+                    const quote = await response.json();
+                    renderQuote(quote);
+                    try {
+                        localStorage.setItem(
+                            QUOTE_CACHE_KEY,
+                            JSON.stringify(quote),
+                        );
+                    } catch (err) {
+                        /* localStorage unavailable on file:// in some configs — non-fatal */
+                    }
+                } catch (err) {
+                    let cached = null;
+                    try {
+                        cached = JSON.parse(
+                            localStorage.getItem(QUOTE_CACHE_KEY),
+                        );
+                    } catch (storageErr) {
+                        cached = null;
+                    }
+                    renderQuote(
+                        cached ||
+                            QUOTE_FALLBACK[
+                                Math.floor(
+                                    Math.random() * QUOTE_FALLBACK.length,
+                                )
+                            ],
+                    );
+                }
+            }
+            loadQuote();
+            setInterval(loadQuote, QUOTE_REFRESH_MS);
+
+            // SQLCH DAEMON CONTROL BRIDGE HOOK
+            const BRIDGE_URL = "http://localhost:8766";
+
+            async function updateRadioWidget() {
+                try {
+                    const response = await fetch(`${BRIDGE_URL}/status`);
+                    if (!response.ok) throw new Error();
+                    const data = await response.json();
+
+                    const isPlaying = !!data.current;
+                    const stationName =
+                        data.current?.item?.name || "Not Playing";
+                    const lines = (data.status || "").split("\n");
+                    const trackInfo = lines.length > 1 ? lines[1].trim() : "";
+
+                    document.getElementById("stream-title").textContent =
+                        stationName;
+                    document.getElementById("stream-meta").textContent =
+                        trackInfo || (isPlaying ? "No track info" : "—");
+
+                    const statusTag = document.getElementById("radio-status");
+                    statusTag.textContent = isPlaying ? "playing" : "stopped";
+                    statusTag.style.color = isPlaying
+                        ? "var(--root)"
+                        : "var(--rest)";
+                } catch (err) {
+                    document.getElementById("stream-title").textContent =
+                        "Bridge Offline";
+                    document.getElementById("stream-meta").textContent =
+                        "sqlch-http-bridge not running";
+                    document.getElementById("radio-status").textContent =
+                        "offline";
+                    document.getElementById("radio-status").style.color =
+                        "var(--rest)";
+                }
+            }
+
+            async function sendCmd(action) {
+                try {
+                    const body =
+                        action === "play"
+                            ? { cmd: "play", query: "__last__" }
+                            : { cmd: action };
+                    await fetch(`${BRIDGE_URL}/command`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(body),
+                    });
+                    setTimeout(updateRadioWidget, 150); // Small delay to let system socket pipe settle
+                } catch (err) {
+                    console.error(
+                        "Failed to send command to sqlch-http-bridge",
+                    );
+                }
+            }
+
+            setInterval(updateRadioWidget, 3000);
+            updateRadioWidget();
+        </script>
+    </body>
+</html>

@@ -24,6 +24,7 @@ in
         # Restore the last session: the default (homepage) drops every tab and
         # session-cookie login on each quit, or when a waypipe launch's ssh dies.
         "browser.startup.page"               = 3;
+        "browser.startup.homepage"           = "file://${config.home.homeDirectory}/.local/share/startpage/index.html";
         "privacy.resistFingerprinting"       = false;
         "privacy.clearOnShutdown.cookies"    = false;
         "privacy.clearOnShutdown.cache"      = false;

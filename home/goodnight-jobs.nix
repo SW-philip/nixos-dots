@@ -11,6 +11,9 @@ in
   config = lib.mkIf (jobs != { }) {
     systemd.user.timers = lib.mapAttrs' (_: j: lib.nameValuePair j.timer { Install.WantedBy = lib.mkForce [ ]; }) jobs;
 
+    # a deploy mid-batch must not kill a running job and start it again (sd-switch would wait on it)
+    systemd.user.services = lib.mapAttrs (_: _: { Unit.X-SwitchMethod = "keep-old"; }) jobs;
+
     xdg.configFile."goodnight/jobs.json".text =
       builtins.toJSON (lib.mapAttrs (_: j: { inherit (j) every stage; }) jobs);
   };

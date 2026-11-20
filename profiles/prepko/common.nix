@@ -80,6 +80,7 @@ in
     ../../home/tree-sync.nix
     ../../home/theme-sync.nix
     ../../home/fleet-status.nix
+    ../../home/lock-sync.nix
     ../../home/whats-new.nix
     ../../home/nixfetch.nix
     ../../home/sync-status.nix
@@ -93,6 +94,9 @@ in
   ];
 
   sqlch.gui.enable = true;
+
+  # Firefox homepage (home/firefox). palette.css beside it is written by the theme engine.
+  xdg.dataFile."startpage/index.html" = { source = ../../home/startpage/index.html; force = true; };
   home.sessionVariables.CLAUDE_ENV_FILE = "$HOME/.claude/.env";
 
   systemd.user.services = {

@@ -1,4 +1,4 @@
-{ config, pkgs, ports, ... }:
+{ config, lib, pkgs, ports, ... }:
 let
   querylogDir = "/run/AdGuardHome";
   # AdGuard writes the log 0600 as its DynamicUser, so the reader needs root.
@@ -8,6 +8,13 @@ let
       [ -f "$f" ] && cat "$f"
     done
   '';
+  # Domains the blocklists catch that something needs. Source of truth: with
+  # mutableSettings, user_rules below replaces whatever the web UI saved, so
+  # add entries here, not in the UI. An allow rule also covers subdomains.
+  # Find candidates with `dnslog -b -f <device>` while the broken thing retries.
+  allow = {
+    # "example.com" = "what breaks without it";
+  };
 in
 {
   services.adguardhome = {
@@ -51,6 +58,8 @@ in
         interval = "24h";
       };
       statistics.interval = "24h";
+      # "!" starts a comment in AdGuard rule syntax
+      user_rules = lib.mapAttrsToList (d: why: "@@||${d}^ ! ${why}") allow;
     };
   };
 

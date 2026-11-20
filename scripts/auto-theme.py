@@ -18,7 +18,6 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -29,17 +28,15 @@ except ImportError:
     print("❌ Error: 'requests' library not found. Install with: pip install requests")
     sys.exit(1)
 
-from theme_lib.paths import THEMES_ROOT, DARK_DIR, PALETTE_SOURCES, ROSE_PINE_SLUGS
-from theme_lib.colormath import parse_colorhunt_url, map_colorhunt_to_slots
-from theme_lib.palette import derive_full_palette
 from theme_lib.cache import load_cache
-from theme_lib.sources import fetch_api_palette, fetch_rose_pine_palette
-from theme_lib.scoring import print_source_comparison
-from theme_lib.registry import register_theme, theme_exists, _read_sh_palette
-from theme_lib.locking import is_locked
-from theme_lib.naming import slugify
 from theme_lib.categories import CATEGORIES, run_category
-
+from theme_lib.colormath import map_colorhunt_to_slots, parse_colorhunt_url
+from theme_lib.locking import is_locked
+from theme_lib.palette import derive_full_palette
+from theme_lib.paths import PALETTE_SOURCES, ROSE_PINE_SLUGS, THEMES_ROOT
+from theme_lib.registry import _read_sh_palette, register_theme, theme_exists  # noqa: F401  theme_exists: tests reach it via auto_theme
+from theme_lib.scoring import print_source_comparison
+from theme_lib.sources import fetch_api_palette, fetch_rose_pine_palette
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
@@ -74,7 +71,6 @@ def main():
     active_category = next((c for c in CATEGORIES if getattr(args, c.replace("-", "_"))), None)
 
     # 1. PRE-FLIGHT DATA LOADING
-    teams = []
     api_cache = load_cache()
 
     # 2. GLOBAL HELP CHECK

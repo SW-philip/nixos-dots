@@ -33,9 +33,8 @@ def read(text):
 
 
 def palette():
-    f = tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False)
-    f.write('export REST="#0a141e"\nexport ROOT="#646e78"\nexport FERMATA="#c8d2dc"\nexport FORTE="#fa0000"\n')
-    f.close()
+    with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as f:
+        f.write('export REST="#0a141e"\nexport ROOT="#646e78"\nexport FERMATA="#c8d2dc"\nexport FORTE="#fa0000"\n')
     c = qv.make_colours(f.name)
     os.unlink(f.name)
     return c

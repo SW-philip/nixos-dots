@@ -48,6 +48,7 @@ if [[ $CHROOT_ONLY -eq 1 ]]; then
     MOUNTPOINT=$(ask "mountpoint" "/mnt")
     LUKS_NAME=$(ask "LUKS mapper name to close on exit (empty to skip)" "enclosure_root")
 
+    # shellcheck disable=SC2329  # invoked by the trap below
     cleanup() {
         log "cleaning up"
         while IFS= read -r target; do

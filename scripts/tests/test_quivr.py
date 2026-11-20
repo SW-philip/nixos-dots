@@ -16,7 +16,7 @@ class Once(unittest.TestCase):
         os.chmod(stub, 0o755)
         env = dict(os.environ, QUIVR_HOSTS=hosts, QUIVR_SSH=stub, QUIVR_PALETTE="/nonexistent", COLUMNS="140")
         script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "quivr.py")
-        return subprocess.run([sys.executable, script, "--once"], env=env, capture_output=True, text=True, timeout=30)
+        return subprocess.run([sys.executable, script, "--once"], env=env, capture_output=True, text=True, timeout=30, check=False)
 
     def test_once_renders_streamed_hosts(self):
         r = self.run_once("alpha beta", f'echo "{LINE}"\nexec sleep 30\n')
@@ -69,7 +69,7 @@ class OnceDetail(Once):
                    COLUMNS="120", LINES="40")
         script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "quivr.py")
         return subprocess.run([sys.executable, script, "--once", "--detail", host],
-                              env=env, capture_output=True, text=True, timeout=30)
+                              env=env, capture_output=True, text=True, timeout=30, check=False)
 
     def test_detail_once_renders_a_frame(self):
         r = self.run_detail("alpha", f"cat <<'EOF'\n{DETAIL}EOF\nexec sleep 30\n")

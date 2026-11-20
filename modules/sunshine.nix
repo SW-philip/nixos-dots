@@ -51,6 +51,12 @@ in
   # KMS capture can't initialise while the outputs are in DPMS off (the idle
   # blank): Sunshine then drops its CAP_SYS_ADMIN and every encoder fails with
   # "Failed to gain CAP_SYS_ADMIN". Wake them before each (re)start.
+  # services.sunshine installs a global user unit, so without this every
+  # graphical login starts one. The guest's runs with empty tmpfs state: no
+  # credentials, open to first-run setup and pairing from the tailnet.
+  systemd.user.services.sunshine.unitConfig.ConditionUser = config.myConfig.user;
+  systemd.user.services.sunshine-wake.unitConfig.ConditionUser = config.myConfig.user;
+
   systemd.user.services.sunshine.serviceConfig.ExecStartPre = [
     "-${config.programs.niri.package}/bin/niri msg action power-on-monitors"
     "${pkgs.coreutils}/bin/sleep 3"

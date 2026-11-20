@@ -29,7 +29,6 @@ in
     ../../modules/retro-tiles.nix
     ../../modules/btrbk.nix
     ../../modules/guest.nix
-    ../../modules/overnight-notify.nix
     ./myln.nix
     ./impermanence.nix
   ];
@@ -205,6 +204,8 @@ in
   # appends to the NixOS defaults instead of replacing them.
   services.openssh.settings.Macs = lib.mkOptionDefault [ "hmac-sha2-256" ];
   users.users.prepko.openssh.authorizedKeys.keys = [
+    # surface's lock-sync key: can only run `lock-sync recv lock|unlock|gw` (home/lock-sync.nix), no shell/forwarding.
+    ''restrict,from="${inventory.surface.ip}",command="/etc/profiles/per-user/prepko/bin/lock-sync recv-ssh" ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY
     ''from="10.0.0.0/24" ssh-ed25519 AAAA-REPLACE-WITH-YOUR-PUBLIC-KEY
   ];
 
@@ -272,8 +273,7 @@ in
   # aarch64 derivations through qemu-user.
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
-  # goodnight runs these instead of their timers (modules/goodnight-jobs.nix) and overnight records
-  # them (modules/overnight-notify.nix); user-side ones in the profile
+  # goodnight runs these instead of their timers (modules/goodnight-jobs.nix); user-side ones in the profile
   goodnight.jobs = {
     btrbk-daily = { every = "day"; stage = "data"; };
     jellyfin-whisper.every = "day";

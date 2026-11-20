@@ -41,7 +41,8 @@ case \$cmd in
   *"/.config/goodnight/jobs.json"*) cat "\$T/jobs/\$host-user.json" 2>/dev/null; exit 0 ;;
   *"start --wait"*) u=\${cmd##* }; u=\${u%.service}; echo "\$host \$u" >> "\$T/started.log"; exit \$(cat "\$T/units/\$host-\$u.rc" 2>/dev/null || echo 0) ;;
   *"show -p Result -p ExecMainExitTimestamp"*) u=\${cmd##* }; u=\${u%.service}; cat "\$T/units/\$host-\$u.sd" 2>/dev/null; exit 0 ;;
-  *"show -p Result --value"*) u=\${cmd##* }; cat "\$T/units/\$host-\$u" 2>/dev/null || echo success; exit 0 ;;
+  *"show -p Result -p InvocationID"*) u=\${cmd##* }; echo "Result=\$(cat "\$T/units/\$host-\$u" 2>/dev/null || echo success)"; echo "InvocationID=inv-\${u%.service}"; exit 0 ;;
+  *"journalctl"*"_SYSTEMD_INVOCATION_ID=inv-"*) echo "last words of \${cmd#*inv-}"; exit 0 ;;
   *key-escrow*) n=\$(grep -oE 'key-escrow/[A-Za-z]+' <<<"\$cmd" | cut -d/ -f2); cat "\$T/escrow/\$n" 2>/dev/null; exit 0 ;;
 esac
 exit 0
@@ -83,7 +84,7 @@ C=$(git -C "$T/repo" rev-parse HEAD)   # ahead of main, only local (wip)
 
 stamp() { date -d "$1 hours ago" +%Y%m%dT%H%M; }
 fresh_world() {
-  rm -rf "$T/me" "$T/self-reboot.log" "$T/boot"/* "$T/never-back"/* "$T/uptime"/* "$T/reboot.log" "$T/sudo-refused" "$T/down"/* "$T/rev"/* "$T/units"/* "$T/deploy.log" "$T/deploy.rc" "$T/notify.log" "$T/state"/* "$T/escrow"/* "$T/jobs"/* "$T/started.log"
+  rm -rf "$T/me" "$T/self-reboot.log" "${T:?}/boot"/* "$T/never-back"/* "$T/uptime"/* "$T/reboot.log" "$T/sudo-refused" "$T/down"/* "$T/rev"/* "$T/units"/* "$T/deploy.log" "$T/deploy.rc" "$T/notify.log" "$T/state"/* "$T/escrow"/* "$T/jobs"/* "$T/started.log"
   for h in pi retro desktop surface; do echo "$A" > "$T/rev/$h"; done   # everyone one commit behind main
   { echo "home.$(stamp 3)"; } > "$T/btrbk/home"; { echo "persist.$(stamp 3)"; } > "$T/btrbk/persist"
   date +%s > "$T/escrow/SWphil"; date +%s > "$T/escrow/SWsurface"
@@ -198,6 +199,8 @@ jobs_world; echo 3 > "$T/units/desktop-btrbk-daily.rc"; echo exit-code > "$T/uni
 out=$(gn run data); rc=$?
 assert_eq "jobs: a failed job warns, the run goes on" "warn 0" "$(phase_status data) $rc"
 assert_has "jobs: names the failure" "$out" "desktop btrbk-daily: FAILED (exit-code)"
+assert_has "jobs: points at the run's journal" "$out" "; ssh desktop journalctl _SYSTEMD_INVOCATION_ID=inv-btrbk-daily"
+assert_has "jobs: quotes the run's last words" "$out" "| last words of btrbk-daily"
 assert_has "jobs: later jobs still ran" "$(cat "$T/started.log")" "desktop icloud-pull"
 rm -f "$T/started.log" "$T/units/desktop-btrbk-daily.rc"; gn run data >/dev/null
 assert_eq "jobs: a failed job is due again" "desktop btrbk-daily" "$(cat "$T/started.log")"

@@ -54,12 +54,7 @@ def rosepineify(initial: dict, is_dark: bool, strength: float = 0.7) -> dict:
         new_h = (h + diff * strength) % 1.0
         # Nudge L into range
         l_mid = (l_min + l_max) / 2
-        if l < l_min:
-            new_l = l + (l_mid - l) * strength
-        elif l > l_max:
-            new_l = l + (l_mid - l) * strength
-        else:
-            new_l = l
+        new_l = l + (l_mid - l) * strength if l < l_min or l > l_max else l
         # Lift S to minimum
         new_s = s if s >= s_min else s + (s_min - s) * strength
         result[key] = _hsl_to_hex(new_h, _clamp(new_s), _clamp(new_l))

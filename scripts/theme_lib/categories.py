@@ -10,13 +10,10 @@ Part 2's multi-source `gather → score → pick_best` can replace the single-so
 default without touching this orchestration.
 """
 
-from pathlib import Path
-
-from theme_lib.paths import THEMES_ROOT
 from theme_lib.naming import slugify
-from theme_lib.registry import theme_exists, register_theme
+from theme_lib.paths import THEMES_ROOT
+from theme_lib.registry import register_theme, theme_exists
 from theme_lib.sources import fetch_api_palette
-
 
 CATEGORIES = {
     "animals": {

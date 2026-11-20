@@ -13,8 +13,8 @@ from pathlib import Path
 from theme_lib.legibility import legibility_problems
 from theme_lib.musical import to_musical
 from theme_lib.naming import slugify
-from theme_lib.paths import DARK_DIR, THEMES_ROOT, MAKE_WALLPAPER, NIXOS_ROOT
-from theme_lib.palette_files import write_nix, write_sh, SEED_KEYS
+from theme_lib.palette_files import SEED_KEYS, write_nix, write_sh
+from theme_lib.paths import DARK_DIR, MAKE_WALLPAPER, NIXOS_ROOT, THEMES_ROOT
 from theme_lib.variant import set_pair
 
 
@@ -74,6 +74,7 @@ def register_theme(name: str, palette: dict, source: str, force: bool = False,
                 [sys.executable, str(MAKE_WALLPAPER), str(theme_dir)],
                 cwd=str(NIXOS_ROOT),
                 timeout=60,
+                check=False,
             )
             if result.returncode != 0:
                 print(f"⚠️  Wallpaper generation failed (exit {result.returncode})")

@@ -21,7 +21,7 @@ set -euo pipefail
 declare -A LUKS_DESCS
 
 case "$(hostname)" in
-  desktop)
+  desktop|SWphil)
     MACHINE="desktop"
     LUKS_DESCS=(
       ["d8543351-206f-4b3e-884f-9d0ea8c2eebd"]="root+home (nvme)"
@@ -34,7 +34,7 @@ case "$(hostname)" in
       ["de445ba9-d179-4470-a560-6c06f52a6481"]="cryptroot (nvme)"
     )
     ;;
-  retro)
+  retro|SWretro)
     MACHINE="retro"
     LUKS_DESCS=(
       ["a852db3d-1e7f-44c1-951e-7ff87edcffe6"]="root+home (sata ssd)"

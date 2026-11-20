@@ -147,7 +147,7 @@ if [ -n "$email_hits" ]; then
 fi
 
 # disk UUIDs in hardware-configuration.nix — usually fine, but worth flagging
-if [ -n "$(echo "$TRACKED" | grep hardware-configuration)" ]; then
+if grep -q hardware-configuration <<<"$TRACKED"; then
   note "hardware-configuration.nix present (disk UUIDs leak — usually acceptable)"
 fi
 
@@ -156,14 +156,7 @@ fi
 # ---------------------------------------------------------------------------
 section "5. git history (this is the one that bites)"
 
-# search all of history for the hard patterns
-for pat in "${HARD_PATTERNS[@]}"; do
-  matches=$(git log -p --all -S "$(echo "$pat" | sed 's/[].*+?()|\\^$[]/_/g; s/_\{2,\}/_/g; s/_/./g')" 2>/dev/null \
-    | grep -E "$pat" | head -3 || true)
-  # the -S above is best-effort; do a slower but correct grep-through-log too
-done
-
-# the correct (slow) way: scan every blob
+# scan every blob for the hard patterns
 note "scanning every blob in history for hard patterns..."
 all_blobs=$(git rev-list --objects --all | awk '{print $1}' | sort -u | head -5000)
 hist_found=0
@@ -226,5 +219,5 @@ section "9. public-repo etiquette"
 [ -f README.md ] || warn "no README.md"
 [ -f LICENSE ] || warn "no LICENSE (consider MIT or CC0 for dotfiles)"
 
-printf "\n${B}== done ==${N}\n"
-printf "${D}    red = fix before pushing. yellow = read and decide.${N}\n\n"
+printf '\n%s== done ==%s\n' "$B" "$N"
+printf '%s    red = fix before pushing. yellow = read and decide.%s\n\n' "$D" "$N"

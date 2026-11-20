@@ -233,7 +233,7 @@ declare -A imp_count
 while IFS= read -r line; do
   imp=$(echo "$line" | grep -oP '\.\.?/[\w./]+\.nix' | head -1)
   [ -z "$imp" ] && continue
-  imp=$(echo "$imp" | sed 's|^\./||')
+  imp=${imp#./}
   imp_count[$imp]=$((${imp_count[$imp]:-0} + 1))
 done < <(grep -rh "^\s*\.\." --include="*.nix" --exclude-dir=.claude . 2>/dev/null || true)
 
@@ -267,7 +267,7 @@ declare -a dead_files=()
 
 while IFS= read -r nixfile; do
   base=$(basename "$nixfile")
-  relpath=$(echo "$nixfile" | sed 's|^\./||')
+  relpath=${nixfile#./}
 
   [[ "$base" == "flake.nix" ]] && continue
   [[ "$base" == "home.nix" ]] && continue
@@ -278,16 +278,14 @@ while IFS= read -r nixfile; do
 
   refs=$(grep -rl "$base" --include="*.nix" --exclude-dir=.claude . 2>/dev/null \
     | grep -v "^\./$relpath$" \
-    | grep -v "flake\.lock" \
-    | wc -l || true)
+    | grep -vc "flake\.lock" || true)
 
   # Also skip files whose parent directory is dynamically imported via builtins.readDir
   # (any folder a module loads with `builtins.readDir`)
   parent_dir=$(dirname "$relpath")
   dir_refs=$(grep -rl "\./\b${parent_dir}\b" --include="*.nix" --exclude-dir=.claude . 2>/dev/null \
     | grep -v "flake\.lock" \
-    | grep -v "^\./$relpath$" \
-    | wc -l || true)
+    | grep -vc "^\./$relpath$" || true)
 
   [ "$refs" -eq 0 ] && [ "$dir_refs" -eq 0 ] && dead_files+=("$relpath")
 done < <(find . -name "*.nix" -not -path "./.git/*" -not -path "./.claude/*" -not -name "flake.lock")
@@ -414,9 +412,9 @@ while IFS= read -r match; do
   echo "$file" | grep -qE "^./hosts/" && continue
   echo "$file" | grep -qE "$GENERATED" && continue
   [[ -n "${username_files_seen[$file]:-}" ]] || {
-    fail "hardcoded username in \"$(echo "$file" | sed 's|^\./||')\" — use a variable"
+    fail "hardcoded username in \"${file#./}\" — use a variable"
     fix_note "Replace literal \"prepko\" with a NixOS option (e.g. config.myConfig.user or a module argument)"
-    fix_grep '"prepko"\|/home/prepko' "$(echo "$file" | sed 's|^\./||')"
+    fix_grep '"prepko"\|/home/prepko' "${file#./}"
     username_files_seen[$file]=1
     ((hardcoded++))
   }
@@ -444,7 +442,7 @@ declare -A secret_files_seen=()
 while IFS= read -r match; do
   file=$(echo "$match" | cut -d: -f1)
   echo "$file" | grep -qE "$GENERATED" && continue
-  relfile=$(echo "$file" | sed 's|^\./||')
+  relfile=${file#./}
   [[ -n "${secret_files_seen[$relfile]:-}" ]] || {
     warn "possible plaintext secret in \"$relfile\""
     fix_note "Replace literal value with: config.sops.secrets.\"<name>\".path (NixOS) or config.home.file via sops-nix HM module"
@@ -471,7 +469,7 @@ done < <(
 while IFS= read -r match; do
   file=$(echo "$match" | cut -d: -f1)
   echo "$file" | grep -qE "$GENERATED" && continue
-  relfile=$(echo "$file" | sed 's|^\./||')
+  relfile=${file#./}
   [[ -n "${secret_files_seen[$relfile]:-}" ]] || {
     warn "hardcoded secret file path in \"$relfile\" — use sops"
     fix_note "Replace with: config.sops.secrets.\"<name>\".path"
@@ -519,7 +517,7 @@ echo "── Outstanding TODOs in .nix files"
 ########################################
 
 todo_count=$(grep -rn 'TODO\|FIXME\|HACK\|XXX' --include="*.nix" --exclude-dir=.claude . 2>/dev/null \
-  | grep -v "flake\.lock" | grep -v "docs/" | wc -l || true)
+  | grep -v "flake\.lock" | grep -vc "docs/" || true)
 
 if [ "$todo_count" -gt 10 ]; then
   fail "$todo_count TODO/FIXME/HACK markers — high for a public-grade config"
@@ -567,8 +565,8 @@ if [ "${#AUTO_FIX[@]}" -gt 0 ] || [ "${#MANUAL_FIX[@]}" -gt 0 ]; then
   echo
 
   if [ "${#AUTO_FIX[@]}" -gt 0 ]; then
-    printf "${cC}Safe to run (dead files / stale backups — reversible via git):${cX}\n"
-    printf "${cD}  Run with: ./scripts/grade.sh --fix${cX}\n"
+    printf '%sSafe to run (dead files / stale backups — reversible via git):%s\n' "$cC" "$cX"
+    printf '%s  Run with: ./scripts/grade.sh --fix%s\n' "$cD" "$cX"
     echo
     for cmd in "${AUTO_FIX[@]}"; do
       echo "  $cmd"
@@ -577,7 +575,7 @@ if [ "${#AUTO_FIX[@]}" -gt 0 ] || [ "${#MANUAL_FIX[@]}" -gt 0 ]; then
   fi
 
   if [ "${#MANUAL_FIX[@]}" -gt 0 ]; then
-    printf "${cY}Needs your judgment (consolidation, parameterization):${cX}\n"
+    printf '%sNeeds your judgment (consolidation, parameterization):%s\n' "$cY" "$cX"
     echo
     printf '%s\n' "${MANUAL_FIX[@]}" | sort -u | while read -r note; do
       echo "  • $note"

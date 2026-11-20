@@ -188,7 +188,7 @@ echo "== assets =="
 fresh
 mkdir -p "$T/shim" "$T/deskhome/nixos/themes/x" "$T/deskhome/nixos/.claude-shared" "$T/deskhome/nixos/.cache/__pycache__"
 git -C "$T/deskhome/nixos" init -q
-echo '*.png' > "$T/deskhome/nixos/.gitignore"; echo '.claude-shared/' >> "$T/deskhome/nixos/.gitignore"; echo '__pycache__/' >> "$T/deskhome/nixos/.gitignore"
+printf '%s\n' '*.png' '.claude-shared/' '__pycache__/' > "$T/deskhome/nixos/.gitignore"
 printf '%s\n' '*.pem' '*.qcow2' '.env' 'secrets/' 'claude-archive/' >> "$T/deskhome/nixos/.gitignore"
 mkdir -p "$T/deskhome/nixos/secrets" "$T/deskhome/nixos/claude-archive"
 echo k > "$T/deskhome/nixos/secrets/key.pem"; echo d > "$T/deskhome/nixos/big.qcow2"; echo e > "$T/deskhome/nixos/.env"

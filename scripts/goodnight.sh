@@ -56,7 +56,10 @@ finish() { # name status summary [detail...]
 # One checkout of origin/main to deploy from; never the working tree.
 ensure_checkout() {
   # explicit `|| return 1`: callers use this in an `if`, where set -e does not apply
-  git -C "$repo" fetch -q origin main || return 1
+  # A read-only deploy key with no passphrase, and no agent: through gcr-ssh-agent the GitHub key
+  # pops an "unlock key" dialog after every reboot, and the fetch waited on it all night.
+  SSH_AUTH_SOCK='' GIT_SSH_COMMAND="ssh -F /dev/null -i ${GOODNIGHT_GITHUB_KEY:-$HOME/.ssh/id_goodnight_github} -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=20" \
+    timeout 120 git -C "$repo" fetch -q origin main || return 1
   local target
   target=$(git -C "$repo" rev-parse origin/main) || return 1
   # a deleted state dir leaves the worktree registered, and `worktree add` then refuses forever
@@ -240,7 +243,7 @@ phase_audit() {
 job_age() { case $1 in day) echo 72000 ;; week) echo 561600 ;; month) echo 2505600 ;; esac; }
 
 run_stage() { # stage
-  local stage=$1 lines=() worst=ok h scope sc f unit every key last sd res rc t0 dur ran=0 jobs=()
+  local stage=$1 lines=() worst=ok h scope sc f unit every key last sd res inv jcmd k v rc t0 dur ran=0 bad=0 jobs=()
   note() { lines+=("$2"); [[ $(rank "$1") -gt $(rank "$worst") ]] && worst=$1; return 0; }
   [[ -r $jobs_state ]] || echo '{}' > "$jobs_state"
   for h in pi retro desktop surface; do
@@ -272,14 +275,21 @@ run_stage() { # stage
           note ok "$h $unit: ok in $dur"
           jq --arg k "$key" --argjson now "$(date +%s)" '.[$k].ok = $now' "$jobs_state" > "$jobs_state.tmp" && mv "$jobs_state.tmp" "$jobs_state"
         else
-          res=$(run_on "$h" "systemctl $sc show -p Result --value $unit.service" </dev/null 2>/dev/null || echo "unreachable")
-          note warn "$h $unit: FAILED (${res:-exit $rc}) after $dur; overnight log $unit"
+          bad=$((bad + 1)); res="" inv=""
+          while IFS='=' read -r k v; do
+            case $k in Result) res=$v ;; InvocationID) inv=$v ;; esac
+          done < <(run_on "$h" "systemctl $sc show -p Result -p InvocationID $unit.service" </dev/null 2>/dev/null || echo Result=unreachable)
+          if [[ -n $inv ]]; then jcmd="journalctl ${sc:+$sc }_SYSTEMD_INVOCATION_ID=$inv"; else jcmd="journalctl ${sc:+$sc }-u $unit"; fi
+          note warn "$h $unit: FAILED (${res:-exit $rc}) after $dur; $([[ $h == "$me" ]] || echo "ssh $h ")$jcmd"
+          # the run's last words, where a unit leaves its hint (home/archive.nix)
+          if [[ -n $inv ]]; then
+            while IFS= read -r v; do lines+=("  | ${v:0:200}"); done \
+              < <(run_on "$h" "$jcmd -n 3 -o cat --no-pager" </dev/null 2>/dev/null)
+          fi
         fi
       done
     done
   done
-  local bad
-  bad=$(printf '%s\n' "${lines[@]}" | grep -c 'FAILED' || true)
   if (( ${#lines[@]} == 0 )); then finish "$stage" ok "nothing due"
   elif (( bad == 0 )); then finish "$stage" ok "$ran job(s) ran" "${lines[@]}"
   else finish "$stage" "$worst" "$bad of $ran job(s) failed" "${lines[@]}"; fi

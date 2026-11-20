@@ -4,7 +4,6 @@ let
   # sops, not literals: make-public.sh's leak gate rejects any gmail address in the tree.
   secret = name: osConfig.sops.secrets.${name}.path;
 
-  overnight = import ../modules/overnight-package.nix { inherit pkgs; };
 
   # Re-runnable: icloudpd skips anything already on disk.
   icloud-pull = pkgs.writeShellApplication {
@@ -140,21 +139,22 @@ let
   # Runs nightly and can be started by hand (`systemctl --user start <name>`) so a long
   # pull outlives the terminal; on a dropped connection it resumes, skipping what's
   # already on disk. The start limit stops a restart loop once the login needs a human
-  # (fresh 2FA code, revoked token); the unit then fails and OnFailure notifies.
+  # (fresh 2FA code, revoked token); the unit then fails and goodnight's report quotes the
+  # run's last journal lines, so failMsg is logged last.
   nightlyPull = { name, desc, exec, at, failMsg }: {
     services.${name} = {
       Unit = {
         Description = desc;
-        OnFailure = "${name}-failed.service";
-        OnSuccess = "overnight-ok@${name}.service";
         StartLimitIntervalSec = 3600;
         StartLimitBurst = 6;
       };
       Service = {
         ExecStart = exec;
+        ExecStopPost = "${pkgs.writeShellScript "${name}-hint" ''
+          [ "$SERVICE_RESULT" = success ] || echo ${lib.escapeShellArg failMsg}
+        ''}";
         Restart = "on-failure";
         RestartSec = 120;
-        # Retries skip OnFailure; only a run that exhausts the start limit notifies.
         RestartMode = "direct";
       };
     };
@@ -165,13 +165,6 @@ let
         Persistent = true;
       };
       Install.WantedBy = [ "timers.target" ];
-    };
-    services."${name}-failed" = {
-      Unit.Description = "Record that ${name} failed";
-      Service = {
-        Type = "oneshot";
-        ExecStart = "${overnight}/bin/overnight record user ${name} fail ${lib.escapeShellArg failMsg}";
-      };
     };
   };
 in

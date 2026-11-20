@@ -11,7 +11,6 @@ trap 'rm -rf "$T"' EXIT
 fail=0
 assert_eq() { if [[ "$2" != "$3" ]]; then echo "FAIL: $1 — expected '$2', got '$3'"; fail=1; else echo "PASS: $1"; fi; }
 assert_has() { if [[ "$2" != *"$3"* ]]; then echo "FAIL: $1 — missing '$3' in: $2"; fail=1; else echo "PASS: $1"; fi; }
-assert_lacks() { if [[ "$2" == *"$3"* ]]; then echo "FAIL: $1 — unexpected '$3' in: $2"; fail=1; else echo "PASS: $1"; fi; }
 
 mkdir -p "$T/bin" "$T/repo/scripts"
 cp "$ROOT/scripts/deploy-all.sh" "$T/repo/scripts/"

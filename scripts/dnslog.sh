@@ -30,8 +30,15 @@ shift $((OPTIND - 1))
 pattern=${1:-}
 [[ "$n" =~ ^[0-9]+$ ]] || { usage >&2; exit 2; }
 fleet=${FLEET_JSON:-/etc/fleet.json}
+clients=${DNS_CLIENTS_JSON:-$HOME/.config/dnslog/clients.json}
+if [ -r "$clients" ]; then
+  names=$(jq -c 'with_entries({key: .value, value: .key})' "$clients")
+else
+  names=$(jq -c 'with_entries({key: .value.ip, value: .key})' "$fleet" 2>/dev/null || echo '{}')
+fi
 # a fleet host name matches its tailnet IP, the form the log records
-if [ -n "$pattern" ] && ip=$(jq -er --arg h "$pattern" '.[$h].ip // empty' "$fleet" 2>/dev/null); then
+if [ -n "$pattern" ] && ip=$({ jq -er --arg h "$pattern" '.[$h] // empty' "$clients" 2>/dev/null \
+    || jq -er --arg h "$pattern" '.[$h].ip // empty' "$fleet" 2>/dev/null; }); then
   pattern="\"IP\":\"$ip\""
 fi
 
@@ -50,7 +57,6 @@ f=\$(sudo find /var/lib/dns-querylog -name '*.jsonl' | sort | tail -n1)
 $show"
 
 # tailnet clients get their host name; LAN clients stay as IPs
-names=$(jq -c 'with_entries({key: .value.ip, value: .key})' "$fleet" 2>/dev/null || echo '{}')
 
 # Folding is streaming (first row of a group prints at once) so -f never holds a line back.
 ssh -o BatchMode=yes -o ConnectTimeout=10 retro "$remote" \

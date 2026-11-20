@@ -161,35 +161,6 @@ def map_colorhunt_to_slots(colors: list[str]) -> dict:
     }
 
 
-def _adjust_color(hex_color: str, l_offset: float = 0, s_offset: float = 0, h_offset: float = 0) -> str:
-    """Adjusts HSL with clamping and automatic hue compensation for depth."""
-    h, s, l = _hex_to_hsl(hex_color)
-
-    # Auto hue-shift based on direction of lightness change for perceptual depth
-    if l_offset < 0:
-        h -= 0.02  # cool shift when darkening
-        s += 0.05  # prevent muddiness
-    elif l_offset > 0:
-        h += 0.02  # warm shift when lightening
-        s -= 0.02  # prevent neon-glow
-
-    return _hsl_to_hex(
-        (h + h_offset) % 1.0,
-        _clamp(s + s_offset),
-        _clamp(l + l_offset),
-    )
-
-def _get_farthest_hue(hex_color: str) -> str:
-    """Returns a high-contrast accent hue using the Golden Ratio."""
-    h, s, l = _hex_to_hsl(hex_color)
-    # Use the Golden Ratio (approx 0.618) to find a harmonious but distinct hue
-    return _hsl_to_hex((h + 0.618033988749895) % 1.0, s, l)
-
-def _get_text_color(hex_color: str) -> str:
-    r, g, b = int(hex_color[1:3], 16), int(hex_color[3:5], 16), int(hex_color[5:7], 16)
-    brightness = (r * 299 + g * 587 + b * 114) // 1000
-    return "#1a1a1a" if brightness > 155 else "#ffffff"
-
 def _theme_mode(hex_color: str) -> str:
     r, g, b = int(hex_color[1:3], 16), int(hex_color[3:5], 16), int(hex_color[5:7], 16)
     brightness = (r * 299 + g * 587 + b * 114) // 1000
